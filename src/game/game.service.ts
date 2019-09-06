@@ -1,28 +1,39 @@
 import { Injectable } from '@nestjs/common';
-import { Client, Store } from '../types';
-import { scan } from 'rxjs/operators';
+import { Client, Action } from '../types';
+import { scan, map } from 'rxjs/operators';
+import { Store } from '../common/Store';
+
+enum ACTION {
+    JOIN,
+    LEAVE,
+}
 @Injectable()
-export class GameService extends Store {
-    readonly store$ = this.action$.pipe(
-        scan((current, { type, payload }) => {
+export class GameService extends Store<ACTION> {
+    private readonly store$ = this.action$.pipe(
+        scan((state, { type, payload }) => {
+            const cloned = new Set(state);
             switch (type) {
-                case 'JOIN':
-                    current.add(payload);
-                    return current;
-                case 'LEAVE':
-                    current.delete(payload);
-                    return current;
+                case ACTION.JOIN:
+                    cloned.add(payload);
+                    return cloned;
+                case ACTION.LEAVE:
+                    cloned.delete(payload);
+                    return cloned;
                 default:
-                    return new Set();
+                    return cloned;
             }
         }, new Set<Client>()),
     );
 
+    connectedClient$ = this.store$.pipe(
+        map(clients => [...clients].map(client => client.name)),
+    );
+
     addClient(client: Client) {
-        this.dispatch({ type: 'JOIN', payload: client });
+        this.dispatch({ type: ACTION.JOIN, payload: client });
     }
 
     removeClient(client: Client) {
-        this.dispatch({ type: 'LEAVE', payload: client });
+        this.dispatch({ type: ACTION.LEAVE, payload: client });
     }
 }
