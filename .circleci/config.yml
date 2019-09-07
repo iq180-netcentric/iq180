@@ -22,7 +22,7 @@ jobs:
             - /caches/app.tar
       - run:  
           name: Login to Heroku Docker registy
-          command: docker login --username=_ --password=$TOKEN registry.heroku.com
+          command: docker login --username=_ --password=$HEROKU_TOKEN registry.heroku.com
       - run:
           name: Load Docker image layer cache
           command: |
@@ -35,7 +35,7 @@ jobs:
               heroku container:push web --app=$APP_NAME
             fi
             if [ "${CIRCLE_BRANCH}" == "staging" ]; then
-              heroku container:push web --app=$STAGIN_APP_NAME
+              heroku container:push web --app=$STAGING_APP_NAME
             fi
       - run:
           name: Deploy
@@ -44,7 +44,7 @@ jobs:
               heroku container:release web --app=$APP_NAME
             fi
             if [ "${CIRCLE_BRANCH}" == "staging" ]; then
-              heroku container:release web --app=$STAGIN_APP_NAME
+              heroku container:release web --app=$STAGING_APP_NAME
             fi
 workflows:
   version: 2.1
