@@ -24,6 +24,9 @@ jobs:
           name: Login to Heroku Docker registy
           command: docker login --username=_ --password=$HEROKU_TOKEN registry.heroku.com
       - run:
+          name: Heroku Auth
+          command: sh scripts/setup-heroku.sh
+      - run:
           name: Load Docker image layer cache
           command: |
             set +o pipefail
