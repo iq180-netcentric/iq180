@@ -10,9 +10,10 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk --no-cache add curl
-            apk --no-cache add curl-dev
-            apk --no-cache add bash
+            apk add --no-cache curl
+            apk add --no-cache curl-dev
+            apk add --no-cache bash
+            apk add  --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/v3.7/main/ nodejs=8.9.3-r1
             curl https://cli-assets.heroku.com/install.sh | sh
       - restore_cache:
           keys:
