@@ -12,6 +12,7 @@ jobs:
           command: |
             apk --no-cache add curl
             apk --no-cache add curl-dev
+            apk --no-cache add bash
             curl https://cli-assets.heroku.com/install.sh | sh
       - restore_cache:
           keys:
