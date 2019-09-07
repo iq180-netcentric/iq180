@@ -1,0 +1,56 @@
+version: 2.1
+jobs:
+  build-and-deploy:
+    working_directory: /app
+    docker:
+      - image: docker:17.05.0-ce-git
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Install dependencies
+          command: |
+            apk add curl
+            curl https://cli-assets.heroku.com/install.sh | sh
+      - restore_cache:
+          keys:
+            - v1-{{ .Branch }}
+          paths:
+            - /caches/app.tar
+      - run:  
+          name: Login to Heroku Docker registy
+          command: docker login --username=_ --password=$TOKEN registry.heroku.com
+      - run:
+          name: Load Docker image layer cache
+          command: |
+            set +o pipefail
+            docker load -i /caches/app.tar | true
+      - run:
+          name: Push to registry
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              heroku container:push web --app=$APP_NAME
+            fi
+            if [ "${CIRCLE_BRANCH}" == "staging" ]; then
+              heroku container:push web --app=$STAGIN_APP_NAME
+            fi
+      - run:
+          name: Deploy
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              heroku container:release web --app=$APP_NAME
+            fi
+            if [ "${CIRCLE_BRANCH}" == "staging" ]; then
+              heroku container:release web --app=$STAGIN_APP_NAME
+            fi
+workflows:
+  version: 2.1
+  build-and-deploy:
+    jobs:
+      - build-and-deploy:
+          filters:
+            branches:
+              only:
+                - staging
+                - master
+
