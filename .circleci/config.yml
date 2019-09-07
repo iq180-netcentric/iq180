@@ -3,14 +3,15 @@ jobs:
   build-and-deploy:
     working_directory: /app
     docker:
-      - image: docker:17.05.0-ce-git
+      - image: docker:17.09.0-git
     steps:
       - checkout
       - setup_remote_docker
       - run:
           name: Install dependencies
           command: |
-            apk add curl
+            apk --no-cache add curl
+            apk --no-cache add curl-dev
             curl https://cli-assets.heroku.com/install.sh | sh
       - restore_cache:
           keys:
