@@ -27,6 +27,7 @@
     "@nestjs/websockets": "^6.6.7",
     "@types/ws": "^6.0.3",
     "monet": "^0.9.0",
+    "redux": "^4.0.4",
     "reflect-metadata": "^0.1.12",
     "rimraf": "^2.6.2",
     "rxjs": "^6.5.3"

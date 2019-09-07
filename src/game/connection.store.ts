@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { Client, Action } from '../types';
-import { scan, map, filter, tap } from 'rxjs/operators';
-import { Store } from '../common/Store';
+import { map } from 'rxjs/operators';
+import { StoreService } from '../store/store.service';
 
-export enum ACTION {
-    JOIN,
-    LEAVE,
+export const enum ACTION {
+    JOIN = 'JOIN',
+    LEAVE = 'LEAVE',
 }
 
-export const reducer = (
+export const connectionsReducer = (
     state: Set<Client>,
     { type, payload }: Action<ACTION>,
 ) => {
@@ -24,21 +24,18 @@ export const reducer = (
             return cloned;
     }
 };
-@Injectable()
-export class ConnectionStore extends Store<ACTION> {
-    private readonly store$ = this.action$.pipe(
-        scan(reducer, new Set<Client>()),
-    );
 
+@Injectable()
+export class ConnectionStore {
+    constructor(private readonly storeService: StoreService) {}
+    private readonly store$ = this.storeService.select('connections');
     connectedClient$ = this.store$.pipe(
         map(clients => [...clients].map(client => client.name)),
     );
-
     addClient(client: Client) {
-        this.dispatch({ type: ACTION.JOIN, payload: client });
+        this.storeService.dispatch({ type: ACTION.JOIN, payload: client });
     }
-
     removeClient(client: Client) {
-        this.dispatch({ type: ACTION.LEAVE, payload: client });
+        this.storeService.dispatch({ type: ACTION.LEAVE, payload: client });
     }
 }

@@ -7,7 +7,7 @@ export interface Event<T = any> {
     data: T;
 }
 
-export interface Action<Type = string, Payload = any> {
+export interface Action<Type = any, Payload = any> {
     type: Type;
     payload: Payload;
 }
