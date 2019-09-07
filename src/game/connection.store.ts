@@ -2,26 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { Client, Action } from '../types';
 import { map } from 'rxjs/operators';
 import { StoreService } from '../store/store.service';
+import { Set } from 'immutable';
 
 export const enum ACTION {
     JOIN = 'JOIN',
     LEAVE = 'LEAVE',
 }
 
-export const connectionsReducer = (
-    state: Set<Client>,
-    { type, payload }: Action<ACTION>,
+export const connectionReducer = (
+    state: Set<Client> = Set(),
+    { type, payload }: Action<ACTION, Client>,
 ) => {
-    const cloned = new Set(state);
     switch (type) {
         case ACTION.JOIN:
-            cloned.add(payload);
-            return cloned;
+            if (state.has(payload)) return state;
+            return state.add(payload);
         case ACTION.LEAVE:
-            cloned.delete(payload);
-            return cloned;
+            if (!state.has(payload)) return state;
+            return state.delete(payload);
         default:
-            return cloned;
+            return state;
     }
 };
 
@@ -29,9 +29,8 @@ export const connectionsReducer = (
 export class ConnectionStore {
     constructor(private readonly storeService: StoreService) {}
     private readonly store$ = this.storeService.select('connections');
-    connectedClient$ = this.store$.pipe(
-        map(clients => [...clients].map(client => client.name)),
-    );
+    connectedClient$ = this.store$.pipe(map(c => Array.from(c)));
+
     addClient(client: Client) {
         this.storeService.dispatch({ type: ACTION.JOIN, payload: client });
     }

@@ -1,6 +1,6 @@
-import { connectionsReducer } from '../game/connection.store';
+import { connectionReducer } from '../game/connection.store';
 import { combineReducers } from 'redux';
 const allReducers = {
-    connections: connectionsReducer,
+    connections: connectionReducer,
 };
 export const reducer = combineReducers(allReducers);

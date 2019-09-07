@@ -15,6 +15,11 @@ export class StoreService {
     constructor(
         @Inject('STORE') private readonly store: Store<AppState, Action>,
     ) {
+        this.initStore(store);
+    }
+    initStore(store) {
+        store.dispatch({ type: '', payload: '' });
+        this.store$.next(store.getState());
         store.subscribe(() => {
             const oldState = this.store$.value;
             const newState = store.getState();
