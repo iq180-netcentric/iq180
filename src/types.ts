@@ -4,5 +4,5 @@ export interface Client extends WebSocket {
 
 export interface Action<Type = any, Payload = any> {
     type: Type;
-    payload: Payload;
+    payload?: Payload;
 }

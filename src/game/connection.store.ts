@@ -15,10 +15,8 @@ export const connectionReducer = (
 ) => {
     switch (type) {
         case ACTION.JOIN:
-            if (state.has(payload)) return state;
             return state.add(payload);
         case ACTION.LEAVE:
-            if (!state.has(payload)) return state;
             return state.delete(payload);
         default:
             return state;

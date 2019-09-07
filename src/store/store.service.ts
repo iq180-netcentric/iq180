@@ -15,15 +15,19 @@ export class StoreService {
     constructor(
         @Inject('STORE') private readonly store: Store<AppState, Action>,
     ) {
-        this.initStore(store);
+        this.initStore(store, this.store$);
     }
-    initStore(store) {
-        store.dispatch({ type: '', payload: '' });
-        this.store$.next(store.getState());
+    initStore(
+        store: Store<AppState, Action>,
+        store$: BehaviorSubject<AppState>,
+    ) {
+        store$.next(store.getState());
         store.subscribe(() => {
             const oldState = this.store$.value;
             const newState = store.getState();
-            if (oldState != newState) this.store$.next(newState);
+            if (oldState !== newState) {
+                store$.next(newState);
+            }
         });
     }
     dispatch(action: Action) {
