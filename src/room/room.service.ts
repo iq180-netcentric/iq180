@@ -14,7 +14,7 @@ export class RoomService {
         map(players => Array.from(players)),
     );
 
-    addClient(client: SocketClient, input: JoinEvent) {
+    addPlayer(client: SocketClient, input: JoinEvent) {
         const id = uuidv4();
         const info: Player = {
             id,
@@ -22,6 +22,7 @@ export class RoomService {
         };
         client.info = info;
         this.roomStore.addPlayer(client);
+        return info;
     }
 
     removePlayer(client: SocketClient) {

@@ -10,4 +10,5 @@ export interface JoinEvent {
 
 export const enum OUT_EVENT {
     CONNECTED = 'CONNECTED',
+    PLAYER_INFO = 'PLAYER_INFO',
 }
