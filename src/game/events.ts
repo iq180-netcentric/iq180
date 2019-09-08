@@ -3,6 +3,11 @@ export const enum IN_EVENT {
     LEAVE = 'LEAVE',
 }
 
+export interface JoinEvent {
+    name: string;
+    avatar: string;
+}
+
 export const enum OUT_EVENT {
     CONNECTED = 'CONNECTED',
 }
