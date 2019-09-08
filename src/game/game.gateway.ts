@@ -5,8 +5,7 @@ import {
     OnGatewayInit,
 } from '@nestjs/websockets';
 import { SocketClient } from '../types';
-import { IN_EVENT } from './event.constants';
-import { JoinRoom } from './game.interface';
+import { IN_EVENT, JoinEvent } from './events';
 import { RoomService } from '../room/room.service';
 import { GameService } from './game.service';
 @WebSocketGateway()
@@ -17,7 +16,7 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit {
     ) {}
 
     @SubscribeMessage(IN_EVENT.JOIN)
-    join(client: SocketClient, input: JoinRoom) {
+    join(client: SocketClient, input: JoinEvent) {
         this.roomService.addClient(client, input);
     }
 
@@ -27,7 +26,7 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit {
     }
 
     afterInit() {
-        this.gameService.broadcastCurrentPlayer.subscribe();
+        this.gameService.broadcastCurrentPlayer();
     }
 
     handleDisconnect(client: SocketClient) {

@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { RoomStore } from './room.store';
-import { JoinRoom } from '../game/game.interface';
 import { SocketClient } from '../types';
 import * as uuidv4 from 'uuid/v4';
 import { Player } from '../models/player';
 import { map } from 'rxjs/operators';
+import { JoinEvent } from '../game/events';
 
 @Injectable()
 export class RoomService {
@@ -14,7 +14,7 @@ export class RoomService {
         map(players => Array.from(players)),
     );
 
-    addClient(client: SocketClient, input: JoinRoom) {
+    addClient(client: SocketClient, input: JoinEvent) {
         const id = uuidv4();
         const info: Player = {
             id,
