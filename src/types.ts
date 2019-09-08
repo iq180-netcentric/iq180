@@ -1,4 +1,4 @@
-export interface Client extends WebSocket {
+export interface SocketClient extends WebSocket {
     [key: string]: any;
 }
 
