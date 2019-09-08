@@ -1,0 +1,13 @@
+:host {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  .scroll-container {
+    height: 100%;
+    border: 1px solid #e8e8e8;
+    nz-list {
+      padding: 24px;
+    }
+  }
+}
