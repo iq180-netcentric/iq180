@@ -32,7 +32,17 @@ export class HomeComponent implements OnInit {
     ngOnInit() {
         if (!this.authService.player$.value) {
             this.showWelcomeModal();
+        } else {
+            const player: Player = this.authService.player$.getValue();
+            this.socket.emit({
+                event: WebSocketOutgoingEvent.join,
+                data: player,
+            });
         }
+    }
+
+    logout() {
+        this.showWelcomeModal();
     }
 
     showWelcomeModal(): void {

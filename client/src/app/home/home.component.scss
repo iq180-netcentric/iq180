@@ -2,8 +2,20 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    h1 {
-        color: white;
+    nz-header {
+        display: flex;
+        justify-content: space-between;
+        h1 {
+            color: white;
+            display: block;
+        }
+        .right {
+            color: white;
+            .link {
+                color: lightblue;
+                cursor: pointer;
+            }
+        }
     }
     .inner-content {
         height: 100%;

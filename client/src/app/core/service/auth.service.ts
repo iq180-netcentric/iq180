@@ -19,4 +19,9 @@ export class AuthService {
     setPlayer(player: Player) {
         this.player$.next(player);
     }
+
+    clearPlayer() {
+        this.player$.next(undefined);
+        localStorage.removeItem('player');
+    }
 }
