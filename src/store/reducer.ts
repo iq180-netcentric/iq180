@@ -1,6 +1,6 @@
-import { connectionReducer } from '../game/connection.store';
+import { room } from '../room/room.store';
 import { combineReducers } from 'redux';
 const allReducers = {
-    connections: connectionReducer,
+    room,
 };
 export const reducer = combineReducers(allReducers);

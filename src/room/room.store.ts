@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Client, Action } from '../types';
-import { map } from 'rxjs/operators';
+import { SocketClient, Action } from '../types';
 import { StoreService } from '../store/store.service';
 import { Set } from 'immutable';
 
@@ -9,9 +8,9 @@ export const enum ACTION {
     LEAVE = 'LEAVE',
 }
 
-export const connectionReducer = (
-    state: Set<Client> = Set(),
-    { type, payload }: Action<ACTION, Client>,
+export const room = (
+    state: Set<SocketClient> = Set(),
+    { type, payload }: Action<ACTION, SocketClient>,
 ) => {
     switch (type) {
         case ACTION.JOIN:
@@ -24,15 +23,15 @@ export const connectionReducer = (
 };
 
 @Injectable()
-export class ConnectionStore {
+export class RoomStore {
     constructor(private readonly storeService: StoreService) {}
-    private readonly store$ = this.storeService.select('connections');
-    connectedClient$ = this.store$.pipe(map(c => Array.from(c)));
 
-    addClient(client: Client) {
+    readonly store$ = this.storeService.select('room');
+
+    addPlayer(client: SocketClient) {
         this.storeService.dispatch({ type: ACTION.JOIN, payload: client });
     }
-    removeClient(client: Client) {
+    removePlayer(client: SocketClient) {
         this.storeService.dispatch({ type: ACTION.LEAVE, payload: client });
     }
 }
