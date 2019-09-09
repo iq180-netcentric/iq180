@@ -2,13 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RoomStore, room, ACTION } from './room.store';
 import { Set } from 'immutable';
 import { StoreModule } from '../store/store.module';
+import { EventModule } from '../event/event.module';
 
 describe('Room Store', () => {
     let store: RoomStore;
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
-            imports: [StoreModule],
+            imports: [StoreModule, EventModule],
             providers: [RoomStore],
         }).compile();
 
