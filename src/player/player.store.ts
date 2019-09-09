@@ -10,7 +10,7 @@ export const enum ACTION {
     EDIT = 'EDIT',
 }
 
-export const room = (
+export const players = (
     state: Set<Player> = Set(),
     { type, payload }: Action<ACTION, Player>,
 ) => {
@@ -28,7 +28,7 @@ export const room = (
 export class RoomStore {
     constructor(private readonly storeService: StoreService) {}
 
-    readonly store$ = this.storeService.select('room');
+    readonly store$ = this.storeService.select('players');
 
     addPlayer(client: Player) {
         this.storeService.dispatch({ type: ACTION.JOIN, payload: client });

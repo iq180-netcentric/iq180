@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RoomStore } from './room.store';
+import { RoomStore } from './player.store';
 import { SocketClient } from '../types';
 import * as uuidv4 from 'uuid/v4';
 import { PlayerInfo, Player } from '../models/player';
@@ -12,7 +12,7 @@ import {
     SendMessage,
 } from '../event/event.service';
 @Injectable()
-export class RoomService {
+export class PlayerService {
     constructor(
         private readonly roomStore: RoomStore,
         eventService: EventService,

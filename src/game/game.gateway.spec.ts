@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GameGateway } from './game.gateway';
-import { RoomModule } from '../room/room.module';
+import { PlayerModule } from '../player/player.module';
 
 describe('Game Gateway', () => {
     let gateway: GameGateway;
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
-            imports: [RoomModule],
+            imports: [PlayerModule],
             providers: [GameGateway],
         }).compile();
 

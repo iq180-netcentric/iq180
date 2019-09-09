@@ -1,6 +1,6 @@
-import { room } from '../room/room.store';
+import { players } from '../player/player.store';
 import { combineReducers } from 'redux';
 const allReducers = {
-    room,
+    players,
 };
 export const reducer = combineReducers(allReducers);

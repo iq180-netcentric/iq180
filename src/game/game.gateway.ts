@@ -5,10 +5,10 @@ import {
 } from '@nestjs/websockets';
 import { SocketClient } from '../types';
 import { IN_EVENT, JoinEvent } from '../event/events';
-import { RoomService } from '../room/room.service';
+import { PlayerService } from '../player/player.service';
 @WebSocketGateway()
 export class GameGateway implements OnGatewayDisconnect {
-    constructor(private readonly roomService: RoomService) {}
+    constructor(private readonly roomService: PlayerService) {}
 
     @SubscribeMessage(IN_EVENT.JOIN)
     join(client: SocketClient, input: JoinEvent) {
