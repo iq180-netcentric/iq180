@@ -23,6 +23,11 @@ import {
     map,
     endWith,
 } from 'rxjs/operators';
+import {
+    validateForDisplay,
+    calculate,
+    generate,
+} from 'src/app/core/functions/iq180';
 
 @Component({
     selector: 'app-game-field',
@@ -32,11 +37,12 @@ import {
 export class GameFieldComponent implements OnInit {
     numbers$ = new BehaviorSubject<NumberCard[]>([]);
     answer$ = new BehaviorSubject<DraggableCard[]>([]);
+    expectedAnswer$ = new BehaviorSubject<number>(null);
     operators: OperatorCard[] = [
-        { operator: '+', display: '+', disabled: false },
-        { operator: '-', display: '-', disabled: false },
-        { operator: 'x', display: 'x', disabled: false },
-        { operator: '÷', display: '÷', disabled: false },
+        { value: '+', display: '+', disabled: false },
+        { value: '-', display: '-', disabled: false },
+        { value: 'x', display: 'x', disabled: false },
+        { value: '÷', display: '÷', disabled: false },
     ].map(e => ({ ...e, type: CardType.operator }));
     operators$ = this.answer$.pipe(
         map(ans => ans.filter(e => e.type === CardType.operator)),
@@ -77,21 +83,27 @@ export class GameFieldComponent implements OnInit {
     }
 
     reset() {
+        const { question, operators, expectedAnswer } = generate({
+            numberLength: 5,
+            operators: ['+', '-', '*', '/'],
+            integerAnswer: true,
+        });
         this.operators = [
-            { operator: '+', display: '+', disabled: false },
-            { operator: '-', display: '-', disabled: false },
-            { operator: 'x', display: 'x', disabled: false },
-            { operator: '÷', display: '÷', disabled: false },
+            { value: '+', display: '+', disabled: false },
+            { value: '-', display: '-', disabled: false },
+            { value: '*', display: 'x', disabled: false },
+            { value: '/', display: '÷', disabled: false },
         ].map(e => ({ ...e, type: CardType.operator }));
         this.numbers$.next(
-            [
-                { value: 1, display: '1', disabled: false },
-                { value: 2, display: '2', disabled: false },
-                { value: 3, display: '3', disabled: false },
-                { value: 4, display: '4', disabled: false },
-                { value: 5, display: '5', disabled: false },
-            ].map(e => ({ ...e, type: CardType.number })),
+            question
+                .map(e => ({
+                    value: e,
+                    display: e.toString(),
+                    disabled: false,
+                }))
+                .map(e => ({ ...e, type: CardType.number })),
         );
+        this.expectedAnswer$.next(expectedAnswer);
         this.answer$.next([]);
     }
     dropAnswer(event: CdkDragDrop<DraggableCard[]>) {
@@ -200,5 +212,20 @@ export class GameFieldComponent implements OnInit {
 
     isOperator(item: CdkDrag<DraggableCard>) {
         return item.data.type === CardType.operator;
+    }
+
+    get isValidAnswer() {
+        return validateForDisplay({
+            array: this.answer$.value.map(e => e.value),
+            operators: ['+', '-', '*', '/'],
+        });
+    }
+
+    get currentAnswer() {
+        if (this.isValidAnswer) {
+            return calculate(this.answer$.value.map(e => e.value));
+        } else {
+            return 'Invalid';
+        }
     }
 }

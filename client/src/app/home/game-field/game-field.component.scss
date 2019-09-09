@@ -35,7 +35,22 @@
         }
         .answer {
             width: 100%;
+            height: fit-content;
             border: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-around;
+            flex-direction: row;
+            align-items: center;
+            flex-wrap: wrap;
+            .card-list {
+                width: 100%;
+            }
+            .currentAnswer {
+                font-size: 3em;
+            }
+        }
+        .invalid {
+            border: 1px solid red !important;
         }
         .operators {
             border: 1px solid #e8e8e8;

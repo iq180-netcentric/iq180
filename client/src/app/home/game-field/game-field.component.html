@@ -40,8 +40,11 @@
                     <span>{{ card.display }}</span>
                 </div>
             </div>
+            <div class="card-list">
+                Expected Answer : {{ expectedAnswer$ | async }}
+            </div>
         </div>
-        <div class="answer">
+        <div class="answer" nz-row>
             <div
                 cdkDropList
                 #answerList="cdkDropList"
@@ -49,7 +52,13 @@
                 cdkDropListOrientation="horizontal"
                 [cdkDropListConnectedTo]="[numbersList, operatorList]"
                 class="card-list"
+                [ngClass]="{
+                    invalid: !isValidAnswer
+                }"
                 (cdkDropListDropped)="dropAnswer($event)"
+                nz-col
+                [nzMd]="18"
+                [nzXs]="24"
             >
                 <div
                     class="card"
@@ -61,6 +70,9 @@
                 >
                     <span>{{ card.display }}</span>
                 </div>
+            </div>
+            <div class="currentAnswer" nz-col [nzMd]="6" [nzXs]="24">
+                <span>= {{ currentAnswer }}</span>
             </div>
         </div>
         <div class="operators">
