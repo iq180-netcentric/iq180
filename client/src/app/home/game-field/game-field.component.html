@@ -1,91 +1,91 @@
 <div class="main">
-  <div class="current">
-    <nz-card>
-      <nz-card-meta
-        nzTitle="Current Player"
-        nzDescription="This is the description"
-        [nzAvatar]="avatarTemplate"
-      ></nz-card-meta>
-    </nz-card>
-    <ng-template #avatarTemplate>
-      <nz-avatar
-        nzSrc="https://zos.alipayobjects.com/rmsportal/ODTLcjxAfvqbxHnVXCYX.png"
-      ></nz-avatar>
-    </ng-template>
-  </div>
-  <div class="game">
-    <div class="numbers">
-      <div
-        cdkDropList
-        #numbersList="cdkDropList"
-        cdkDropListOrientation="horizontal"
-        [cdkDropListData]="numbers$ | async"
-        [cdkDropListConnectedTo]="[answerList]"
-        class="card-list"
-        (cdkDropListDropped)="dropNumber($event)"
-        [cdkDropListEnterPredicate]="isNumber"
-      >
-        <div
-          class="card"
-          cdkDragBoundary=".game"
-          [cdkDragDisabled]="card.disabled"
-          *ngFor="let card of numbers$ | async; let i = index"
-          (click)="addNumber(card, i)"
-          [cdkDragData]="card"
-          cdkDrag
-        >
-          <span>{{ card.display }}</span>
-        </div>
-      </div>
+    <div class="current">
+        <nz-card>
+            <nz-card-meta
+                nzTitle="Current Player"
+                nzDescription="This is the description"
+                [nzAvatar]="avatarTemplate"
+            ></nz-card-meta>
+        </nz-card>
+        <ng-template #avatarTemplate>
+            <nz-avatar
+                nzSrc="https://zos.alipayobjects.com/rmsportal/ODTLcjxAfvqbxHnVXCYX.png"
+            ></nz-avatar>
+        </ng-template>
     </div>
-    <div class="answer">
-      <div
-        cdkDropList
-        #answerList="cdkDropList"
-        [cdkDropListData]="answer$ | async"
-        cdkDropListOrientation="horizontal"
-        [cdkDropListConnectedTo]="[numbersList, operatorList]"
-        class="card-list answer"
-        (cdkDropListDropped)="dropAnswer($event)"
-      >
-        <div
-          class="card"
-          cdkDragBoundary=".game"
-          *ngFor="let card of answer$ | async; let i = index"
-          (click)="removeCard(card, i)"
-          [cdkDragData]="card"
-          cdkDrag
-        >
-          <span>{{ card.display }}</span>
+    <div class="game">
+        <div class="numbers">
+            <div
+                cdkDropList
+                #numbersList="cdkDropList"
+                cdkDropListOrientation="horizontal"
+                [cdkDropListData]="numbers$ | async"
+                [cdkDropListConnectedTo]="[answerList]"
+                class="card-list"
+                (cdkDropListDropped)="dropNumber($event)"
+                [cdkDropListEnterPredicate]="isNumber"
+            >
+                <div
+                    class="card"
+                    cdkDragBoundary=".game"
+                    [cdkDragDisabled]="card.disabled"
+                    *ngFor="let card of numbers$ | async; let i = index"
+                    (click)="addNumber(card, i)"
+                    [cdkDragData]="card"
+                    cdkDrag
+                >
+                    <span>{{ card.display }}</span>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-    <div class="operators">
-      <div
-        cdkDropList
-        #operatorList="cdkDropList"
-        cdkDropListOrientation="horizontal"
-        [cdkDropListData]="operators"
-        [cdkDropListConnectedTo]="[answerList]"
-        class="card-list"
-        (cdkDropListDropped)="dropOperator($event)"
-        [cdkDropListEnterPredicate]="isOperator"
-      >
-        <div
-          class="card"
-          cdkDragBoundary=".game"
-          [cdkDragDisabled]="(answer$ | async)?.length === 9"
-          *ngFor="let card of operators; let i = index"
-          [cdkDragData]="card"
-          (click)="addOperator(card, i)"
-          cdkDrag
-        >
-          <span>{{ card.display }}</span>
+        <div class="answer">
+            <div
+                cdkDropList
+                #answerList="cdkDropList"
+                [cdkDropListData]="answer$ | async"
+                cdkDropListOrientation="horizontal"
+                [cdkDropListConnectedTo]="[numbersList, operatorList]"
+                class="card-list"
+                (cdkDropListDropped)="dropAnswer($event)"
+            >
+                <div
+                    class="card"
+                    cdkDragBoundary=".game"
+                    *ngFor="let card of answer$ | async; let i = index"
+                    (click)="removeCard(card, i)"
+                    [cdkDragData]="card"
+                    cdkDrag
+                >
+                    <span>{{ card.display }}</span>
+                </div>
+            </div>
         </div>
-      </div>
+        <div class="operators">
+            <div
+                cdkDropList
+                #operatorList="cdkDropList"
+                cdkDropListOrientation="horizontal"
+                [cdkDropListData]="operators"
+                [cdkDropListConnectedTo]="[answerList]"
+                class="card-list"
+                (cdkDropListDropped)="dropOperator($event)"
+                [cdkDropListEnterPredicate]="isOperator"
+            >
+                <div
+                    class="card"
+                    cdkDragBoundary=".game"
+                    [cdkDragDisabled]="(answer$ | async)?.length === 9"
+                    *ngFor="let card of operators; let i = index"
+                    [cdkDragData]="card"
+                    (click)="addOperator(card, i)"
+                    cdkDrag
+                >
+                    <span>{{ card.display }}</span>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-  <div class="reset">
-    <button nz-button nzType="danger" (click)="reset()">Reset</button>
-  </div>
+    <div class="reset">
+        <button nz-button nzType="danger" (click)="reset()">Reset</button>
+    </div>
 </div>

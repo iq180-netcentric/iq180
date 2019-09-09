@@ -8,9 +8,11 @@ import { ENV } from './environment.service';
 import {
     WebSocketEvent,
     WebSocketIncomingEvent,
+    WebSocketOutgoingEvent,
 } from '../models/web-socket.model';
 import { Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
+import { Player } from '../models/player.model';
 
 @Injectable({
     providedIn: 'root',
@@ -24,6 +26,10 @@ export class WebSocketService {
             : env.socketUrl;
         this.connection = webSocket<WebSocketEvent<any>>(url);
     }
+
+    emit(event: { event: WebSocketOutgoingEvent; data: any }) {
+        this.connection.next(event);
+    }
 }
 
 export const filterEvent = (event: WebSocketIncomingEvent) => (
@@ -34,7 +40,7 @@ export const filterEvent = (event: WebSocketIncomingEvent) => (
         map(e => {
             switch (e.event) {
                 case WebSocketIncomingEvent.connected:
-                    return e.data as [string];
+                    return e.data as Player[];
                 default:
                     return e.data;
             }
