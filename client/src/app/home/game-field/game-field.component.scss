@@ -10,6 +10,10 @@
         padding: 16px;
         border: 1px solid #e8e8e8;
     }
+    .current {
+        display: flex;
+        justify-content: space-between;
+    }
     .game {
         height: 100%;
         display: flex;

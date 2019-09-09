@@ -1,17 +1,20 @@
 <div class="main">
     <div class="current">
-        <nz-card>
-            <nz-card-meta
-                nzTitle="Current Player"
-                nzDescription="This is the description"
-                [nzAvatar]="avatarTemplate"
-            ></nz-card-meta>
-        </nz-card>
-        <ng-template #avatarTemplate>
-            <nz-avatar
-                nzSrc="https://zos.alipayobjects.com/rmsportal/ODTLcjxAfvqbxHnVXCYX.png"
-            ></nz-avatar>
-        </ng-template>
+        <div>
+            <nz-card>
+                <nz-card-meta
+                    nzTitle="Current Player"
+                    nzDescription="This is the description"
+                    [nzAvatar]="avatarTemplate"
+                ></nz-card-meta>
+            </nz-card>
+            <ng-template #avatarTemplate>
+                <nz-avatar
+                    nzSrc="https://zos.alipayobjects.com/rmsportal/ODTLcjxAfvqbxHnVXCYX.png"
+                ></nz-avatar>
+            </ng-template>
+        </div>
+        <div *ngIf="timer$ | async as timer">Timer: {{ timer }}</div>
     </div>
     <div class="game">
         <div class="numbers">
@@ -74,7 +77,7 @@
                 <div
                     class="card"
                     cdkDragBoundary=".game"
-                    [cdkDragDisabled]="(answer$ | async)?.length === 9"
+                    [cdkDragDisabled]="(operators$ | async)?.length === 4"
                     *ngFor="let card of operators; let i = index"
                     [cdkDragData]="card"
                     (click)="addOperator(card, i)"

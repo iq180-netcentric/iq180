@@ -15,6 +15,7 @@ import {
     NzInputModule,
     NzAlertModule,
     NzRadioModule,
+    NzCheckboxModule,
 } from 'ng-zorro-antd';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -46,6 +47,7 @@ import { WelcomeDialogComponent } from './welcome-dialog/welcome-dialog.componen
         NzAvatarModule,
         NzInputModule,
         NzGridModule,
+        NzCheckboxModule,
         NzListModule,
         NzRadioModule,
         NzButtonModule,

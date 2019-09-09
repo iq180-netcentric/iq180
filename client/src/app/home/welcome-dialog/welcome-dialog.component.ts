@@ -20,8 +20,14 @@ import { AuthService } from 'src/app/core/service/auth.service';
     styleUrls: ['./welcome-dialog.component.scss'],
 })
 export class WelcomeDialogComponent {
-    nickname = new FormControl();
-    avatar = new FormControl();
+    nickname = new FormControl(
+        this.auth.player$.value ? this.auth.player$.value.name : null,
+    );
+    avatar = new FormControl(
+        this.auth.player$.value ? this.auth.player$.value.avatar : null,
+    );
+    remember = new FormControl();
+
     nicknameError$ = new BehaviorSubject<string>(undefined);
 
     avatars = [
@@ -65,8 +71,15 @@ export class WelcomeDialogComponent {
                 event: WebSocketOutgoingEvent.join,
                 data: player,
             });
-            this.players$.pipe(take(1)).subscribe(() => this.destroyModal());
-            this.auth.setPlayer(player);
+            this.socket.connection
+                .pipe(
+                    filterEvent(WebSocketIncomingEvent.playerInfo),
+                    take(1),
+                )
+                .subscribe(data => {
+                    this.destroyModal();
+                    this.auth.setPlayer(player);
+                });
         } else {
             this.nicknameError$.next('Please enter nickname');
         }

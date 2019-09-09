@@ -1,12 +1,14 @@
 export interface WebSocketEvent<T> {
-  event: WebSocketIncomingEvent | WebSocketOutgoingEvent;
-  data: T;
+    event: WebSocketIncomingEvent | WebSocketOutgoingEvent;
+    data: T;
 }
 
 export enum WebSocketIncomingEvent {
-  connected = 'connected'
+    connected = 'CONNECTED',
+    playerInfo = 'PLAYER_INFO',
 }
 
 export enum WebSocketOutgoingEvent {
-  join = 'join'
+    join = 'JOIN',
+    leave = 'LEAVE',
 }

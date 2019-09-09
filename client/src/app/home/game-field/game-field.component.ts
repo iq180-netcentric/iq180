@@ -5,7 +5,7 @@ import {
     NumberCard,
     CardType,
 } from 'src/app/core/models/game/card.model';
-import { BehaviorSubject, combineLatest } from 'rxjs';
+import { BehaviorSubject, Observable, empty, interval, of } from 'rxjs';
 import {
     transferArrayItem,
     moveItemInArray,
@@ -14,7 +14,15 @@ import {
     CdkDropList,
     CdkDragEnd,
 } from '@angular/cdk/drag-drop';
-import { arraysEqual } from 'ng-zorro-antd';
+import {
+    startWith,
+    delay,
+    switchMap,
+    tap,
+    take,
+    map,
+    endWith,
+} from 'rxjs/operators';
 
 @Component({
     selector: 'app-game-field',
@@ -30,13 +38,43 @@ export class GameFieldComponent implements OnInit {
         { operator: 'x', display: 'x', disabled: false },
         { operator: '÷', display: '÷', disabled: false },
     ].map(e => ({ ...e, type: CardType.operator }));
+    operators$ = this.answer$.pipe(
+        map(ans => ans.filter(e => e.type === CardType.operator)),
+    );
+
+    timer$: Observable<number>;
+    gaming$ = new BehaviorSubject<boolean>(false);
+
     constructor() {}
 
     ngOnInit() {
         this.reset();
+        this.startGame();
     }
 
+    createTimer(startTime: Date) {
+        const delayMS = startTime.valueOf() - new Date().valueOf();
+        this.timer$ = of(new Date()).pipe(
+            delay(delayMS),
+            switchMap(() => interval(1000)),
+            take(61),
+            map(t => 60 - t),
+        );
+    }
     /* Drag and Drop Stuff */
+    startGame() {
+        const future = new Date().valueOf() + 2000;
+        this.createTimer(new Date(future));
+        this.timer$.subscribe(
+            time => {
+                this.gaming$.next(true);
+            },
+            () => null,
+            () => {
+                this.gaming$.next(false);
+            },
+        );
+    }
 
     reset() {
         this.operators = [
@@ -100,13 +138,7 @@ export class GameFieldComponent implements OnInit {
             const card = event.previousContainer.data[event.previousIndex];
             if (card.type === CardType.operator) {
                 const ansArr = this.answer$.getValue();
-                const dst = this.operators;
-                transferArrayItem(
-                    ansArr,
-                    dst,
-                    event.previousIndex,
-                    event.currentIndex,
-                );
+                ansArr.splice(event.previousIndex, 1);
                 this.answer$.next(ansArr);
             }
         }
@@ -124,7 +156,6 @@ export class GameFieldComponent implements OnInit {
         const ansArr = this.answer$.getValue();
         ansArr.splice(idx, 1);
         this.answer$.next(ansArr);
-        this.operators.splice(this.operators.length, 0, card);
     }
 
     removeCard(card: DraggableCard, idx: number) {
@@ -146,12 +177,18 @@ export class GameFieldComponent implements OnInit {
 
     addOperator(card: OperatorCard, opIdx: number, ansIdx?: number) {
         const ansArr = this.answer$.getValue();
-        ansArr.splice(ansIdx !== undefined ? ansIdx : ansArr.length, 0, card);
-        this.answer$.next(ansArr);
-        this.operators.splice(opIdx, 1);
+        if (ansArr.filter(e => e.type === CardType.operator).length < 4) {
+            ansArr.splice(
+                ansIdx !== undefined ? ansIdx : ansArr.length,
+                0,
+                card,
+            );
+            this.answer$.next(ansArr);
+        }
     }
 
     onDragEnded(event: CdkDragEnd) {
+        console.log(event);
         event.source.element.nativeElement.style.transform = 'none'; // visually reset element to its origin
         const source: any = event.source;
         source._passiveTransform = { x: 0, y: 0 }; // make it so new drag starts from same origin

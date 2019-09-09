@@ -41,6 +41,8 @@ export const filterEvent = (event: WebSocketIncomingEvent) => (
             switch (e.event) {
                 case WebSocketIncomingEvent.connected:
                     return e.data as Player[];
+                case WebSocketIncomingEvent.playerInfo:
+                    return e.data as Player;
                 default:
                     return e.data;
             }
