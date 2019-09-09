@@ -1,6 +1,4 @@
-export interface SocketClient extends WebSocket {
-    [key: string]: any;
-}
+export interface SocketClient extends WebSocket {}
 
 export interface Action<Type = any, Payload = any> {
     type: Type;
