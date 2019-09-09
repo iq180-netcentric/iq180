@@ -1,5 +1,17 @@
 version: 2.1
 jobs:
+  test:
+    working_directory: /app
+    docker:
+      - image: node:10-alpine
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: yarn
+      - run:
+          name: Test
+          command: yarn test
   build-and-deploy:
     working_directory: /app
     docker:
@@ -53,7 +65,16 @@ workflows:
   version: 2.1
   build-and-deploy:
     jobs:
+      - test:
+          filters:
+            brances:
+              only:
+                - dev
+                - staging
+                - master
       - build-and-deploy:
+          requires:
+            - test
           filters:
             branches:
               only:
