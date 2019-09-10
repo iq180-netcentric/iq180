@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PlayerService } from '../player/player.service';
-import { EventService, BroadcastMessage } from '../event/event.service';
-import { withLatestFrom, map, filter } from 'rxjs/operators';
+import { EventService } from '../event/event.service';
+import { withLatestFrom, map } from 'rxjs/operators';
 import { ChatMessage } from '../models/chatMessage';
 import { filterEvent } from '../event/event.utils';
 import { IN_EVENT, InChatMessageEvent } from '../event/in-events';
+import { BroadcastMessage } from '../event/event.type';
 
 @Injectable()
 export class ChatService {
