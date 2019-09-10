@@ -1,4 +1,4 @@
-import { SocketClient } from '../types';
+import { SocketClient } from '../event/event.type';
 
 export interface PlayerInfo {
     id: string;

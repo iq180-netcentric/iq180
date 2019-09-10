@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { SocketClient, Action } from '../types';
 import { StoreService } from '../store/store.service';
 import { Set } from 'immutable';
 import { Player } from '../models/player';
-import { EditEvent } from '../event/in-events';
+import { Action } from '../store/store.type';
 
 export const enum ACTION {
     JOIN = 'JOIN',
