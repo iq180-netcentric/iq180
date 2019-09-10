@@ -14,10 +14,14 @@ export const validateForDisplay = ({
     array: NumOrStr[];
     operators: string[];
 }) => {
-    return array.every(
-        (v, i) =>
-            (i % 2 == 0 && typeof v === 'number') ||
-            (i % 2 == 1 && operators.includes(v.toString())),
+    return (
+        array.length === 0 ||
+        (array.length % 2 === 1 &&
+            array.every(
+                (v, i) =>
+                    (i % 2 == 0 && typeof v === 'number') ||
+                    (i % 2 == 1 && operators.includes(v.toString())),
+            ))
     );
 };
 

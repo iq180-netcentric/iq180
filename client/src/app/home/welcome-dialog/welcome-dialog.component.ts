@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { NzModalRef } from 'ng-zorro-antd';
 import { FormControl } from '@angular/forms';
 import {
@@ -20,6 +20,8 @@ import { AuthService } from 'src/app/core/service/auth.service';
     styleUrls: ['./welcome-dialog.component.scss'],
 })
 export class WelcomeDialogComponent {
+    @Input() edit = false;
+
     nickname = new FormControl(
         this.auth.player$.value ? this.auth.player$.value.name : null,
     );
@@ -68,7 +70,9 @@ export class WelcomeDialogComponent {
                 avatar: this.avatar.value,
             };
             this.socket.emit({
-                event: WebSocketOutgoingEvent.join,
+                event: this.edit
+                    ? WebSocketOutgoingEvent.edit
+                    : WebSocketOutgoingEvent.join,
                 data: player,
             });
             this.socket.connection

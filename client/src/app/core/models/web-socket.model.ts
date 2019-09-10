@@ -11,4 +11,5 @@ export enum WebSocketIncomingEvent {
 export enum WebSocketOutgoingEvent {
     join = 'JOIN',
     leave = 'LEAVE',
+    edit = 'EDIT',
 }

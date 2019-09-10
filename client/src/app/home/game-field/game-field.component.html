@@ -1,6 +1,13 @@
-<div class="main">
-    <div class="current">
-        <div>
+<div class="main" nz-row>
+    <div
+        class="current"
+        nz-row
+        nzType="flex"
+        nzJustify="space-between"
+        nz-col
+        [nzXs]="24"
+    >
+        <div nz-col [nzXs]="24" [nzLg]="18">
             <nz-card>
                 <nz-card-meta
                     nzTitle="Current Player"
@@ -14,10 +21,12 @@
                 ></nz-avatar>
             </ng-template>
         </div>
-        <div *ngIf="timer$ | async as timer">Timer: {{ timer }}</div>
+        <div *ngIf="timer$ | async as timer" nz-col [nzXs]="24" [nzLg]="6">
+            Timer: {{ timer }}
+        </div>
     </div>
-    <div class="game">
-        <div class="numbers">
+    <div class="game" nz-row>
+        <div class="numbers" nz-col [nzXs]="24">
             <div
                 cdkDropList
                 #numbersList="cdkDropList"
@@ -25,10 +34,17 @@
                 [cdkDropListData]="numbers$ | async"
                 [cdkDropListConnectedTo]="[answerList]"
                 class="card-list"
+                nz-row
+                nzType="flex"
+                nzJustify="space-around"
                 (cdkDropListDropped)="dropNumber($event)"
                 [cdkDropListEnterPredicate]="isNumber"
             >
                 <div
+                    nz-col
+                    nzXs="3"
+                    nzMd="2"
+                    nzLg="1"
                     class="card"
                     cdkDragBoundary=".game"
                     [cdkDragDisabled]="card.disabled"
@@ -40,43 +56,50 @@
                     <span>{{ card.display }}</span>
                 </div>
             </div>
-            <div class="card-list">
-                Expected Answer : {{ expectedAnswer$ | async }}
-            </div>
+            <div>Expected Answer : {{ expectedAnswer$ | async }}</div>
         </div>
-        <div class="answer" nz-row>
-            <div
-                cdkDropList
-                #answerList="cdkDropList"
-                [cdkDropListData]="answer$ | async"
-                cdkDropListOrientation="horizontal"
-                [cdkDropListConnectedTo]="[numbersList, operatorList]"
-                class="card-list"
-                [ngClass]="{
-                    invalid: !isValidAnswer
-                }"
-                (cdkDropListDropped)="dropAnswer($event)"
-                nz-col
-                [nzMd]="18"
-                [nzXs]="24"
-            >
+        <div class="answer" nz-row nz-col [nzXs]="24">
+            <div nz-col [nzMd]="18" [nzXs]="24">
                 <div
-                    class="card"
-                    cdkDragBoundary=".game"
-                    *ngFor="let card of answer$ | async; let i = index"
-                    (click)="removeCard(card, i)"
-                    [cdkDragData]="card"
-                    cdkDrag
+                    cdkDropList
+                    #answerList="cdkDropList"
+                    [cdkDropListData]="answer$ | async"
+                    cdkDropListOrientation="horizontal"
+                    [cdkDropListConnectedTo]="[numbersList, operatorList]"
+                    [ngClass]="{
+                        invalid: !isValidAnswer
+                    }"
+                    class="card-list"
+                    (cdkDropListDropped)="dropAnswer($event)"
+                    nz-row
+                    nzType="flex"
+                    nzJustify="space-around"
                 >
-                    <span>{{ card.display }}</span>
+                    <div
+                        nz-col
+                        nzXs="2"
+                        nzMd="2"
+                        nzLg="1"
+                        class="card"
+                        cdkDragBoundary=".game"
+                        *ngFor="let card of answer$ | async; let i = index"
+                        (click)="removeCard(card, i)"
+                        [cdkDragData]="card"
+                        cdkDrag
+                    >
+                        <span>{{ card.display }}</span>
+                    </div>
                 </div>
             </div>
             <div class="currentAnswer" nz-col [nzMd]="6" [nzXs]="24">
                 <span>= {{ currentAnswer }}</span>
             </div>
         </div>
-        <div class="operators">
+        <div class="operators" nz-col [nzXs]="24">
             <div
+                nz-row
+                nzType="flex"
+                nzJustify="space-around"
                 cdkDropList
                 #operatorList="cdkDropList"
                 cdkDropListOrientation="horizontal"
@@ -87,8 +110,15 @@
                 [cdkDropListEnterPredicate]="isOperator"
             >
                 <div
+                    nz-col
+                    nzXs="3"
+                    nzMd="2"
+                    nzLg="1"
                     class="card"
                     cdkDragBoundary=".game"
+                    [ngClass]="{
+                        disabled: (operators$ | async)?.length === 4
+                    }"
                     [cdkDragDisabled]="(operators$ | async)?.length === 4"
                     *ngFor="let card of operators; let i = index"
                     [cdkDragData]="card"

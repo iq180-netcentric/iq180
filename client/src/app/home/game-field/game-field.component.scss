@@ -2,51 +2,44 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 16px;
+    padding: 8px;
     .main {
         display: flex;
         flex-direction: column;
         height: 100%;
-        padding: 16px;
+        padding: 8px;
         border: 1px solid #e8e8e8;
     }
-    .current {
-        display: flex;
-        justify-content: space-between;
-    }
+
     .game {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        & > div {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+        .numbers,
+        .operators {
             min-width: 200px;
-            padding: 12px;
+            padding: 6px;
             border-radius: 4px;
-            margin: 8px;
-        }
-        .numbers {
+            margin: 8px 0px;
             border: 1px solid #e8e8e8;
         }
         .answer {
-            width: 100%;
-            height: fit-content;
-            border: 1px solid #e8e8e8;
-            display: flex;
-            justify-content: space-around;
-            flex-direction: row;
-            align-items: center;
-            flex-wrap: wrap;
+            padding: 4px;
             .card-list {
-                width: 100%;
+                padding: 4px;
+                border: 1px solid #e8e8e8;
             }
             .currentAnswer {
-                font-size: 3em;
+                padding: 10px;
+                display: flex;
+                align-items: center;
+                height: 100%;
+                font-size: 2em;
+            }
+        }
+        .operators {
+            .disabled {
+                opacity: 0.4;
+            }
+            .cdk-drag-placeholder {
+                opacity: 0.6;
             }
         }
         .invalid {
@@ -58,23 +51,19 @@
     }
     .card-list {
         height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-basis: 200px;
+        min-height: 64px;
     }
 }
 .card,
 .cdk-drag-preview {
-    width: 42px;
     height: 64px;
-    font-size: 3em;
+    font-size: 2em;
     display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: center;
     background-color: white;
-    margin: 0px 10px;
+    transition: width 1s cubic-bezier(0, 0, 0.2, 1);
     border: 1px solid #e8e8e8;
 }
 

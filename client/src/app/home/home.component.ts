@@ -42,15 +42,17 @@ export class HomeComponent implements OnInit {
     }
 
     logout() {
-        this.showWelcomeModal();
+        this.showWelcomeModal(true);
     }
 
-    showWelcomeModal(): void {
+    showWelcomeModal(edit: boolean = false): void {
         const modal = this.modalService.create({
             nzTitle: 'Welcome to IQ180',
             nzContent: WelcomeDialogComponent,
             nzClosable: false,
-            nzComponentParams: {},
+            nzComponentParams: {
+                edit,
+            },
             nzFooter: [
                 {
                     label: 'GO!',
