@@ -1,4 +1,5 @@
-import { PlayerInfo, ChatMessage } from '../models/player';
+import { PlayerInfo } from '../models/player';
+import { ChatMessage } from '../models/chatMessage';
 
 export const enum OUT_EVENT {
     CONNECTED = 'CONNECTED',
@@ -10,4 +11,4 @@ export type ConnectedEvent = PlayerInfo[];
 
 export type NewPlayerInfoEvent = PlayerInfo;
 
-export type ChatMessageEvent = ChatMessage;
+export type OutChatMessageEvent = ChatMessage;

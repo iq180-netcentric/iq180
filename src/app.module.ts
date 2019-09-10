@@ -5,6 +5,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { EventModule } from './event/event.module';
 import { PlayerModule } from './player/player.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
     imports: [
@@ -15,6 +16,7 @@ import { PlayerModule } from './player/player.module';
         }),
         PlayerModule,
         EventModule,
+        ChatModule,
     ],
 })
 export class AppModule {}
