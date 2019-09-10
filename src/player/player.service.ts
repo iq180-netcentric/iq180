@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { RoomStore } from './player.store';
+import { PlayerStore, EditInput } from './player.store';
 import { SocketClient } from '../types';
 import * as uuidv4 from 'uuid/v4';
 import { PlayerInfo, Player } from '../models/player';
 import { map, withLatestFrom } from 'rxjs/operators';
-import { JoinEvent, OUT_EVENT } from '../event/events';
+import { JoinEvent, OUT_EVENT, EditEvent } from '../event/events';
 import { Subject, merge } from 'rxjs';
 import {
     EventService,
@@ -14,24 +14,25 @@ import {
 @Injectable()
 export class PlayerService {
     constructor(
-        private readonly roomStore: RoomStore,
+        private readonly playerStore: PlayerStore,
         eventService: EventService,
     ) {
-        this.removePlayer$.subscribe(i => roomStore.removePlayer(i));
-        this.addPlayer$.subscribe(i => roomStore.addPlayer(i));
+        this.removePlayer$.subscribe(i => playerStore.removePlayer(i));
+        this.addPlayer$.subscribe(i => playerStore.addPlayer(i));
         this.broadcastCurrentPlayers$.subscribe(i =>
             eventService.broadcastMessage(i),
         );
+        this.editPlayer$.subscribe(i => playerStore.editPlayer(i));
         this.sendNewPlayerInfo$.subscribe(i => eventService.sendMessage(i));
     }
 
-    onlinePlayers$ = this.roomStore.store$.pipe(
+    private onlinePlayers$ = this.playerStore.store$.pipe(
         map(players => Array.from(players)),
     );
 
-    playerToAdd$ = new Subject<[SocketClient, JoinEvent]>();
+    private playerToAdd$ = new Subject<[SocketClient, JoinEvent]>();
 
-    addPlayer$ = this.playerToAdd$.pipe(
+    private addPlayer$ = this.playerToAdd$.pipe(
         map(
             ([client, input]): Player => {
                 const id = uuidv4();
@@ -45,7 +46,7 @@ export class PlayerService {
         ),
     );
 
-    sendNewPlayerInfo$ = this.addPlayer$.pipe(
+    private sendNewPlayerInfo$ = this.addPlayer$.pipe(
         map(
             (player): SendMessage => ({
                 event: OUT_EVENT.PLAYER_INFO,
@@ -59,10 +60,10 @@ export class PlayerService {
         this.playerToAdd$.next([client, input]);
     }
 
-    playerToRemove$ = new Subject<SocketClient>();
+    private playerToRemove$ = new Subject<SocketClient>();
 
-    removePlayer$ = this.playerToRemove$.pipe(
-        withLatestFrom(this.roomStore.store$),
+    private removePlayer$ = this.playerToRemove$.pipe(
+        withLatestFrom(this.playerStore.store$),
         map(([client, store]) => store.find(p => p.client == client)),
     );
 
@@ -70,10 +71,15 @@ export class PlayerService {
         this.playerToRemove$.next(client);
     }
 
-    broadcastCurrentPlayers$ = merge(this.addPlayer$, this.removePlayer$).pipe(
-        withLatestFrom(this.onlinePlayers$),
+    private editPlayer$ = new Subject<EditInput>();
+
+    editPlayer(client: SocketClient, input: EditEvent) {
+        this.editPlayer$.next({ client, input });
+    }
+
+    private broadcastCurrentPlayers$ = this.onlinePlayers$.pipe(
         map(
-            ([, players]): BroadcastMessage => ({
+            (players): BroadcastMessage => ({
                 event: OUT_EVENT.CONNECTED,
                 data: players.map(p => p.playerInfo),
                 clients: players.map(p => p.client),
