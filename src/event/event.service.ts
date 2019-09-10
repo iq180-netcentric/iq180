@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Subject } from 'rxjs';
 import { SocketClient } from '../types';
 import { PlayerInfo } from '../models/player';
-import { OUT_EVENT } from './events';
+import { OUT_EVENT, ConnectedEvent, NewPlayerInfoEvent } from './out-events';
 
 export interface SendEvent<T = any> {
     event: string;
@@ -38,11 +38,11 @@ export class EventService {
         clients.forEach(client => this.sendMessage({ event, data, client }));
     }
 
-    broadcastCurrentPlayers(input: BroadcastMessage<PlayerInfo[]>) {
+    broadcastCurrentPlayers(input: BroadcastMessage<ConnectedEvent>) {
         this.broadcastMessage({ event: OUT_EVENT.CONNECTED, ...input });
     }
 
-    sendNewPlayerInfo(input: SendMessage<PlayerInfo>) {
+    sendNewPlayerInfo(input: SendMessage<NewPlayerInfoEvent>) {
         this.sendMessage({ event: OUT_EVENT.PLAYER_INFO, ...input });
     }
 }

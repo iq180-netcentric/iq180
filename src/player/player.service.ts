@@ -4,7 +4,7 @@ import { SocketClient } from '../types';
 import * as uuidv4 from 'uuid/v4';
 import { PlayerInfo, Player } from '../models/player';
 import { map, withLatestFrom } from 'rxjs/operators';
-import { JoinEvent, EditEvent } from '../event/events';
+import { JoinEvent, EditEvent } from '../event/in-events';
 import { Subject } from 'rxjs';
 import { EventService } from '../event/event.service';
 @Injectable()

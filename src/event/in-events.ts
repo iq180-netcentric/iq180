@@ -9,9 +9,4 @@ export interface JoinEvent {
     avatar: string;
 }
 
-export interface EditEvent extends JoinEvent {}
-
-export const enum OUT_EVENT {
-    CONNECTED = 'CONNECTED',
-    PLAYER_INFO = 'PLAYER_INFO',
-}
+export type EditEvent = JoinEvent;

@@ -4,7 +4,7 @@ import {
     OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { SocketClient } from '../types';
-import { IN_EVENT, JoinEvent, EditEvent } from '../event/events';
+import { IN_EVENT, JoinEvent, EditEvent } from '../event/in-events';
 import { PlayerService } from '../player/player.service';
 @WebSocketGateway()
 export class GameGateway implements OnGatewayDisconnect {
