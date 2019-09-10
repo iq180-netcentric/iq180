@@ -4,7 +4,7 @@
         nzCloseable
         *ngIf="nicknameError$ | async as error"
         [nzMessage]="error"
-        (nzOnClose)="nicknameError$.next()"
+        (nzOnClose)="nicknameError$.next(undefined)"
     >
     </nz-alert>
     <h2>What's your name ?</h2>
