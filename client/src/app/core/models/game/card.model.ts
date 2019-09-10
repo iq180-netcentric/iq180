@@ -1,18 +1,19 @@
 export interface DraggableCard {
-  display: string;
-  disabled: boolean;
-  type: CardType;
+    display: string;
+    disabled: boolean;
+    type: CardType;
+    value: number | string;
 }
 
 export type OperatorCard = DraggableCard & {
-  operator: string;
+    value: string;
 };
 
 export type NumberCard = DraggableCard & {
-  value: number;
+    value: number;
 };
 
 export enum CardType {
-  number,
-  operator
+    number,
+    operator,
 }

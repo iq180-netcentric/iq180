@@ -4,7 +4,7 @@
 
 export const environment = {
     production: false,
-    socketUrl: '/',
+    socketUrl: 'wss://staging-netcentric-game-server.herokuapp.com',
 };
 
 /*

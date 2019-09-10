@@ -1,154 +1,231 @@
 import { Component, OnInit } from '@angular/core';
 import {
-  OperatorCard,
-  DraggableCard,
-  NumberCard,
-  CardType
+    OperatorCard,
+    DraggableCard,
+    NumberCard,
+    CardType,
 } from 'src/app/core/models/game/card.model';
-import { BehaviorSubject, combineLatest } from 'rxjs';
+import { BehaviorSubject, Observable, empty, interval, of } from 'rxjs';
 import {
-  transferArrayItem,
-  moveItemInArray,
-  CdkDragDrop,
-  CdkDrag,
-  CdkDropList
+    transferArrayItem,
+    moveItemInArray,
+    CdkDragDrop,
+    CdkDrag,
+    CdkDropList,
+    CdkDragEnd,
 } from '@angular/cdk/drag-drop';
-import { arraysEqual } from 'ng-zorro-antd';
+import {
+    startWith,
+    delay,
+    switchMap,
+    tap,
+    take,
+    map,
+    endWith,
+} from 'rxjs/operators';
+import {
+    validateForDisplay,
+    calculate,
+    generate,
+} from 'src/app/core/functions/iq180';
 
 @Component({
-  selector: 'app-game-field',
-  templateUrl: './game-field.component.html',
-  styleUrls: ['./game-field.component.scss']
+    selector: 'app-game-field',
+    templateUrl: './game-field.component.html',
+    styleUrls: ['./game-field.component.scss'],
 })
 export class GameFieldComponent implements OnInit {
-  numbers$ = new BehaviorSubject<NumberCard[]>([]);
-  answer$ = new BehaviorSubject<DraggableCard[]>([]);
-  operators: OperatorCard[] = [
-    { operator: '+', display: '+', disabled: false },
-    { operator: '-', display: '-', disabled: false },
-    { operator: 'x', display: 'x', disabled: false },
-    { operator: '÷', display: '÷', disabled: false }
-  ].map(e => ({ ...e, type: CardType.operator }));
-  constructor() {}
-
-  ngOnInit() {
-    this.reset();
-  }
-
-  /* Drag and Drop Stuff */
-
-  reset() {
-    this.operators = [
-      { operator: '+', display: '+', disabled: false },
-      { operator: '-', display: '-', disabled: false },
-      { operator: 'x', display: 'x', disabled: false },
-      { operator: '÷', display: '÷', disabled: false }
+    numbers$ = new BehaviorSubject<NumberCard[]>([]);
+    answer$ = new BehaviorSubject<DraggableCard[]>([]);
+    expectedAnswer$ = new BehaviorSubject<number>(null);
+    operators: OperatorCard[] = [
+        { value: '+', display: '+', disabled: false },
+        { value: '-', display: '-', disabled: false },
+        { value: 'x', display: 'x', disabled: false },
+        { value: '÷', display: '÷', disabled: false },
     ].map(e => ({ ...e, type: CardType.operator }));
-    this.numbers$.next(
-      [
-        { value: 1, display: '1', disabled: false },
-        { value: 2, display: '2', disabled: false },
-        { value: 3, display: '3', disabled: false },
-        { value: 4, display: '4', disabled: false },
-        { value: 5, display: '5', disabled: false }
-      ].map(e => ({ ...e, type: CardType.number }))
+    operators$ = this.answer$.pipe(
+        map(ans => ans.filter(e => e.type === CardType.operator)),
     );
-    this.answer$.next([]);
-  }
-  dropAnswer(event: CdkDragDrop<DraggableCard[]>) {
-    if (event.previousContainer === event.container) {
-      const arr = this.answer$.getValue();
-      moveItemInArray(arr, event.previousIndex, event.currentIndex);
-      this.answer$.next(arr);
-    } else {
-      const card = event.previousContainer.data[event.previousIndex];
-      if (card.type === CardType.number) {
-        this.addNumber(
-          card as NumberCard,
-          event.previousIndex,
-          event.currentIndex
-        );
-      } else if (card.type === CardType.operator) {
-        this.addOperator(
-          card as OperatorCard,
-          event.previousIndex,
-          event.currentIndex
-        );
-      }
-    }
-  }
 
-  dropNumber(event: CdkDragDrop<DraggableCard[]>) {
-    if (event.previousContainer === event.container) {
-      const arr = this.numbers$.getValue();
-      moveItemInArray(arr, event.previousIndex, event.currentIndex);
-      this.numbers$.next(arr);
-    } else {
-      const card = event.previousContainer.data[event.previousIndex];
-      if (card.type === CardType.number) {
-        this.removeNumber(event.previousIndex, event.currentIndex);
-      }
-    }
-  }
+    timer$: Observable<number>;
+    gaming$ = new BehaviorSubject<boolean>(false);
 
-  dropOperator(event: CdkDragDrop<DraggableCard[]>) {
-    if (event.previousContainer === event.container) {
-      const arr = this.operators;
-      moveItemInArray(arr, event.previousIndex, event.currentIndex);
-    } else {
-      const card = event.previousContainer.data[event.previousIndex];
-      if (card.type === CardType.operator) {
+    constructor() {}
+
+    ngOnInit() {
+        this.reset();
+        this.startGame();
+    }
+
+    createTimer(startTime: Date) {
+        const delayMS = startTime.valueOf() - new Date().valueOf();
+        this.timer$ = of(new Date()).pipe(
+            delay(delayMS),
+            switchMap(() => interval(1000)),
+            take(61),
+            map(t => 60 - t),
+        );
+    }
+    /* Drag and Drop Stuff */
+    startGame() {
+        const future = new Date().valueOf() + 2000;
+        this.createTimer(new Date(future));
+        this.timer$.subscribe(
+            time => {
+                this.gaming$.next(true);
+            },
+            () => null,
+            () => {
+                this.gaming$.next(false);
+            },
+        );
+    }
+
+    reset() {
+        const { question, operators, expectedAnswer } = generate({
+            numberLength: 5,
+            operators: ['+', '-', '*', '/'],
+            integerAnswer: true,
+        });
+        this.operators = [
+            { value: '+', display: '+', disabled: false },
+            { value: '-', display: '-', disabled: false },
+            { value: '*', display: 'x', disabled: false },
+            { value: '/', display: '÷', disabled: false },
+        ].map(e => ({ ...e, type: CardType.operator }));
+        this.numbers$.next(
+            question
+                .map(e => ({
+                    value: e,
+                    display: e.toString(),
+                    disabled: false,
+                }))
+                .map(e => ({ ...e, type: CardType.number })),
+        );
+        this.expectedAnswer$.next(expectedAnswer);
+        this.answer$.next([]);
+    }
+    dropAnswer(event: CdkDragDrop<DraggableCard[]>) {
+        if (event.previousContainer === event.container) {
+            const arr = this.answer$.getValue();
+            moveItemInArray(arr, event.previousIndex, event.currentIndex);
+            this.answer$.next(arr);
+        } else {
+            const card = event.previousContainer.data[event.previousIndex];
+            if (card.type === CardType.number) {
+                this.addNumber(
+                    card as NumberCard,
+                    event.previousIndex,
+                    event.currentIndex,
+                );
+            } else if (card.type === CardType.operator) {
+                this.addOperator(
+                    card as OperatorCard,
+                    event.previousIndex,
+                    event.currentIndex,
+                );
+            }
+        }
+    }
+
+    dropNumber(event: CdkDragDrop<DraggableCard[]>) {
+        if (event.previousContainer === event.container) {
+            const arr = this.numbers$.getValue();
+            moveItemInArray(arr, event.previousIndex, event.currentIndex);
+            this.numbers$.next(arr);
+        } else {
+            const card = event.previousContainer.data[event.previousIndex];
+            if (card.type === CardType.number) {
+                this.removeNumber(event.previousIndex, event.currentIndex);
+            }
+        }
+    }
+
+    dropOperator(event: CdkDragDrop<DraggableCard[]>) {
+        if (event.previousContainer === event.container) {
+            const arr = this.operators;
+            moveItemInArray(arr, event.previousIndex, event.currentIndex);
+        } else {
+            const card = event.previousContainer.data[event.previousIndex];
+            if (card.type === CardType.operator) {
+                const ansArr = this.answer$.getValue();
+                ansArr.splice(event.previousIndex, 1);
+                this.answer$.next(ansArr);
+            }
+        }
+    }
+
+    removeNumber(fromIdx: number, toIdx?: number) {
+        const ans = this.answer$.getValue();
+        const dst = this.numbers$.getValue();
+        transferArrayItem(ans, dst, fromIdx, toIdx || dst.length);
+        this.numbers$.next(dst);
+        this.answer$.next(ans);
+    }
+
+    removeOperator(card: OperatorCard, idx: number) {
         const ansArr = this.answer$.getValue();
-        ansArr.splice(event.previousIndex, 1);
+        ansArr.splice(idx, 1);
         this.answer$.next(ansArr);
-      }
     }
-  }
 
-  removeNumber(fromIdx: number, toIdx?: number) {
-    const ans = this.answer$.getValue();
-    const dst = this.numbers$.getValue();
-    transferArrayItem(ans, dst, fromIdx, toIdx || dst.length);
-    this.numbers$.next(dst);
-    this.answer$.next(ans);
-  }
-
-  removeOperator(card: OperatorCard, idx: number) {
-    const ansArr = this.answer$.getValue();
-    ansArr.splice(idx, 1);
-    this.answer$.next(ansArr);
-    this.operators.splice(this.operators.length, 0, card);
-  }
-
-  removeCard(card: DraggableCard, idx: number) {
-    if (card.type === CardType.number) {
-      this.removeNumber(idx);
-    } else {
-      this.removeOperator(card as OperatorCard, idx);
+    removeCard(card: DraggableCard, idx: number) {
+        if (card.type === CardType.number) {
+            this.removeNumber(idx);
+        } else {
+            this.removeOperator(card as OperatorCard, idx);
+        }
     }
-  }
 
-  addNumber(card: NumberCard, numIdx: number, ansIdx?: number) {
-    const ansArr = this.answer$.getValue();
-    ansArr.splice(ansIdx !== undefined ? ansIdx : ansArr.length, 0, card);
-    this.answer$.next(ansArr);
-    const numArr = this.numbers$.getValue();
-    numArr.splice(numIdx, 1);
-    this.numbers$.next(numArr);
-  }
+    addNumber(card: NumberCard, numIdx: number, ansIdx?: number) {
+        const ansArr = this.answer$.getValue();
+        ansArr.splice(ansIdx !== undefined ? ansIdx : ansArr.length, 0, card);
+        this.answer$.next(ansArr);
+        const numArr = this.numbers$.getValue();
+        numArr.splice(numIdx, 1);
+        this.numbers$.next(numArr);
+    }
 
-  addOperator(card: OperatorCard, opIdx: number, ansIdx?: number) {
-    const ansArr = this.answer$.getValue();
-    ansArr.splice(ansIdx || ansArr.length, 0, card);
-    this.answer$.next(ansArr);
-    this.operators.splice(opIdx, 1);
-  }
+    addOperator(card: OperatorCard, opIdx: number, ansIdx?: number) {
+        const ansArr = this.answer$.getValue();
+        if (ansArr.filter(e => e.type === CardType.operator).length < 4) {
+            ansArr.splice(
+                ansIdx !== undefined ? ansIdx : ansArr.length,
+                0,
+                card,
+            );
+            this.answer$.next(ansArr);
+        }
+    }
 
-  isNumber(item: CdkDrag<DraggableCard>) {
-    return item.data.type === CardType.number;
-  }
+    onDragEnded(event: CdkDragEnd) {
+        console.log(event);
+        event.source.element.nativeElement.style.transform = 'none'; // visually reset element to its origin
+        const source: any = event.source;
+        source._passiveTransform = { x: 0, y: 0 }; // make it so new drag starts from same origin
+    }
 
-  isOperator(item: CdkDrag<DraggableCard>) {
-    return item.data.type === CardType.operator;
-  }
+    isNumber(item: CdkDrag<DraggableCard>) {
+        return item.data.type === CardType.number;
+    }
+
+    isOperator(item: CdkDrag<DraggableCard>) {
+        return item.data.type === CardType.operator;
+    }
+
+    get isValidAnswer() {
+        return validateForDisplay({
+            array: this.answer$.value.map(e => e.value),
+            operators: ['+', '-', '*', '/'],
+        });
+    }
+
+    get currentAnswer() {
+        if (this.isValidAnswer) {
+            return calculate(this.answer$.value.map(e => e.value));
+        } else {
+            return 'Invalid';
+        }
+    }
 }
