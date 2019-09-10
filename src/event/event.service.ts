@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Subject } from 'rxjs';
 import { SocketClient } from '../types';
-import { PlayerInfo, ChatMessage } from '../models/player';
+import { PlayerInfo } from '../models/player';
+import { ChatMessage } from '../models/chatMessage';
 import { OUT_EVENT, ConnectedEvent, NewPlayerInfoEvent } from './out-events';
 
 export interface SendMessage<T = any> {
@@ -11,7 +12,7 @@ export interface SendMessage<T = any> {
 export interface SendEvent<T = any> extends SendMessage<T> {
     event: string;
 }
-interface BroadcastMessage<T = any> {
+export interface BroadcastMessage<T = any> {
     data: T;
     clients: SocketClient[];
 }
@@ -47,7 +48,7 @@ export class EventService {
 
     sendNewPlayerInfo = this.sendMessage<PlayerInfo>(OUT_EVENT.PLAYER_INFO);
 
-    broadcastChatMessage = this.sendMessage<ChatMessage>(
+    broadcastChatMessage = this.broadcastMessage<ChatMessage>(
         OUT_EVENT.CHAT_MESSAGE,
     );
 }

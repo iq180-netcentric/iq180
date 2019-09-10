@@ -15,7 +15,7 @@ export class PlayerService {
     ) {
         this.removePlayer$.subscribe(i => playerStore.removePlayer(i));
         this.addPlayer$.subscribe(i => playerStore.addPlayer(i));
-        this.currentPlayers$.subscribe(i =>
+        this.broadcastCurrentPlayers$.subscribe(i =>
             eventService.broadcastCurrentPlayers(i),
         );
         this.editPlayer$.subscribe(i => playerStore.editPlayer(i));
@@ -24,8 +24,11 @@ export class PlayerService {
         );
     }
 
-    private currentPlayers$ = this.playerStore.store$.pipe(
+    currentPlayers$ = this.playerStore.store$.pipe(
         map(players => players.toArray()),
+    );
+
+    broadcastCurrentPlayers$ = this.currentPlayers$.pipe(
         map(players => ({
             data: players.map(p => p.playerInfo),
             clients: players.map(p => p.client),
