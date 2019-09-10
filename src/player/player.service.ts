@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PlayerStore, EditInput } from './player.store';
+import { PlayerStore } from './player.store';
 import { SocketClient } from '../types';
 import * as uuidv4 from 'uuid/v4';
 import { PlayerInfo, Player } from '../models/player';
 import { map, withLatestFrom } from 'rxjs/operators';
 import { JoinEvent, EditEvent } from '../event/in-events';
-import { Subject } from 'rxjs';
+import { Subject, merge } from 'rxjs';
 import { EventService } from '../event/event.service';
 @Injectable()
 export class PlayerService {
@@ -24,8 +24,12 @@ export class PlayerService {
         );
     }
 
-    private onlinePlayers$ = this.playerStore.store$.pipe(
-        map(players => Array.from(players)),
+    private currentPlayers$ = this.playerStore.store$.pipe(
+        map(players => players.toArray()),
+        map(players => ({
+            data: players.map(p => p.playerInfo),
+            clients: players.map(p => p.client),
+        })),
     );
 
     private playerToAdd$ = new Subject<[SocketClient, JoinEvent]>();
@@ -44,13 +48,6 @@ export class PlayerService {
         ),
     );
 
-    private sendNewPlayerInfo$ = this.addPlayer$.pipe(
-        map(player => ({
-            data: player.playerInfo,
-            client: player.client,
-        })),
-    );
-
     addPlayer(client: SocketClient, input: JoinEvent) {
         this.playerToAdd$.next([client, input]);
     }
@@ -66,16 +63,29 @@ export class PlayerService {
         this.playerToRemove$.next(client);
     }
 
-    private editPlayer$ = new Subject<EditInput>();
+    private playerToEdit$ = new Subject<[SocketClient, EditEvent]>();
+
+    private editPlayer$ = this.playerToEdit$.pipe(
+        withLatestFrom(this.playerStore.store$),
+        map(
+            ([[client, input], players]): Player => {
+                const player = players.find(p => p.client === client);
+                return {
+                    ...player,
+                    playerInfo: { ...player.playerInfo, ...input },
+                };
+            },
+        ),
+    );
 
     editPlayer(client: SocketClient, input: EditEvent) {
-        this.editPlayer$.next({ client, input });
+        this.playerToEdit$.next([client, input]);
     }
 
-    private currentPlayers$ = this.onlinePlayers$.pipe(
-        map(players => ({
-            data: players.map(p => p.playerInfo),
-            clients: players.map(p => p.client),
+    private sendNewPlayerInfo$ = merge(this.addPlayer$, this.editPlayer$).pipe(
+        map(player => ({
+            data: player.playerInfo,
+            client: player.client,
         })),
     );
 }

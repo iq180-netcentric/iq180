@@ -1,24 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { Subject } from 'rxjs';
 import { SocketClient } from '../types';
-import { PlayerInfo } from '../models/player';
+import { PlayerInfo, ChatMessage } from '../models/player';
 import { OUT_EVENT, ConnectedEvent, NewPlayerInfoEvent } from './out-events';
 
-export interface SendEvent<T = any> {
-    event: string;
+export interface SendMessage<T = any> {
     data: T;
     client: SocketClient;
 }
-
-export type SendMessage<T> = Omit<SendEvent<T>, 'event'>;
-export interface BroadcastEvent<T = any> {
+export interface SendEvent<T = any> extends SendMessage<T> {
     event: string;
+}
+interface BroadcastMessage<T = any> {
     data: T;
     clients: SocketClient[];
 }
 
-export type BroadcastMessage<T> = Omit<BroadcastEvent<T>, 'event'>;
-
+export interface BroadcastEvent<T = any> extends BroadcastMessage<T> {
+    event: string;
+}
 export const sendEvent = ({ event, data, client }: SendEvent) =>
     client.send(JSON.stringify({ event, data }));
 
@@ -30,19 +30,24 @@ export class EventService {
         this.newMessage$.subscribe(sendEvent);
     }
 
-    sendMessage(msg: SendEvent) {
-        this.newMessage$.next(msg);
-    }
+    sendMessage = <T>(event: string) => (input: SendMessage<T>) => {
+        this.newMessage$.next({ event, ...input });
+    };
 
-    broadcastMessage({ event, data, clients }: BroadcastEvent) {
-        clients.forEach(client => this.sendMessage({ event, data, client }));
-    }
+    broadcastMessage = <T>(event: string) => ({
+        data,
+        clients,
+    }: BroadcastMessage<T>) => {
+        clients.forEach(client => this.sendMessage(event)({ data, client }));
+    };
 
-    broadcastCurrentPlayers(input: BroadcastMessage<ConnectedEvent>) {
-        this.broadcastMessage({ event: OUT_EVENT.CONNECTED, ...input });
-    }
+    broadcastCurrentPlayers = this.broadcastMessage<PlayerInfo[]>(
+        OUT_EVENT.CONNECTED,
+    );
 
-    sendNewPlayerInfo(input: SendMessage<NewPlayerInfoEvent>) {
-        this.sendMessage({ event: OUT_EVENT.PLAYER_INFO, ...input });
-    }
+    sendNewPlayerInfo = this.sendMessage<PlayerInfo>(OUT_EVENT.PLAYER_INFO);
+
+    broadcastChatMessage = this.sendMessage<ChatMessage>(
+        OUT_EVENT.CHAT_MESSAGE,
+    );
 }

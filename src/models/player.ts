@@ -11,3 +11,9 @@ export interface Player {
     client: SocketClient;
     playerInfo: PlayerInfo;
 }
+
+export interface ChatMessage {
+    message: string;
+    sender: Player;
+    timestamp: Date;
+}

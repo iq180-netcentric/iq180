@@ -11,15 +11,10 @@ export const enum ACTION {
     EDIT = 'EDIT',
 }
 
-export interface EditInput {
-    client: SocketClient;
-    input: EditEvent;
-}
-
 export const players = (
     state: Set<Player> = Set(),
-    { type, payload }: Action<ACTION>,
-) => {
+    { type, payload }: Action<ACTION, Player>,
+): Set<Player> => {
     switch (type) {
         case ACTION.JOIN:
             return state.some(players => players.client == payload.client)
@@ -28,11 +23,9 @@ export const players = (
         case ACTION.LEAVE:
             return state.delete(payload);
         case ACTION.EDIT:
-            let { input, client } = payload as EditInput;
             return state.map(player => {
-                if (player.client === client) {
-                    const playerInfo = { ...player.playerInfo, ...input };
-                    return { ...player, playerInfo };
+                if (player.client === payload.client) {
+                    return payload;
                 } else return player;
             });
         default:
@@ -52,7 +45,7 @@ export class PlayerStore {
     removePlayer(client: Player) {
         this.storeService.dispatch({ type: ACTION.LEAVE, payload: client });
     }
-    editPlayer(input: EditInput) {
+    editPlayer(input: Player) {
         this.storeService.dispatch({ type: ACTION.EDIT, payload: input });
     }
 }
