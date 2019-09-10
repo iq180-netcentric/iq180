@@ -1,6 +1,7 @@
 export const enum IN_EVENT {
     JOIN = 'JOIN',
     LEAVE = 'LEAVE',
+    EDIT = 'EDIT',
 }
 
 export interface JoinEvent {
@@ -8,7 +9,4 @@ export interface JoinEvent {
     avatar: string;
 }
 
-export const enum OUT_EVENT {
-    CONNECTED = 'CONNECTED',
-    PLAYER_INFO = 'PLAYER_INFO',
-}
+export type EditEvent = JoinEvent;
