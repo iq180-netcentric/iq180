@@ -65,7 +65,7 @@ export class WelcomeDialogComponent {
     submitUser() {
         this.nicknameError$.next(undefined);
         if (this.nickname.value) {
-            const player: Player = {
+            const player: Partial<Player> = {
                 name: this.nickname.value,
                 avatar: this.avatar.value,
             };
@@ -82,7 +82,7 @@ export class WelcomeDialogComponent {
                 )
                 .subscribe(data => {
                     this.destroyModal();
-                    this.auth.setPlayer(player);
+                    this.auth.setPlayer(data);
                 });
         } else {
             this.nicknameError$.next('Please enter nickname');
