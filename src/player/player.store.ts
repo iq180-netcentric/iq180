@@ -22,7 +22,9 @@ export const players = (
 ) => {
     switch (type) {
         case ACTION.JOIN:
-            return state.add(payload);
+            return state.some(players => players.client == payload.client)
+                ? state
+                : state.add(payload);
         case ACTION.LEAVE:
             return state.delete(payload);
         case ACTION.EDIT:
