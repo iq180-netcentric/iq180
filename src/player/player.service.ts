@@ -4,13 +4,9 @@ import { SocketClient } from '../types';
 import * as uuidv4 from 'uuid/v4';
 import { PlayerInfo, Player } from '../models/player';
 import { map, withLatestFrom } from 'rxjs/operators';
-import { JoinEvent, OUT_EVENT, EditEvent } from '../event/events';
-import { Subject, merge } from 'rxjs';
-import {
-    EventService,
-    BroadcastMessage,
-    SendMessage,
-} from '../event/event.service';
+import { JoinEvent, EditEvent } from '../event/events';
+import { Subject } from 'rxjs';
+import { EventService } from '../event/event.service';
 @Injectable()
 export class PlayerService {
     constructor(
@@ -19,11 +15,13 @@ export class PlayerService {
     ) {
         this.removePlayer$.subscribe(i => playerStore.removePlayer(i));
         this.addPlayer$.subscribe(i => playerStore.addPlayer(i));
-        this.broadcastCurrentPlayers$.subscribe(i =>
-            eventService.broadcastMessage(i),
+        this.currentPlayers$.subscribe(i =>
+            eventService.broadcastCurrentPlayers(i),
         );
         this.editPlayer$.subscribe(i => playerStore.editPlayer(i));
-        this.sendNewPlayerInfo$.subscribe(i => eventService.sendMessage(i));
+        this.sendNewPlayerInfo$.subscribe(i =>
+            eventService.sendNewPlayerInfo(i),
+        );
     }
 
     private onlinePlayers$ = this.playerStore.store$.pipe(
@@ -47,13 +45,10 @@ export class PlayerService {
     );
 
     private sendNewPlayerInfo$ = this.addPlayer$.pipe(
-        map(
-            (player): SendMessage => ({
-                event: OUT_EVENT.PLAYER_INFO,
-                data: player.playerInfo,
-                client: player.client,
-            }),
-        ),
+        map(player => ({
+            data: player.playerInfo,
+            client: player.client,
+        })),
     );
 
     addPlayer(client: SocketClient, input: JoinEvent) {
@@ -77,13 +72,10 @@ export class PlayerService {
         this.editPlayer$.next({ client, input });
     }
 
-    private broadcastCurrentPlayers$ = this.onlinePlayers$.pipe(
-        map(
-            (players): BroadcastMessage => ({
-                event: OUT_EVENT.CONNECTED,
-                data: players.map(p => p.playerInfo),
-                clients: players.map(p => p.client),
-            }),
-        ),
+    private currentPlayers$ = this.onlinePlayers$.pipe(
+        map(players => ({
+            data: players.map(p => p.playerInfo),
+            clients: players.map(p => p.client),
+        })),
     );
 }
