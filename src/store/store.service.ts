@@ -1,9 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Store } from 'redux';
-import { AppState, store } from './store';
-import { Action } from '../types';
+import { AppState } from './store';
 import { BehaviorSubject } from 'rxjs';
 import { pluck } from 'rxjs/operators';
+import { Action } from './store.type';
 
 type Slices = keyof AppState;
 @Injectable()

@@ -1,41 +1,32 @@
 import { Injectable } from '@nestjs/common';
 import { PlayerService } from '../player/player.service';
-import { EventService, BroadcastMessage } from '../event/event.service';
-import { SocketClient } from '../types';
-import { Subject } from 'rxjs';
+import { EventService } from '../event/event.service';
 import { withLatestFrom, map } from 'rxjs/operators';
-import { PlayerStore } from '../player/player.store';
 import { ChatMessage } from '../models/chatMessage';
+import { filterEvent } from '../event/event.utils';
+import { IN_EVENT, InChatMessageEvent } from '../event/in-events';
+import { BroadcastMessage } from '../event/event.type';
 
 @Injectable()
 export class ChatService {
     constructor(
         private readonly playerService: PlayerService,
-        eventService: EventService,
+        private readonly eventService: EventService,
     ) {
         this.chatMessage$.subscribe(i => eventService.broadcastChatMessage(i));
     }
 
-    private newMessage$ = new Subject<{
-        message: string;
-        timestamp: string;
-        client: SocketClient;
-    }>();
-
-    private chatMessage$ = this.newMessage$.pipe(
+    private chatMessage$ = this.eventService.receiveEvent$.pipe(
+        filterEvent<InChatMessageEvent>(IN_EVENT.CHAT_MESSAGE),
         withLatestFrom(this.playerService.currentPlayers$),
         map(
-            ([{ client, ...rest }, players]): BroadcastMessage<ChatMessage> => {
+            ([{ client, data }, players]): BroadcastMessage<ChatMessage> => {
                 const sender = players.find(p => p.client === client)
                     .playerInfo;
-                const data = { sender, ...rest };
-                return { data, clients: players.map(p => p.client) };
+                const timestamp = Date();
+                const clients = players.map(p => p.client);
+                return { data: { sender, timestamp, message: data }, clients };
             },
         ),
     );
-
-    chatMessage(client: SocketClient, message: string) {
-        const timestamp = Date();
-        this.newMessage$.next({ message, timestamp, client });
-    }
 }
