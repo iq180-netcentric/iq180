@@ -26,7 +26,7 @@ export class HomeComponent implements OnInit {
         private modalService: NzModalService,
         private authService: AuthService,
     ) {
-        this.socket.connection.subscribe();
+        this.socket.observable.subscribe();
     }
 
     ngOnInit() {
