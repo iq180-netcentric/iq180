@@ -6,6 +6,12 @@ import { pluck } from 'rxjs/operators';
 import { Action } from './store.type';
 
 type Slices = keyof AppState;
+
+export const createAction = <T = any>(type: string) => (payload: T) => ({
+    type,
+    payload,
+});
+
 @Injectable()
 export class StoreService {
     store$ = new BehaviorSubject<AppState>(undefined);

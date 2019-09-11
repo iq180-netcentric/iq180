@@ -6,6 +6,7 @@ import { ChatMessage } from '../models/chatMessage';
 import { filterEvent } from '../event/event.utils';
 import { IN_EVENT, InChatMessageEvent } from '../event/in-events';
 import { BroadcastMessage } from '../event/event.type';
+import { isInRoom } from '../player/player.store';
 
 @Injectable()
 export class ChatService {
@@ -19,6 +20,7 @@ export class ChatService {
     private chatMessage$ = this.eventService.receiveEvent$.pipe(
         filterEvent<InChatMessageEvent>(IN_EVENT.CHAT_MESSAGE),
         withLatestFrom(this.playerService.currentPlayers$),
+        isInRoom(),
         map(
             ([{ client, data }, players]): BroadcastMessage<ChatMessage> => {
                 const sender = players.find(p => p.client === client)
