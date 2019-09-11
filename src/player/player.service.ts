@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PlayerStore } from './player.store';
+import {
+    PlayerStore,
+    isInRoom,
+    addPlayerAction,
+    removePlayerAction,
+    editPlayerAction,
+} from './player.store';
 import * as uuidv4 from 'uuid/v4';
 import { PlayerInfo, Player } from '../models/player';
 import { map, withLatestFrom } from 'rxjs/operators';
@@ -13,12 +19,14 @@ export class PlayerService {
         private readonly playerStore: PlayerStore,
         private readonly eventService: EventService,
     ) {
-        this.removePlayer$.subscribe(i => playerStore.removePlayer(i));
-        this.addPlayer$.subscribe(i => playerStore.addPlayer(i));
+        merge(
+            this.addPlayerAction$,
+            this.editPlayerAction$,
+            this.removePlayerAction$,
+        ).subscribe(i => playerStore.dispatch(i));
         this.broadcastCurrentPlayers$.subscribe(i =>
             eventService.broadcastCurrentPlayers(i),
         );
-        this.editPlayer$.subscribe(i => playerStore.editPlayer(i));
         this.sendNewPlayerInfo$.subscribe(i =>
             eventService.sendNewPlayerInfo(i),
         );
@@ -50,15 +58,23 @@ export class PlayerService {
         ),
     );
 
+    private addPlayerAction$ = this.addPlayer$.pipe(map(addPlayerAction));
+
     private removePlayer$ = this.eventService.receiveEvent$.pipe(
         filterEvent(IN_EVENT.LEAVE),
-        withLatestFrom(this.playerStore.store$),
+        withLatestFrom(this.currentPlayers$),
+        isInRoom(),
         map(([{ client }, store]) => store.find(p => p.client == client)),
+    );
+
+    private removePlayerAction$ = this.removePlayer$.pipe(
+        map(removePlayerAction),
     );
 
     private editPlayer$ = this.eventService.receiveEvent$.pipe(
         filterEvent<EditEvent>(IN_EVENT.EDIT),
-        withLatestFrom(this.playerStore.store$),
+        withLatestFrom(this.currentPlayers$),
+        isInRoom(),
         map(
             ([{ client, data }, players]): Player => {
                 const player = players.find(p => p.client === client);
@@ -69,6 +85,8 @@ export class PlayerService {
             },
         ),
     );
+
+    private editPlayerAction$ = this.editPlayer$.pipe(map(editPlayerAction));
 
     private sendNewPlayerInfo$ = merge(this.addPlayer$, this.editPlayer$).pipe(
         map(player => ({
