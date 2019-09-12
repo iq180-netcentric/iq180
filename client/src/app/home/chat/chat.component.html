@@ -1,4 +1,23 @@
 <h2>Chat</h2>
-<div>
-  Lots of chat
-</div>
+<cdk-virtual-scroll-viewport [itemSize]="74" class="scroll-container">
+    <nz-list>
+        <nz-list-item *cdkVirtualFor="let message of messages$">
+            <nz-skeleton
+                *ngIf="!message"
+                [nzAvatar]="true"
+                [nzParagraph]="{ rows: 1 }"
+            ></nz-skeleton>
+            <nz-list-item-meta
+                *ngIf="message"
+                [nzTitle]="nzTitle"
+                nzAvatar="{{ message.sender.avatar }}"
+                [nzDescription]="message.message"
+            >
+                <ng-template #nzTitle>
+                    {{ message.sender.name }}
+                    <small>{{ message.timestamp | date: 'HH:mm' }}</small>
+                </ng-template>
+            </nz-list-item-meta>
+        </nz-list-item>
+    </nz-list>
+</cdk-virtual-scroll-viewport>

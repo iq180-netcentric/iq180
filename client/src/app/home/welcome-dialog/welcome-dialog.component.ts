@@ -28,7 +28,7 @@ export class WelcomeDialogComponent {
     avatar = new FormControl(
         this.auth.player$.value ? this.auth.player$.value.avatar : null,
     );
-    remember = new FormControl();
+    remember = new FormControl(this.auth.remember$.value);
 
     nicknameError$ = new BehaviorSubject<string>(undefined);
 
@@ -48,8 +48,8 @@ export class WelcomeDialogComponent {
         'https://i.kym-cdn.com/photos/images/newsfeed/001/469/824/de5.jpg',
         'https://pbs.twimg.com/media/EDUEcRoUYAA7WNL?format=jpg&name=small',
     ];
-    players$ = this.socket.connection.pipe(
-        filterEvent(WebSocketIncomingEvent.connected),
+    players$ = this.socket.observable.pipe(
+        filterEvent<Player[]>(WebSocketIncomingEvent.connected),
     );
 
     constructor(
@@ -75,14 +75,15 @@ export class WelcomeDialogComponent {
                     : WebSocketOutgoingEvent.join,
                 data: player,
             });
-            this.socket.connection
+            this.socket.observable
                 .pipe(
-                    filterEvent(WebSocketIncomingEvent.playerInfo),
+                    filterEvent<Player>(WebSocketIncomingEvent.playerInfo),
                     take(1),
                 )
                 .subscribe(data => {
                     this.destroyModal();
                     this.auth.setPlayer(data);
+                    this.auth.remember$.next(this.remember.value);
                 });
         } else {
             this.nicknameError$.next('Please enter nickname');
