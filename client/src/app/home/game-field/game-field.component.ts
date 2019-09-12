@@ -228,4 +228,8 @@ export class GameFieldComponent implements OnInit {
             return 'Invalid';
         }
     }
+
+    vibrate() {
+        navigator.vibrate(200);
+    }
 }

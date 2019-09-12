@@ -7,6 +7,8 @@
     "build": "node --max_old_space_size=1024 ./node_modules/@angular/cli/bin/ng build --prod --build-optimizer --aot --progress",
     "test": "ng test",
     "lint": "ng lint",
+    "build:stats": "ng build --stats-json",
+    "analyze": "webpack-bundle-analyzer dist/client/stats-es2015.json",
     "e2e": "ng e2e"
   },
   "private": true,
@@ -25,6 +27,7 @@
     "ngx-strongly-typed-forms": "^8.0.1",
     "rxjs": "~6.4.0",
     "tslib": "^1.10.0",
+    "webpack-bundle-analyzer": "^3.4.1",
     "zone.js": "~0.9.1"
   },
   "devDependencies": {
