@@ -1,13 +1,13 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Store } from 'redux';
 import { AppState } from './store';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { pluck } from 'rxjs/operators';
 import { Action } from './store.type';
 
-type Slices = keyof AppState;
-
-export const createAction = <T = any>(type: string) => (payload: T) => ({
+export const createAction = <T = any>(type: string) => (
+    payload?: T,
+): Action => ({
     type,
     payload,
 });
@@ -15,7 +15,7 @@ export const createAction = <T = any>(type: string) => (payload: T) => ({
 @Injectable()
 export class StoreService {
     store$ = new BehaviorSubject<AppState>(undefined);
-    select(slice: Slices) {
+    select<T extends keyof AppState>(slice: T): Observable<AppState[T]> {
         return this.store$.pipe(pluck(slice));
     }
     constructor(

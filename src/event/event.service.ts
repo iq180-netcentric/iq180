@@ -14,7 +14,7 @@ import {
     OutChatMessageEvent,
 } from './out-events';
 import { IN_EVENT } from './in-events';
-import { emitEvent } from './event.utils';
+import { emitEvent, filterEvent } from './event.utils';
 
 @Injectable()
 export class EventService {
@@ -24,6 +24,10 @@ export class EventService {
 
     constructor() {
         this.emitEvent$.subscribe(emitEvent);
+    }
+
+    listenFor<T = any>(event: IN_EVENT) {
+        return this.receiveEvent$.pipe(filterEvent<T>(event));
     }
 
     receiveEvent(client: SocketClient, event: IN_EVENT, data?: any) {

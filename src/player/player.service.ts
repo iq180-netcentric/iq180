@@ -37,32 +37,32 @@ export class PlayerService {
         map(players => players.toArray()),
     );
 
-    broadcastCurrentPlayers$ = this.currentPlayers$.pipe(
+    private broadcastCurrentPlayers$ = this.currentPlayers$.pipe(
         map(players => ({
             data: players.map(p => p.playerInfo),
             clients: players.map(p => p.client),
         })),
     );
 
-    private addPlayer$ = this.eventService.receiveEvent$.pipe(
-        filterEvent<JoinEvent>(IN_EVENT.JOIN),
-        map(
-            ({ client, data }): Player => {
-                const id = uuidv4();
-                const playerInfo: PlayerInfo = {
-                    id,
-                    ready: false,
-                    ...data,
-                };
-                return { client, playerInfo };
-            },
-        ),
-    );
+    private addPlayer$ = this.eventService
+        .listenFor<JoinEvent>(IN_EVENT.JOIN)
+        .pipe(
+            map(
+                ({ client, data }): Player => {
+                    const id = uuidv4();
+                    const playerInfo: PlayerInfo = {
+                        id,
+                        ready: false,
+                        ...data,
+                    };
+                    return { client, playerInfo };
+                },
+            ),
+        );
 
     private addPlayerAction$ = this.addPlayer$.pipe(map(addPlayerAction));
 
-    private removePlayer$ = this.eventService.receiveEvent$.pipe(
-        filterEvent(IN_EVENT.LEAVE),
+    private removePlayer$ = this.eventService.listenFor(IN_EVENT.LEAVE).pipe(
         withLatestFrom(this.currentPlayers$),
         isInRoom(),
         map(([{ client }, store]) => store.find(p => p.client == client)),
@@ -72,14 +72,14 @@ export class PlayerService {
         map(removePlayerAction),
     );
 
-    private editPlayer$ = this.eventService.receiveEvent$.pipe(
-        filterEvent<EditEvent>(IN_EVENT.EDIT),
-        withLatestFrom(this.currentPlayers$),
-        isInRoom(),
-    );
+    private editPlayer$ = this.eventService
+        .listenFor<EditEvent>(IN_EVENT.EDIT)
+        .pipe(
+            withLatestFrom(this.currentPlayers$),
+            isInRoom(),
+        );
 
-    private ready$ = this.eventService.receiveEvent$.pipe(
-        filterEvent(IN_EVENT.READY),
+    private ready$ = this.eventService.listenFor(IN_EVENT.READY).pipe(
         withLatestFrom(this.currentPlayers$),
         isInRoom(),
         map(
@@ -90,8 +90,7 @@ export class PlayerService {
         ),
     );
 
-    private notReady$ = this.eventService.receiveEvent$.pipe(
-        filterEvent(IN_EVENT.NOT_READY),
+    private notReady$ = this.eventService.listenFor(IN_EVENT.NOT_READY).pipe(
         withLatestFrom(this.currentPlayers$),
         isInRoom(),
         map(
