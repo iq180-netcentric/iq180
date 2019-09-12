@@ -3,6 +3,8 @@ export const enum IN_EVENT {
     LEAVE = 'LEAVE',
     EDIT = 'EDIT',
     CHAT_MESSAGE = 'CHAT_MESSAGE',
+    READY = 'READY',
+    NOT_READY = 'NOT_READY',
 }
 
 export interface JoinEvent {

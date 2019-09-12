@@ -1,4 +1,4 @@
-import { Player, PlayerInfo } from './player';
+import { PlayerInfo } from './player';
 export interface ChatMessage {
     message: string;
     sender: PlayerInfo;
