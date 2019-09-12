@@ -21,3 +21,16 @@
         </nz-list-item>
     </nz-list>
 </cdk-virtual-scroll-viewport>
+<form [formGroup]="chatForm" (submit)="sendChat()">
+    <nz-input-group nzSearch nzSize="large" [nzAddOnAfter]="suffixButton">
+        <input
+            type="text"
+            nz-input
+            formControlName="message"
+            placeholder="Enter chat message"
+        />
+    </nz-input-group>
+    <ng-template #suffixButton>
+        <button nz-button nzType="primary" nzSize="large" nzSearch>Send</button>
+    </ng-template>
+</form>

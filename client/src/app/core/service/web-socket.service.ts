@@ -11,16 +11,16 @@ import {
     WebSocketOutgoingEvent,
 } from '../models/web-socket.model';
 import { Observable, interval } from 'rxjs';
-import {
-    filter,
-    map,
-    retryWhen,
-    tap,
-    delay,
-    pluck,
-    switchMap,
-} from 'rxjs/operators';
-import { Player } from '../models/player.model';
+import { filter, retryWhen, tap, delay, pluck } from 'rxjs/operators';
+
+export const filterEvent = <T = any>(event: WebSocketIncomingEvent) => (
+    source: Observable<WebSocketEvent<any>>,
+) => {
+    return source.pipe(
+        filter((evt: WebSocketEvent<T>) => evt.event === event),
+        pluck('data'),
+    );
+};
 
 @Injectable({
     providedIn: 'root',
@@ -54,16 +54,11 @@ export class WebSocketService {
         );
     }
 
+    listenFor<T>(event: WebSocketIncomingEvent) {
+        return this.observable.pipe(filterEvent<T>(event));
+    }
+
     emit(event: { event: WebSocketOutgoingEvent; data: any }) {
         this.connection.next(event);
     }
 }
-
-export const filterEvent = <T = any>(event: WebSocketIncomingEvent) => (
-    source: Observable<WebSocketEvent<any>>,
-) => {
-    return source.pipe(
-        filter((evt: WebSocketEvent<T>) => evt.event === event),
-        pluck('data'),
-    );
-};

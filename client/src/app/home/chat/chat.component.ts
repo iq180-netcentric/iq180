@@ -3,19 +3,19 @@ import {
     OnInit,
     ChangeDetectionStrategy,
     ViewChild,
+    OnDestroy,
 } from '@angular/core';
-import {
-    WebSocketService,
-    filterEvent,
-} from 'src/app/core/service/web-socket.service';
-import { interval, BehaviorSubject, Subject, of } from 'rxjs';
-import { map, scan, concatMap, toArray, tap } from 'rxjs/operators';
+import { WebSocketService } from 'src/app/core/service/web-socket.service';
+import { Subject, of } from 'rxjs';
+import { map, scan, tap, filter } from 'rxjs/operators';
 import {
     WebSocketOutgoingEvent,
     WebSocketIncomingEvent,
 } from 'src/app/core/models/web-socket.model';
 import { ChatMessage } from 'src/app/core/models/chat.model';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
+import { FormGroup, FormBuilder } from 'ngx-strongly-typed-forms';
+import { Validators } from '@angular/forms';
 
 @Component({
     selector: 'app-chat',
@@ -23,31 +23,51 @@ import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
     styleUrls: ['./chat.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ChatComponent implements OnInit {
+export class ChatComponent implements OnInit, OnDestroy {
     @ViewChild(CdkVirtualScrollViewport, { static: true })
     viewPort: CdkVirtualScrollViewport;
 
-    messages$ = this.socket.observable.pipe(
-        filterEvent<ChatMessage>(WebSocketIncomingEvent.chatMessage),
-        map(d => {
-            return {
-                ...d,
-                timestamp: new Date(d.timestamp),
-            };
-        }),
-        scan<ChatMessage, ChatMessage[]>((acc, cur) => acc.concat(cur), []),
-        tap(e => this.viewPort.scrollToIndex(e.length)),
-    );
+    messages$ = this.socket
+        .listenFor<ChatMessage>(WebSocketIncomingEvent.chatMessage)
+        .pipe(
+            map(d => {
+                return {
+                    ...d,
+                    timestamp: new Date(d.timestamp),
+                };
+            }),
+            scan<ChatMessage, ChatMessage[]>((acc, cur) => acc.concat(cur), []),
+            tap(e => this.viewPort.scrollToIndex(e.length)),
+        );
 
     destroy$ = new Subject();
-    constructor(private socket: WebSocketService) {}
 
-    ngOnInit() {
-        interval(1000).subscribe(e =>
-            this.socket.emit({
-                event: WebSocketOutgoingEvent.chatMessage,
-                data: `hi ${e}`,
-            }),
-        );
+    chatForm: FormGroup<{ message: string }>;
+
+    constructor(private socket: WebSocketService, formBuilder: FormBuilder) {
+        this.chatForm = formBuilder.group<{ message: string }>({
+            message: ['', [Validators.required]],
+        });
+    }
+
+    ngOnInit() {}
+
+    sendChat() {
+        of(this.chatForm)
+            .pipe(
+                tap(form => form.markAsDirty()),
+                filter(form => form.valid),
+                map(form => form.value),
+            )
+            .subscribe(form => {
+                this.socket.emit({
+                    event: WebSocketOutgoingEvent.chatMessage,
+                    data: form.message,
+                });
+                this.chatForm.reset();
+            });
+    }
+    ngOnDestroy() {
+        this.destroy$.next();
     }
 }
