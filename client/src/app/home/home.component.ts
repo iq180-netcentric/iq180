@@ -1,8 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import {
-    WebSocketService,
-    filterEvent,
-} from '../core/service/web-socket.service';
+import { WebSocketService } from '../core/service/web-socket.service';
 import {
     WebSocketOutgoingEvent,
     WebSocketIncomingEvent,

@@ -24,6 +24,7 @@ import { ChatComponent } from './chat/chat.component';
 import { PlayersComponent } from './players/players.component';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { WelcomeDialogComponent } from './welcome-dialog/welcome-dialog.component';
+import { NgxStronglyTypedFormsModule } from 'ngx-strongly-typed-forms';
 
 @NgModule({
     declarations: [
@@ -52,6 +53,7 @@ import { WelcomeDialogComponent } from './welcome-dialog/welcome-dialog.componen
         NzRadioModule,
         NzButtonModule,
         ReactiveFormsModule,
+        NgxStronglyTypedFormsModule,
     ],
     entryComponents: [WelcomeDialogComponent],
 })

@@ -1,8 +1,5 @@
 <h2>Players</h2>
-<cdk-virtual-scroll-viewport
-    [itemSize]="(players$ | async)?.length"
-    class="scroll-container"
->
+<cdk-virtual-scroll-viewport [itemSize]="74" class="scroll-container">
     <nz-list>
         <nz-list-item *cdkVirtualFor="let player of players$">
             <nz-skeleton
@@ -14,7 +11,7 @@
                 *ngIf="player"
                 [nzTitle]="nzTitle"
                 nzAvatar="{{ player.avatar }}"
-                [nzDescription]="player.name"
+                [nzDescription]="player.ready ? 'Ready' : 'Not Ready'"
             >
                 <ng-template #nzTitle>
                     <a href="https://ng.ant.design">{{ player.name }}</a>

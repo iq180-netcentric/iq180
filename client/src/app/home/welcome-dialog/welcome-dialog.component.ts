@@ -1,10 +1,7 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { NzModalRef } from 'ng-zorro-antd';
 import { FormControl } from '@angular/forms';
-import {
-    WebSocketService,
-    filterEvent,
-} from 'src/app/core/service/web-socket.service';
+import { WebSocketService } from 'src/app/core/service/web-socket.service';
 import {
     WebSocketOutgoingEvent,
     WebSocketIncomingEvent,
@@ -48,9 +45,7 @@ export class WelcomeDialogComponent {
         'https://i.kym-cdn.com/photos/images/newsfeed/001/469/824/de5.jpg',
         'https://pbs.twimg.com/media/EDUEcRoUYAA7WNL?format=jpg&name=small',
     ];
-    players$ = this.socket.observable.pipe(
-        filterEvent<Player[]>(WebSocketIncomingEvent.connected),
-    );
+    players$ = this.socket.listenFor<Player[]>(WebSocketIncomingEvent.players);
 
     constructor(
         private modal: NzModalRef,
@@ -75,11 +70,9 @@ export class WelcomeDialogComponent {
                     : WebSocketOutgoingEvent.join,
                 data: player,
             });
-            this.socket.observable
-                .pipe(
-                    filterEvent<Player>(WebSocketIncomingEvent.playerInfo),
-                    take(1),
-                )
+            this.socket
+                .listenFor<Player>(WebSocketIncomingEvent.playerInfo)
+                .pipe(take(1))
                 .subscribe(data => {
                     this.destroyModal();
                     this.auth.setPlayer(data);

@@ -4,7 +4,7 @@ export interface WebSocketEvent<T> {
 }
 
 export enum WebSocketIncomingEvent {
-    connected = 'CONNECTED',
+    players = 'PLAYERS',
     playerInfo = 'PLAYER_INFO',
     chatMessage = 'CHAT_MESSAGE',
 }
