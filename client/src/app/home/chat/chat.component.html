@@ -31,6 +31,14 @@
         />
     </nz-input-group>
     <ng-template #suffixButton>
-        <button nz-button nzType="primary" nzSize="large" nzSearch>Send</button>
+        <button
+            nz-button
+            nzType="primary"
+            nzSize="large"
+            [disabled]="!chatForm.valid"
+            nzSearch
+        >
+            Send
+        </button>
     </ng-template>
 </form>
