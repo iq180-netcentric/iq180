@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { StoreService, createAction } from '../store/store.service';
-import { Set } from 'immutable';
+import { List } from 'immutable';
 import { Player } from '../models/player';
 import { Action } from '../store/store.type';
 import { WebSocketEvent } from '../event/event.type';
@@ -13,16 +13,16 @@ export const enum ACTION {
 }
 
 export const players = (
-    state: Set<Player> = Set(),
+    state: List<Player> = List(),
     { type, payload }: Action<ACTION, Player>,
-): Set<Player> => {
+): List<Player> => {
     switch (type) {
         case ACTION.JOIN:
             return state.some(players => players.client == payload.client)
                 ? state
-                : state.add(payload);
+                : state.push(payload);
         case ACTION.LEAVE:
-            return state.delete(payload);
+            return state.filter(player => player == payload);
         case ACTION.EDIT:
             return state.map(player => {
                 if (player.client === payload.client) {
@@ -34,8 +34,8 @@ export const players = (
     }
 };
 
-export const isInRoom = () =>
-    filter<[WebSocketEvent, Player[]]>(
+export const isInRoom = <T = any>() =>
+    filter<[WebSocketEvent<T>, Player[]]>(
         ([{ client }, players]) => !!players.find(p => p.client === client),
     );
 

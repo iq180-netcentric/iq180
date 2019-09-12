@@ -13,6 +13,7 @@ import { JoinEvent, EditEvent, IN_EVENT } from '../event/in-events';
 import { merge } from 'rxjs';
 import { EventService } from '../event/event.service';
 import { filterEvent } from '../event/event.utils';
+import { WebSocketEvent } from '../event/event.type';
 @Injectable()
 export class PlayerService {
     constructor(
@@ -75,6 +76,37 @@ export class PlayerService {
         filterEvent<EditEvent>(IN_EVENT.EDIT),
         withLatestFrom(this.currentPlayers$),
         isInRoom(),
+    );
+
+    private ready$ = this.eventService.receiveEvent$.pipe(
+        filterEvent(IN_EVENT.READY),
+        withLatestFrom(this.currentPlayers$),
+        isInRoom(),
+        map(
+            ([event, players]): [WebSocketEvent, Player[]] => [
+                { ...event, data: { ready: true } },
+                players,
+            ],
+        ),
+    );
+
+    private notReady$ = this.eventService.receiveEvent$.pipe(
+        filterEvent(IN_EVENT.NOT_READY),
+        withLatestFrom(this.currentPlayers$),
+        isInRoom(),
+        map(
+            ([event, players]): [WebSocketEvent, Player[]] => [
+                { ...event, data: { ready: false } },
+                players,
+            ],
+        ),
+    );
+
+    private editPlayerInfo$ = merge(
+        this.editPlayer$,
+        this.ready$,
+        this.notReady$,
+    ).pipe(
         map(
             ([{ client, data }, players]): Player => {
                 const player = players.find(p => p.client === client);
@@ -86,9 +118,14 @@ export class PlayerService {
         ),
     );
 
-    private editPlayerAction$ = this.editPlayer$.pipe(map(editPlayerAction));
+    private editPlayerAction$ = this.editPlayerInfo$.pipe(
+        map(editPlayerAction),
+    );
 
-    private sendNewPlayerInfo$ = merge(this.addPlayer$, this.editPlayer$).pipe(
+    private sendNewPlayerInfo$ = merge(
+        this.addPlayer$,
+        this.editPlayerInfo$,
+    ).pipe(
         map(player => ({
             data: player.playerInfo,
             client: player.client,
