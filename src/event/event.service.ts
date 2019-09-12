@@ -9,7 +9,7 @@ import {
 } from './event.type';
 import {
     OUT_EVENT,
-    ConnectedEvent,
+    PlayersEvent,
     NewPlayerInfoEvent,
     OutChatMessageEvent,
 } from './out-events';
@@ -41,8 +41,8 @@ export class EventService {
         clients.forEach(client => this.emitEvent(event)({ data, client }));
     };
 
-    broadcastCurrentPlayers = this.broadcastEvent<ConnectedEvent>(
-        OUT_EVENT.CONNECTED,
+    broadcastCurrentPlayers = this.broadcastEvent<PlayersEvent>(
+        OUT_EVENT.PLAYERS,
     );
 
     sendNewPlayerInfo = this.emitEvent<NewPlayerInfoEvent>(
