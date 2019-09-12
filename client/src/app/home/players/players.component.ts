@@ -4,6 +4,7 @@ import {
     filterEvent,
 } from 'src/app/core/service/web-socket.service';
 import { WebSocketIncomingEvent } from 'src/app/core/models/web-socket.model';
+import { Player } from 'src/app/core/models/player.model';
 
 @Component({
     selector: 'app-players',
@@ -12,8 +13,8 @@ import { WebSocketIncomingEvent } from 'src/app/core/models/web-socket.model';
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PlayersComponent implements OnInit {
-    players$ = this.socket.connection.pipe(
-        filterEvent(WebSocketIncomingEvent.connected),
+    players$ = this.socket.observable.pipe(
+        filterEvent<Player[]>(WebSocketIncomingEvent.connected),
     );
 
     constructor(private socket: WebSocketService) {}

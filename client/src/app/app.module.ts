@@ -13,26 +13,31 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { registerLocaleData } from '@angular/common';
 import en from '@angular/common/locales/en';
 import { HomeModule } from './home/home.module';
+import { ServiceWorkerModule } from '@angular/service-worker';
+import { environment } from '../environments/environment';
 
 registerLocaleData(en);
 
 @NgModule({
-  declarations: [AppComponent],
-  imports: [
-    BrowserModule,
-    AppRoutingModule,
-    IconsProviderModule,
-    NgZorroAntdModule,
-    FormsModule,
-    HttpClientModule,
-    BrowserAnimationsModule,
-    HomeModule
-  ],
-  providers: [
-    WebSocketService,
-    Environment,
-    { provide: NZ_I18N, useValue: en_GB }
-  ],
-  bootstrap: [AppComponent]
+    declarations: [AppComponent],
+    imports: [
+        BrowserModule,
+        AppRoutingModule,
+        IconsProviderModule,
+        NgZorroAntdModule,
+        FormsModule,
+        HttpClientModule,
+        BrowserAnimationsModule,
+        HomeModule,
+        ServiceWorkerModule.register('ngsw-worker.js', {
+            enabled: environment.production,
+        }),
+    ],
+    providers: [
+        WebSocketService,
+        Environment,
+        { provide: NZ_I18N, useValue: en_GB },
+    ],
+    bootstrap: [AppComponent],
 })
 export class AppModule {}
