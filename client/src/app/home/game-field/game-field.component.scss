@@ -25,6 +25,7 @@
             .card-list {
                 padding: 4px;
                 border: 1px solid #e8e8e8;
+                transition: border 250ms cubic-bezier(0, 0, 0.2, 1);
             }
             .currentAnswer {
                 padding: 10px;
@@ -69,6 +70,7 @@
     justify-content: center;
     align-items: center;
     background-color: white;
+    transition: border 250ms cubic-bezier(0, 0, 0.2, 1);
     transition: width 250ms cubic-bezier(0, 0, 0.2, 1);
     border: 1px solid #e8e8e8;
 }

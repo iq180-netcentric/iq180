@@ -25,6 +25,7 @@ import { PlayersComponent } from './players/players.component';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { WelcomeDialogComponent } from './welcome-dialog/welcome-dialog.component';
 import { NgxStronglyTypedFormsModule } from 'ngx-strongly-typed-forms';
+import { MenuComponent } from './menu/menu.component';
 
 @NgModule({
     declarations: [
@@ -33,6 +34,7 @@ import { NgxStronglyTypedFormsModule } from 'ngx-strongly-typed-forms';
         ChatComponent,
         PlayersComponent,
         WelcomeDialogComponent,
+        MenuComponent,
     ],
     imports: [
         CommonModule,

@@ -8,7 +8,7 @@ import { NzModalService } from 'ng-zorro-antd';
 import { WelcomeDialogComponent } from './welcome-dialog/welcome-dialog.component';
 import { AuthService } from '../core/service/auth.service';
 import { Player } from '../core/models/player.model';
-import { Observable } from 'rxjs';
+import { Observable, BehaviorSubject } from 'rxjs';
 
 @Component({
     selector: 'app-home',
@@ -17,6 +17,7 @@ import { Observable } from 'rxjs';
 })
 export class HomeComponent implements OnInit {
     currentPlayer$: Observable<Player> = this.authService.player$;
+    selectedPlayer$ = new BehaviorSubject<Player>(undefined);
 
     constructor(
         private socket: WebSocketService,

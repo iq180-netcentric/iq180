@@ -14,10 +14,15 @@
         <div class="inner-content">
             <div class="top" nz-row nzType="flex" nzGutter="16px">
                 <div nz-col [nzXs]="24" [nzLg]="18">
-                    <app-game-field></app-game-field>
+                    <app-game-field
+                        [player]="selectedPlayer$ | async"
+                    ></app-game-field>
                 </div>
                 <div nz-col [nzXs]="24" [nzLg]="6">
-                    <app-players></app-players>
+                    <app-players
+                        (selectPlayer)="selectedPlayer$.next($event)"
+                        [selectedPlayer]="selectedPlayer$ | async"
+                    ></app-players>
                 </div>
             </div>
             <div class="bottom" nz-row>

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import {
     OperatorCard,
     DraggableCard,
@@ -22,12 +22,13 @@ import {
     take,
     map,
     endWith,
+    filter,
+    debounce,
+    debounceTime,
+    share,
 } from 'rxjs/operators';
-import {
-    validateForDisplay,
-    calculate,
-    generate,
-} from 'src/app/core/functions/iq180';
+import * as Logic from 'iq180-logic';
+import { Player } from 'src/app/core/models/player.model';
 
 @Component({
     selector: 'app-game-field',
@@ -35,9 +36,45 @@ import {
     styleUrls: ['./game-field.component.scss'],
 })
 export class GameFieldComponent implements OnInit {
+    @Input() player: Player;
+
     numbers$ = new BehaviorSubject<NumberCard[]>([]);
     answer$ = new BehaviorSubject<DraggableCard[]>([]);
     expectedAnswer$ = new BehaviorSubject<number>(null);
+    wrongPositions$ = this.answer$.pipe(
+        filter(answer => !!answer),
+        debounceTime(750),
+        map(answer => answer.map(e => e.value)),
+        map(answers => Logic.highlightWrongLocation({ array: answers })),
+    );
+
+    isValidAnswer$ = this.answer$.pipe(
+        debounceTime(750),
+        map(ans => {
+            return Logic.validateForDisplay({
+                array: ans.map(e => e.value),
+                operators: ['+', '-', '*', '/'],
+            });
+        }),
+        startWith(true),
+    );
+
+    currentAnswer$ = this.answer$.pipe(
+        debounceTime(750),
+        map(ans => {
+            if (
+                Logic.validateForDisplay({
+                    array: ans.map(e => e.value),
+                    operators: ['+', '-', '*', '/'],
+                })
+            ) {
+                return Logic.calculate(ans.map(e => e.value));
+            } else {
+                return 'Invalid';
+            }
+        }, share()),
+    );
+
     operators: OperatorCard[] = [
         { value: '+', display: '+', disabled: false },
         { value: '-', display: '-', disabled: false },
@@ -83,7 +120,7 @@ export class GameFieldComponent implements OnInit {
     }
 
     reset() {
-        const { question, operators, expectedAnswer } = generate({
+        const { question, operators, expectedAnswer } = Logic.generate({
             numberLength: 5,
             operators: ['+', '-', '*', '/'],
             integerAnswer: true,
@@ -200,7 +237,6 @@ export class GameFieldComponent implements OnInit {
     }
 
     onDragEnded(event: CdkDragEnd) {
-        console.log(event);
         event.source.element.nativeElement.style.transform = 'none'; // visually reset element to its origin
         const source: any = event.source;
         source._passiveTransform = { x: 0, y: 0 }; // make it so new drag starts from same origin
@@ -214,18 +250,7 @@ export class GameFieldComponent implements OnInit {
         return item.data.type === CardType.operator;
     }
 
-    get isValidAnswer() {
-        return validateForDisplay({
-            array: this.answer$.value.map(e => e.value),
-            operators: ['+', '-', '*', '/'],
-        });
-    }
-
-    get currentAnswer() {
-        if (this.isValidAnswer) {
-            return calculate(this.answer$.value.map(e => e.value));
-        } else {
-            return 'Invalid';
-        }
+    vibrate() {
+        navigator.vibrate(200);
     }
 }

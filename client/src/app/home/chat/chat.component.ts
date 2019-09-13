@@ -4,16 +4,22 @@ import {
     ChangeDetectionStrategy,
     ViewChild,
     OnDestroy,
+    Inject,
 } from '@angular/core';
 import { WebSocketService } from 'src/app/core/service/web-socket.service';
 import { Subject, of } from 'rxjs';
-import { map, scan, tap, filter } from 'rxjs/operators';
+import { map, scan, tap, filter, delay, takeUntil } from 'rxjs/operators';
 import {
     WebSocketOutgoingEvent,
     WebSocketIncomingEvent,
 } from 'src/app/core/models/web-socket.model';
 import { ChatMessage } from 'src/app/core/models/chat.model';
-import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
+import {
+    CdkVirtualScrollViewport,
+    VIRTUAL_SCROLL_STRATEGY,
+    FixedSizeVirtualScrollStrategy,
+    VirtualScrollStrategy,
+} from '@angular/cdk/scrolling';
 import { FormGroup, FormBuilder } from 'ngx-strongly-typed-forms';
 import { Validators } from '@angular/forms';
 
@@ -37,7 +43,6 @@ export class ChatComponent implements OnInit, OnDestroy {
                 };
             }),
             scan<ChatMessage, ChatMessage[]>((acc, cur) => acc.concat(cur), []),
-            tap(e => this.viewPort.scrollToIndex(e.length)),
         );
 
     destroy$ = new Subject();
@@ -48,6 +53,14 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.chatForm = formBuilder.group<{ message: string }>({
             message: ['', [Validators.required]],
         });
+        this.messages$
+            .pipe(
+                takeUntil(this.destroy$),
+                delay(100),
+            )
+            .subscribe(e =>
+                this.viewPort.scrollToIndex(e.length - 1, 'smooth'),
+            );
     }
 
     ngOnInit() {}
