@@ -23,11 +23,7 @@ import {
     map,
     endWith,
 } from 'rxjs/operators';
-import {
-    validateForDisplay,
-    calculate,
-    generate,
-} from 'src/app/core/functions/iq180';
+import * as Logic from 'iq180-logic';
 
 @Component({
     selector: 'app-game-field',
@@ -83,7 +79,7 @@ export class GameFieldComponent implements OnInit {
     }
 
     reset() {
-        const { question, operators, expectedAnswer } = generate({
+        const { question, operators, expectedAnswer } = Logic.generate({
             numberLength: 5,
             operators: ['+', '-', '*', '/'],
             integerAnswer: true,
@@ -215,7 +211,7 @@ export class GameFieldComponent implements OnInit {
     }
 
     get isValidAnswer() {
-        return validateForDisplay({
+        return Logic.validateForDisplay({
             array: this.answer$.value.map(e => e.value),
             operators: ['+', '-', '*', '/'],
         });
@@ -223,7 +219,7 @@ export class GameFieldComponent implements OnInit {
 
     get currentAnswer() {
         if (this.isValidAnswer) {
-            return calculate(this.answer$.value.map(e => e.value));
+            return Logic.calculate(this.answer$.value.map(e => e.value));
         } else {
             return 'Invalid';
         }
