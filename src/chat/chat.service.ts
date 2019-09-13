@@ -7,7 +7,6 @@ import { filterEvent } from '../event/event.utils';
 import { IN_EVENT, InChatMessageEvent } from '../event/in-events';
 import { BroadcastMessage } from '../event/event.type';
 import { isInRoom } from '../player/player.store';
-
 @Injectable()
 export class ChatService {
     constructor(
@@ -17,18 +16,24 @@ export class ChatService {
         this.chatMessage$.subscribe(i => eventService.broadcastChatMessage(i));
     }
 
-    private chatMessage$ = this.eventService.receiveEvent$.pipe(
-        filterEvent<InChatMessageEvent>(IN_EVENT.CHAT_MESSAGE),
-        withLatestFrom(this.playerService.currentPlayers$),
-        isInRoom(),
-        map(
-            ([{ client, data }, players]): BroadcastMessage<ChatMessage> => {
-                const sender = players.find(p => p.client === client)
-                    .playerInfo;
-                const timestamp = Date();
-                const clients = players.map(p => p.client);
-                return { data: { sender, timestamp, message: data }, clients };
-            },
-        ),
-    );
+    private chatMessage$ = this.eventService
+        .listenFor<InChatMessageEvent>(IN_EVENT.CHAT_MESSAGE)
+        .pipe(
+            withLatestFrom(this.playerService.currentPlayers$),
+            isInRoom(),
+            map(
+                ([{ client, data }, players]): BroadcastMessage<
+                    ChatMessage
+                > => {
+                    const sender = players.find(p => p.client === client)
+                        .playerInfo;
+                    const timestamp = new Date().toISOString();
+                    const clients = players.map(p => p.client);
+                    return {
+                        data: { sender, timestamp, message: data },
+                        clients,
+                    };
+                },
+            ),
+        );
 }
