@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import {
     OperatorCard,
     DraggableCard,
@@ -22,9 +22,10 @@ import {
     take,
     map,
     endWith,
-    filter
+    filter,
 } from 'rxjs/operators';
 import * as Logic from 'iq180-logic';
+import { Player } from 'src/app/core/models/player.model';
 
 @Component({
     selector: 'app-game-field',
@@ -32,13 +33,15 @@ import * as Logic from 'iq180-logic';
     styleUrls: ['./game-field.component.scss'],
 })
 export class GameFieldComponent implements OnInit {
+    @Input() player: Player;
+
     numbers$ = new BehaviorSubject<NumberCard[]>([]);
     answer$ = new BehaviorSubject<DraggableCard[]>([]);
     expectedAnswer$ = new BehaviorSubject<number>(null);
     wrongPositions$ = this.answer$.pipe(
         filter(answer => !!answer),
         map(answer => answer.map(e => e.value)),
-        map(answers => Logic.highlightWrongLocation({array: answers})),
+        map(answers => Logic.highlightWrongLocation({ array: answers })),
     );
     operators: OperatorCard[] = [
         { value: '+', display: '+', disabled: false },
@@ -202,7 +205,6 @@ export class GameFieldComponent implements OnInit {
     }
 
     onDragEnded(event: CdkDragEnd) {
-        console.log(event);
         event.source.element.nativeElement.style.transform = 'none'; // visually reset element to its origin
         const source: any = event.source;
         source._passiveTransform = { x: 0, y: 0 }; // make it so new drag starts from same origin

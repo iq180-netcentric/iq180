@@ -23,6 +23,7 @@
     "@angular/pwa": "^0.803.4",
     "@angular/router": "~8.2.4",
     "@angular/service-worker": "~8.2.4",
+    "iq180-logic": "^1.0.5",
     "ng-zorro-antd": "^8.1.2",
     "ngx-strongly-typed-forms": "^8.0.1",
     "rxjs": "~6.4.0",

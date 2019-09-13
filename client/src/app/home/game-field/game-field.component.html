@@ -8,17 +8,25 @@
         [nzXs]="24"
     >
         <div nz-col [nzXs]="24" [nzLg]="18">
-            <nz-card>
-                <nz-card-meta
-                    nzTitle="Current Player"
-                    nzDescription="This is the description"
-                    [nzAvatar]="avatarTemplate"
-                ></nz-card-meta>
-            </nz-card>
-            <ng-template #avatarTemplate>
-                <nz-avatar
-                    nzSrc="https://zos.alipayobjects.com/rmsportal/ODTLcjxAfvqbxHnVXCYX.png"
-                ></nz-avatar>
+            <ng-container *ngIf="player; else notSelected">
+                <nz-card>
+                    <nz-card-meta
+                        nzTitle="Current Player : {{ player.name }}"
+                        nzDescription="This is the description"
+                        [nzAvatar]="avatarTemplate"
+                    ></nz-card-meta>
+                </nz-card>
+                <ng-template #avatarTemplate>
+                    <nz-avatar [nzSrc]="player.avatar"></nz-avatar>
+                </ng-template>
+            </ng-container>
+            <ng-template #notSelected>
+                <nz-card>
+                    <nz-card-meta
+                        nzTitle="No player selected"
+                        nzDescription="Select a player"
+                    ></nz-card-meta>
+                </nz-card>
             </ng-template>
         </div>
         <div *ngIf="timer$ | async as timer" nz-col [nzXs]="24" [nzLg]="6">
