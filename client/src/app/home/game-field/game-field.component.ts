@@ -22,6 +22,7 @@ import {
     take,
     map,
     endWith,
+    filter
 } from 'rxjs/operators';
 import * as Logic from 'iq180-logic';
 
@@ -34,6 +35,11 @@ export class GameFieldComponent implements OnInit {
     numbers$ = new BehaviorSubject<NumberCard[]>([]);
     answer$ = new BehaviorSubject<DraggableCard[]>([]);
     expectedAnswer$ = new BehaviorSubject<number>(null);
+    wrongPositions$ = this.answer$.pipe(
+        filter(answer => !!answer),
+        map(answer => answer.map(e => e.value)),
+        map(answers => Logic.highlightWrongLocation({array: answers})),
+    );
     operators: OperatorCard[] = [
         { value: '+', display: '+', disabled: false },
         { value: '-', display: '-', disabled: false },

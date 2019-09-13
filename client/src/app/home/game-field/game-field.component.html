@@ -86,6 +86,9 @@
                         *ngFor="let card of answer$ | async; let i = index"
                         (click)="removeCard(card, i)"
                         [cdkDragData]="card"
+                        [ngClass]="{
+                            invalid: (wrongPositions$ | async).includes(i)
+                        }"
                         cdkDrag
                     >
                         <span>{{ card.display }}</span>
