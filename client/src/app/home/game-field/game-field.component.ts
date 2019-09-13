@@ -23,6 +23,9 @@ import {
     map,
     endWith,
     filter,
+    debounce,
+    debounceTime,
+    share,
 } from 'rxjs/operators';
 import * as Logic from 'iq180-logic';
 import { Player } from 'src/app/core/models/player.model';
@@ -40,9 +43,38 @@ export class GameFieldComponent implements OnInit {
     expectedAnswer$ = new BehaviorSubject<number>(null);
     wrongPositions$ = this.answer$.pipe(
         filter(answer => !!answer),
+        debounceTime(750),
         map(answer => answer.map(e => e.value)),
         map(answers => Logic.highlightWrongLocation({ array: answers })),
     );
+
+    isValidAnswer$ = this.answer$.pipe(
+        debounceTime(750),
+        map(ans => {
+            return Logic.validateForDisplay({
+                array: ans.map(e => e.value),
+                operators: ['+', '-', '*', '/'],
+            });
+        }),
+        startWith(true),
+    );
+
+    currentAnswer$ = this.answer$.pipe(
+        debounceTime(750),
+        map(ans => {
+            if (
+                Logic.validateForDisplay({
+                    array: ans.map(e => e.value),
+                    operators: ['+', '-', '*', '/'],
+                })
+            ) {
+                return Logic.calculate(ans.map(e => e.value));
+            } else {
+                return 'Invalid';
+            }
+        }, share()),
+    );
+
     operators: OperatorCard[] = [
         { value: '+', display: '+', disabled: false },
         { value: '-', display: '-', disabled: false },
@@ -216,21 +248,6 @@ export class GameFieldComponent implements OnInit {
 
     isOperator(item: CdkDrag<DraggableCard>) {
         return item.data.type === CardType.operator;
-    }
-
-    get isValidAnswer() {
-        return Logic.validateForDisplay({
-            array: this.answer$.value.map(e => e.value),
-            operators: ['+', '-', '*', '/'],
-        });
-    }
-
-    get currentAnswer() {
-        if (this.isValidAnswer) {
-            return Logic.calculate(this.answer$.value.map(e => e.value));
-        } else {
-            return 'Invalid';
-        }
     }
 
     vibrate() {

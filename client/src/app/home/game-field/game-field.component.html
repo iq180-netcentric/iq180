@@ -76,7 +76,7 @@
                     cdkDropListOrientation="horizontal"
                     [cdkDropListConnectedTo]="[numbersList, operatorList]"
                     [ngClass]="{
-                        invalid: !isValidAnswer
+                        invalid: !(isValidAnswer$ | async)
                     }"
                     class="card-list"
                     (cdkDropListDropped)="dropAnswer($event)"
@@ -95,7 +95,7 @@
                         (click)="removeCard(card, i)"
                         [cdkDragData]="card"
                         [ngClass]="{
-                            invalid: (wrongPositions$ | async).includes(i)
+                            invalid: (wrongPositions$ | async)?.includes(i)
                         }"
                         cdkDrag
                     >
@@ -104,7 +104,7 @@
                 </div>
             </div>
             <div class="currentAnswer" nz-col [nzMd]="6" [nzXs]="24">
-                <span>= {{ currentAnswer }}</span>
+                <span>= {{ currentAnswer$ | async }}</span>
             </div>
         </div>
         <div class="operators" nz-col [nzXs]="24">
