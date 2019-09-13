@@ -4,7 +4,7 @@ export const enum IN_EVENT {
     EDIT = 'EDIT',
     CHAT_MESSAGE = 'CHAT_MESSAGE',
     READY = 'READY',
-    NOT_READY = 'NOT_READY',
+    START = 'START',
 }
 
 export interface JoinEvent {
@@ -15,3 +15,5 @@ export interface JoinEvent {
 export type EditEvent = JoinEvent;
 
 export type InChatMessageEvent = string;
+
+export type ReadyEvent = boolean;

@@ -9,10 +9,9 @@ import {
 import * as uuidv4 from 'uuid/v4';
 import { PlayerInfo, Player } from '../models/player';
 import { map, withLatestFrom } from 'rxjs/operators';
-import { JoinEvent, EditEvent, IN_EVENT } from '../event/in-events';
+import { JoinEvent, EditEvent, IN_EVENT, ReadyEvent } from '../event/in-events';
 import { merge } from 'rxjs';
 import { EventService } from '../event/event.service';
-import { filterEvent } from '../event/event.utils';
 import { WebSocketEvent } from '../event/event.type';
 @Injectable()
 export class PlayerService {
@@ -79,33 +78,20 @@ export class PlayerService {
             isInRoom(),
         );
 
-    private ready$ = this.eventService.listenFor(IN_EVENT.READY).pipe(
-        withLatestFrom(this.currentPlayers$),
-        isInRoom(),
-        map(
-            ([event, players]): [WebSocketEvent, Player[]] => [
-                { ...event, data: { ready: true } },
-                players,
-            ],
-        ),
-    );
+    private ready$ = this.eventService
+        .listenFor<ReadyEvent>(IN_EVENT.READY)
+        .pipe(
+            withLatestFrom(this.currentPlayers$),
+            isInRoom(),
+            map(
+                ([{ data, ...rest }, players]): [WebSocketEvent, Player[]] => [
+                    { ...rest, data: { ready: data } },
+                    players,
+                ],
+            ),
+        );
 
-    private notReady$ = this.eventService.listenFor(IN_EVENT.NOT_READY).pipe(
-        withLatestFrom(this.currentPlayers$),
-        isInRoom(),
-        map(
-            ([event, players]): [WebSocketEvent, Player[]] => [
-                { ...event, data: { ready: false } },
-                players,
-            ],
-        ),
-    );
-
-    private editPlayerInfo$ = merge(
-        this.editPlayer$,
-        this.ready$,
-        this.notReady$,
-    ).pipe(
+    private editPlayerInfo$ = merge(this.editPlayer$, this.ready$).pipe(
         map(
             ([{ client, data }, players]): Player => {
                 const player = players.find(p => p.client === client);
