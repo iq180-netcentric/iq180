@@ -1,5 +1,5 @@
-import { PlayerInfo } from '../models/player';
 import { ChatMessage } from '../models/chatMessage';
+import { PlayerInfo } from '../models/player';
 
 export const enum OUT_EVENT {
     PLAYERS = 'PLAYERS',

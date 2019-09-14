@@ -3,7 +3,6 @@ import { PlayerService } from '../player/player.service';
 import { EventService } from '../event/event.service';
 import { withLatestFrom, map } from 'rxjs/operators';
 import { ChatMessage } from '../models/chatMessage';
-import { filterEvent } from '../event/event.utils';
 import { IN_EVENT, InChatMessageEvent } from '../event/in-events';
 import { BroadcastMessage } from '../event/event.type';
 import { isInRoom } from '../player/player.store';
@@ -25,10 +24,12 @@ export class ChatService {
                 ([{ client, data }, players]): BroadcastMessage<
                     ChatMessage
                 > => {
-                    const sender = players.find(p => p.client === client)
-                        .playerInfo;
+                    const { client: c, ...sender } = players.get(client.id);
                     const timestamp = new Date().toISOString();
-                    const clients = players.map(p => p.client);
+                    const clients = players
+                        .toIndexedSeq()
+                        .map(p => p.client)
+                        .toArray();
                     return {
                         data: { sender, timestamp, message: data },
                         clients,

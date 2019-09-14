@@ -1,18 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import {
-    PlayerStore,
-    isInRoom,
-    addPlayerAction,
-    removePlayerAction,
-    editPlayerAction,
-} from './player.store';
+import { PlayerStore, isInRoom, PlayerMap } from './player.store';
 import * as uuidv4 from 'uuid/v4';
 import { PlayerInfo, Player } from '../models/player';
-import { map, withLatestFrom } from 'rxjs/operators';
+import { map, withLatestFrom, share, filter, tap, pluck } from 'rxjs/operators';
 import { JoinEvent, EditEvent, IN_EVENT, ReadyEvent } from '../event/in-events';
 import { merge } from 'rxjs';
 import { EventService } from '../event/event.service';
-import { WebSocketEvent } from '../event/event.type';
+import { WebSocketEvent, SocketClient } from '../event/event.type';
+import {
+    editPlayerAction,
+    removePlayerAction,
+    addPlayerAction,
+} from './player.action';
 @Injectable()
 export class PlayerService {
     constructor(
@@ -32,40 +31,55 @@ export class PlayerService {
         );
     }
 
-    currentPlayers$ = this.playerStore.store$.pipe(
-        map(players => players.toArray()),
-    );
+    currentPlayers$ = this.playerStore.store$;
 
     private broadcastCurrentPlayers$ = this.currentPlayers$.pipe(
-        map(players => ({
-            data: players.map(p => p.playerInfo),
-            clients: players.map(p => p.client),
-        })),
+        map(players => players.toIndexedSeq().toArray()),
+        map(players => {
+            const data: PlayerInfo[] = [];
+            const clients: SocketClient[] = [];
+            for (const { client, ...rest } of players) {
+                data.push(rest);
+                clients.push(client);
+            }
+            return {
+                data,
+                clients,
+            };
+        }),
     );
 
     private addPlayer$ = this.eventService
         .listenFor<JoinEvent>(IN_EVENT.JOIN)
         .pipe(
+            withLatestFrom(this.currentPlayers$),
+            filter(
+                ([{ client }, players]) =>
+                    players.find(player => player.client === client) ===
+                    undefined,
+            ),
+            pluck(0),
             map(
                 ({ client, data }): Player => {
                     const id = uuidv4();
-                    const playerInfo: PlayerInfo = {
+                    const player: Player = {
                         id,
                         ready: false,
                         ...data,
+                        client,
                     };
-                    return { client, playerInfo };
+                    return player;
                 },
             ),
+            tap(player => (player.client.id = player.id)),
+            share(),
         );
 
     private addPlayerAction$ = this.addPlayer$.pipe(map(addPlayerAction));
 
-    private removePlayer$ = this.eventService.listenFor(IN_EVENT.LEAVE).pipe(
-        withLatestFrom(this.currentPlayers$),
-        isInRoom(),
-        map(([{ client }, store]) => store.find(p => p.client == client)),
-    );
+    private removePlayer$ = this.eventService
+        .listenFor(IN_EVENT.LEAVE)
+        .pipe(map(({ client }) => client.id));
 
     private removePlayerAction$ = this.removePlayer$.pipe(
         map(removePlayerAction),
@@ -84,8 +98,8 @@ export class PlayerService {
             withLatestFrom(this.currentPlayers$),
             isInRoom(),
             map(
-                ([{ data, ...rest }, players]): [WebSocketEvent, Player[]] => [
-                    { ...rest, data: { ready: data } },
+                ([event, players]): [WebSocketEvent, PlayerMap] => [
+                    { ...event, data: { ready: event.data } },
                     players,
                 ],
             ),
@@ -94,10 +108,10 @@ export class PlayerService {
     private editPlayerInfo$ = merge(this.editPlayer$, this.ready$).pipe(
         map(
             ([{ client, data }, players]): Player => {
-                const player = players.find(p => p.client === client);
+                const player = players.get(client.id);
                 return {
                     ...player,
-                    playerInfo: { ...player.playerInfo, ...data },
+                    ...data,
                 };
             },
         ),
@@ -111,9 +125,9 @@ export class PlayerService {
         this.addPlayer$,
         this.editPlayerInfo$,
     ).pipe(
-        map(player => ({
-            data: player.playerInfo,
-            client: player.client,
+        map(({ client, ...info }) => ({
+            data: info,
+            client,
         })),
     );
 }

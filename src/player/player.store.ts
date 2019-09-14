@@ -1,47 +1,42 @@
 import { Injectable } from '@nestjs/common';
-import { StoreService, createAction } from '../store/store.service';
-import { List } from 'immutable';
+import { StoreService } from '../store/store.service';
+import { Map } from 'immutable';
 import { Player } from '../models/player';
 import { Action } from '../store/store.type';
 import { WebSocketEvent } from '../event/event.type';
 import { filter } from 'rxjs/operators';
+import { ACTION, PlayerAction } from './player.action';
 
-export const enum ACTION {
-    JOIN = 'JOIN',
-    LEAVE = 'LEAVE',
-    EDIT = 'EDIT',
-}
+export type PlayerMap = Map<string, Player>;
 
 export const players = (
-    state: List<Player> = List(),
-    { type, payload }: Action<ACTION, Player>,
-): List<Player> => {
-    switch (type) {
-        case ACTION.JOIN:
-            return state.some(players => players.client == payload.client)
+    state: PlayerMap = Map(),
+    action: PlayerAction,
+): PlayerMap => {
+    switch (action.type) {
+        case ACTION.ADD: {
+            const { payload } = action;
+            return state.has(payload.id)
                 ? state
-                : state.push(payload);
-        case ACTION.LEAVE:
-            return state.filter(player => player == payload);
-        case ACTION.EDIT:
-            return state.map(player => {
-                if (player.client === payload.client) {
-                    return payload;
-                } else return player;
-            });
+                : state.set(payload.id, payload);
+        }
+        case ACTION.REMOVE: {
+            const { payload } = action;
+            return state.delete(payload);
+        }
+        case ACTION.EDIT: {
+            const { payload } = action;
+            return state.set(payload.id, payload);
+        }
         default:
             return state;
     }
 };
 
 export const isInRoom = <T = any>() =>
-    filter<[WebSocketEvent<T>, Player[]]>(
-        ([{ client }, players]) => !!players.find(p => p.client === client),
+    filter<[WebSocketEvent<T>, PlayerMap]>(([{ client }, players]) =>
+        players.has(client.id),
     );
-
-export const addPlayerAction = createAction<Player>(ACTION.JOIN);
-export const editPlayerAction = createAction<Player>(ACTION.EDIT);
-export const removePlayerAction = createAction<Player>(ACTION.LEAVE);
 
 @Injectable()
 export class PlayerStore {
