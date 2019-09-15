@@ -1,6 +1,8 @@
 import { IN_EVENT } from './in-events';
 
-export interface SocketClient extends WebSocket {}
+export interface SocketClient extends WebSocket {
+    id: string;
+}
 
 export interface WebSocketEvent<T = any> {
     client: SocketClient;

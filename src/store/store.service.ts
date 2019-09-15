@@ -5,9 +5,9 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { pluck } from 'rxjs/operators';
 import { Action } from './store.type';
 
-export const createAction = <T = any>(type: string) => (
-    payload?: T,
-): Action => ({
+export const createAction = <T = string, R = any>(type: T) => (
+    payload?: R,
+): Action<T, R> => ({
     type,
     payload,
 });
