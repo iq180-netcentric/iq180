@@ -5,6 +5,7 @@ import { join } from 'path';
 import { EventModule } from './event/event.module';
 import { PlayerModule } from './player/player.module';
 import { ChatModule } from './chat/chat.module';
+import { GameModule } from './game/game.module';
 
 @Module({
     imports: [
@@ -15,6 +16,7 @@ import { ChatModule } from './chat/chat.module';
         PlayerModule,
         EventModule,
         ChatModule,
+        GameModule,
     ],
 })
 export class AppModule {}

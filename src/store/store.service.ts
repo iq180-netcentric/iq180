@@ -4,10 +4,11 @@ import { AppState } from './store';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { pluck } from 'rxjs/operators';
 import { Action } from './store.type';
+import * as equal from 'deep-equal';
 
-export const createAction = <T = string, R = any>(type: T) => (
-    payload?: R,
-): Action<T, R> => ({
+export const createAction = <Type = string, Payload = any>(type: Type) => (
+    payload: Payload,
+): Action<Type, Payload> => ({
     type,
     payload,
 });
@@ -31,8 +32,9 @@ export class StoreService {
         store.subscribe(() => {
             const oldState = this.store$.value;
             const newState = store.getState();
-            if (oldState !== newState) {
+            if (!equal(oldState, newState)) {
                 store$.next(newState);
+                return;
             }
         });
     }
