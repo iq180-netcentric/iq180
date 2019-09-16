@@ -33,19 +33,13 @@ export const serialzedPlayers = (players: GamePlayerMap) =>
             attempt: getOrUndefined(attempt),
             ...rest,
         }))
-        .toObject();
+        .toIndexedSeq()
+        .toArray();
 
+export type SerialzedGamePlayers = ReturnType<typeof serialzedPlayers>;
 export interface SerializedGameState {
     ready: boolean;
-    players: {
-        [id: string]: {
-            score: number;
-            attempt: {
-                answer: any[];
-                numbers: number[];
-            };
-        };
-    };
+    players: SerialzedGamePlayers;
     question: number[];
     expectedAnswer: number;
     startTime: string;
