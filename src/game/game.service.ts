@@ -4,32 +4,37 @@ import { PlayerService } from '../player/player.service';
 import { filter, map, withLatestFrom } from 'rxjs/operators';
 import { merge, Observable } from 'rxjs';
 import { readyAction } from './game.action';
+import { PlayerMap } from '../player/player.store';
+import { Game } from '../models/game';
 
+export const gameIsReady = (gameStore$: Observable<Game>) => <T>(
+    source: Observable<T>,
+) =>
+    source.pipe(
+        withLatestFrom(gameStore$),
+            filter(([, game]) => game.ready),
+            map(([i]) => i),
+        );
+
+export const playersReady = (players: PlayerMap): boolean => {
+    const numberOfPlayers = players.size;
+            const numberOfReady = players.filter(p => p.ready).size;
+    return numberOfReady >= Math.ceil(numberOfPlayers / 2) && numberOfReady > 1;
+};
+
+export const playersReadyAction$ = (currentPlayers$: Observable<PlayerMap>) =>
+    currentPlayers$.pipe(
+        map(playersReady),
+        map(readyAction),
+    );
 @Injectable()
 export class GameService {
     constructor(
         private readonly gameStore: GameStore,
         private readonly playerService: PlayerService,
     ) {
-        merge(this.playersReady$).subscribe(i => gameStore.dispatch(i));
-    }
-
-    gameIsReady = () => <T>(source: Observable<T>) =>
-        source.pipe(
-            withLatestFrom(this.gameStore.store$),
-            filter(([, game]) => game.ready),
-            map(([i]) => i),
+        merge(playersReadyAction$(playerService.currentPlayers$)).subscribe(i =>
+            gameStore.dispatch(i),
         );
-
-    playersReady$ = this.playerService.currentPlayers$.pipe(
-        map(players => {
-            const numberOfPlayers = players.size;
-            const numberOfReady = players.filter(p => p.ready).size;
-            return (
-                numberOfReady >= Math.ceil(numberOfPlayers / 2) &&
-                numberOfReady > 1
-            );
-        }),
-        map(readyAction),
-    );
+}
 }
