@@ -1,0 +1,19 @@
+{
+    "extends": "./tsconfig.app.json",
+    "compilerOptions": {
+        "outDir": "./out-tsc/app-server",
+        "module": "commonjs",
+        "declaration": true,
+        "removeComments": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "target": "es2017",
+        "sourceMap": true,
+        "incremental": true,
+        "lib": ["esnext","dom"]
+    },
+    "files": ["src/main.server.ts"],
+    "angularCompilerOptions": {
+        "entryModule": "./src/app/app.server.module#AppServerModule"
+    }
+}
