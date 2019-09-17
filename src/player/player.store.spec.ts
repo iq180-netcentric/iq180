@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PlayerStore, players, ACTION } from './player.store';
-import { Set } from 'immutable';
+import { PlayerStore } from './player.store';
 import { StoreModule } from '../store/store.module';
 import { EventModule } from '../event/event.module';
 

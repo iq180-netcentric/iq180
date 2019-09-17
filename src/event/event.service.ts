@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Subject } from 'rxjs';
 import {
     SocketClient,
-    WebSocketEvent,
+    ReceiveEvent,
     EmitEvent,
     EmitMessage,
     BroadcastMessage,
@@ -12,13 +12,14 @@ import {
     PlayersEvent,
     NewPlayerInfoEvent,
     OutChatMessageEvent,
+    StartGameEvent,
 } from './out-events';
 import { IN_EVENT } from './in-events';
 import { emitEvent, filterEvent } from './event.utils';
 
 @Injectable()
 export class EventService {
-    receiveEvent$ = new Subject<WebSocketEvent>();
+    receiveEvent$ = new Subject<ReceiveEvent>();
 
     emitEvent$ = new Subject<EmitEvent>();
 
@@ -45,7 +46,7 @@ export class EventService {
         clients.forEach(client => this.emitEvent(event)({ data, client }));
     };
 
-    broadcastCurrentPlayers = this.broadcastEvent<PlayersEvent>(
+    broadcastOnlinePlayers = this.broadcastEvent<PlayersEvent>(
         OUT_EVENT.PLAYERS,
     );
 
@@ -55,5 +56,9 @@ export class EventService {
 
     broadcastChatMessage = this.broadcastEvent<OutChatMessageEvent>(
         OUT_EVENT.CHAT_MESSAGE,
+    );
+
+    broadcastStartGame = this.broadcastEvent<StartGameEvent>(
+        OUT_EVENT.START_GAME,
     );
 }

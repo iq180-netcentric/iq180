@@ -6,8 +6,6 @@ export interface PlayerInfo {
     avatar: string;
     ready: boolean;
 }
-
-export interface Player {
+export interface Player extends PlayerInfo {
     client: SocketClient;
-    playerInfo: PlayerInfo;
 }
