@@ -17,6 +17,7 @@ import { Observable, BehaviorSubject } from 'rxjs';
 })
 export class HomeComponent implements OnInit {
     currentPlayer$: Observable<Player> = this.authService.player$;
+    currentGame$ = new BehaviorSubject<{}>(undefined);
     selectedPlayer$ = new BehaviorSubject<Player>(undefined);
 
     constructor(
