@@ -18,7 +18,7 @@ export class ChatService {
     private chatMessage$ = this.eventService
         .listenFor<InChatMessageEvent>(IN_EVENT.CHAT_MESSAGE)
         .pipe(
-            withLatestFrom(this.playerService.currentPlayers$),
+            withLatestFrom(this.playerService.onlinePlayers$),
             isInRoom(),
             map(
                 ([{ client, data }, players]): BroadcastMessage<

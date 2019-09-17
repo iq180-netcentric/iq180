@@ -2,17 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { StoreService } from '../store/store.service';
 import { Map } from 'immutable';
 import { Player } from '../models/player';
-import { Action } from '../store/store.type';
-import { WebSocketEvent } from '../event/event.type';
+import { Action, Reducer } from '../store/store.type';
+import { ReceiveEvent } from '../event/event.type';
 import { filter } from 'rxjs/operators';
 import { ACTION, PlayerAction } from './player.action';
 
 export type PlayerMap = Map<string, Player>;
 
-export const players = (
-    state: PlayerMap = Map(),
-    action: PlayerAction,
-): PlayerMap => {
+export const players: Reducer<PlayerMap, PlayerAction> = (
+    state = Map(),
+    action,
+) => {
     switch (action.type) {
         case ACTION.ADD: {
             const { payload } = action;
@@ -34,7 +34,7 @@ export const players = (
 };
 
 export const isInRoom = <T = any>() =>
-    filter<[WebSocketEvent<T>, PlayerMap]>(([{ client }, players]) =>
+    filter<[ReceiveEvent<T>, PlayerMap]>(([{ client }, players]) =>
         players.has(client.id),
     );
 

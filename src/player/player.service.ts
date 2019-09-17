@@ -2,11 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { PlayerStore, isInRoom, PlayerMap } from './player.store';
 import * as uuidv4 from 'uuid/v4';
 import { PlayerInfo, Player } from '../models/player';
-import { map, withLatestFrom, share, filter, tap, pluck } from 'rxjs/operators';
+import {
+    map,
+    withLatestFrom,
+    share,
+    filter,
+    tap,
+    pluck,
+    distinctUntilChanged,
+} from 'rxjs/operators';
 import { JoinEvent, EditEvent, IN_EVENT, ReadyEvent } from '../event/in-events';
 import { merge } from 'rxjs';
 import { EventService } from '../event/event.service';
-import { WebSocketEvent, SocketClient } from '../event/event.type';
+import { ReceiveEvent, SocketClient } from '../event/event.type';
 import {
     editPlayerAction,
     removePlayerAction,
@@ -23,17 +31,17 @@ export class PlayerService {
             this.editPlayerAction$,
             this.removePlayerAction$,
         ).subscribe(i => playerStore.dispatch(i));
-        this.broadcastCurrentPlayers$.subscribe(i =>
-            eventService.broadcastCurrentPlayers(i),
+        this.broadcastOnlinePlayers$.subscribe(i =>
+            eventService.broadcastOnlinePlayers(i),
         );
         this.sendNewPlayerInfo$.subscribe(i =>
             eventService.sendNewPlayerInfo(i),
         );
     }
 
-    currentPlayers$ = this.playerStore.store$;
+    onlinePlayers$ = this.playerStore.store$;
 
-    private broadcastCurrentPlayers$ = this.currentPlayers$.pipe(
+    private broadcastOnlinePlayers$ = this.onlinePlayers$.pipe(
         map(players => players.toIndexedSeq().toArray()),
         map(players => {
             const data: PlayerInfo[] = [];
@@ -52,7 +60,7 @@ export class PlayerService {
     private addPlayer$ = this.eventService
         .listenFor<JoinEvent>(IN_EVENT.JOIN)
         .pipe(
-            withLatestFrom(this.currentPlayers$),
+            withLatestFrom(this.onlinePlayers$),
             filter(
                 ([{ client }, players]) =>
                     players.find(player => player.client === client) ===
@@ -88,17 +96,17 @@ export class PlayerService {
     private editPlayer$ = this.eventService
         .listenFor<EditEvent>(IN_EVENT.EDIT)
         .pipe(
-            withLatestFrom(this.currentPlayers$),
+            withLatestFrom(this.onlinePlayers$),
             isInRoom(),
         );
 
     private ready$ = this.eventService
         .listenFor<ReadyEvent>(IN_EVENT.READY)
         .pipe(
-            withLatestFrom(this.currentPlayers$),
+            withLatestFrom(this.onlinePlayers$),
             isInRoom(),
             map(
-                ([event, players]): [WebSocketEvent, PlayerMap] => [
+                ([event, players]): [ReceiveEvent, PlayerMap] => [
                     { ...event, data: { ready: event.data } },
                     players,
                 ],

@@ -2,12 +2,13 @@ import { Injectable, Inject } from '@nestjs/common';
 import { Store } from 'redux';
 import { AppState } from './store';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { pluck } from 'rxjs/operators';
+import { pluck, share } from 'rxjs/operators';
 import { Action } from './store.type';
+import * as equal from 'deep-equal';
 
-export const createAction = <T = string, R = any>(type: T) => (
-    payload?: R,
-): Action<T, R> => ({
+export const createAction = <Type = string, Payload = any>(type: Type) => (
+    payload: Payload,
+): Action<Type, Payload> => ({
     type,
     payload,
 });
@@ -16,7 +17,10 @@ export const createAction = <T = string, R = any>(type: T) => (
 export class StoreService {
     store$ = new BehaviorSubject<AppState>(undefined);
     select<T extends keyof AppState>(slice: T): Observable<AppState[T]> {
-        return this.store$.pipe(pluck(slice));
+        return this.store$.pipe(
+            pluck(slice),
+            share(),
+        );
     }
     constructor(
         @Inject('STORE') private readonly store: Store<AppState, Action>,
@@ -31,8 +35,9 @@ export class StoreService {
         store.subscribe(() => {
             const oldState = this.store$.value;
             const newState = store.getState();
-            if (oldState !== newState) {
+            if (!equal(oldState, newState)) {
                 store$.next(newState);
+                // console.log(JSON.stringify(newState.game, null, 2));
             }
         });
     }
