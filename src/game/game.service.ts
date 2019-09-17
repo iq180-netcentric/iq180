@@ -23,12 +23,16 @@ export const gameIsReady = (gameStore$: Observable<Game>) => <T>(
 export const playersReady = (players: PlayerMap): boolean => {
     const numberOfPlayers = players.size;
     const numberOfReady = players.filter(p => p.ready).size;
-    return numberOfReady >= Math.ceil(numberOfPlayers / 2) && numberOfReady > 1;
+    const result =
+        numberOfReady >= Math.ceil(numberOfPlayers / 2) && numberOfReady > 1;
+    return result;
 };
 
 export const playersReadyAction$ = (currentPlayers$: Observable<PlayerMap>) =>
     currentPlayers$.pipe(
+        delay(0),
         map(playersReady),
+        distinctUntilChanged(),
         map(readyAction),
     );
 
