@@ -18,7 +18,4 @@ export type GamePlayerMap = Map<string, GamePlayer>;
 export interface Game {
     ready: boolean;
     players: GamePlayerMap;
-    question: Option<number[]>;
-    expectedAnswer: Option<number>;
-    startTime: Option<string>;
 }

@@ -3,7 +3,7 @@ import { StoreService } from '../store/store.service';
 import { Map } from 'immutable';
 import { Player } from '../models/player';
 import { Action, Reducer } from '../store/store.type';
-import { WebSocketEvent } from '../event/event.type';
+import { ReceiveEvent } from '../event/event.type';
 import { filter } from 'rxjs/operators';
 import { ACTION, PlayerAction } from './player.action';
 
@@ -34,7 +34,7 @@ export const players: Reducer<PlayerMap, PlayerAction> = (
 };
 
 export const isInRoom = <T = any>() =>
-    filter<[WebSocketEvent<T>, PlayerMap]>(([{ client }, players]) =>
+    filter<[ReceiveEvent<T>, PlayerMap]>(([{ client }, players]) =>
         players.has(client.id),
     );
 

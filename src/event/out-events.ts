@@ -1,5 +1,5 @@
 import { ChatMessage } from '../models/chatMessage';
-import { SerializedGameState } from '../game/game.model';
+import { SerialzedGamePlayers } from '../game/game.model';
 import { PlayerInfo } from '../models/player';
 
 export const enum OUT_EVENT {
@@ -19,4 +19,4 @@ export type NewPlayerInfoEvent = PlayerInfo;
 
 export type OutChatMessageEvent = ChatMessage;
 
-export type StartGameEvent = SerializedGameState;
+export type StartGameEvent = SerialzedGamePlayers;

@@ -7,9 +7,6 @@ import { Lens } from 'monocle-ts';
 export const initialState: Game = {
     ready: false,
     players: Map(),
-    question: none,
-    expectedAnswer: none,
-    startTime: none,
 };
 
 export const gameLens = Lens.fromPath<Game>();
@@ -27,7 +24,7 @@ export const concatPlayers: Monoid<GamePlayerMap>['concat'] = (
 const getOrUndefined = <T>(data: Option<T>) =>
     getOrElse<T>(() => undefined)(data);
 
-export const serialzedPlayers = (players: GamePlayerMap) =>
+export const serialzedGamePlayers = (players: GamePlayerMap) =>
     players
         .map(({ attempt, ...rest }) => ({
             attempt: getOrUndefined(attempt),
@@ -36,25 +33,16 @@ export const serialzedPlayers = (players: GamePlayerMap) =>
         .toIndexedSeq()
         .toArray();
 
-export type SerialzedGamePlayers = ReturnType<typeof serialzedPlayers>;
+export type SerialzedGamePlayers = ReturnType<typeof serialzedGamePlayers>;
 export interface SerializedGameState {
     ready: boolean;
     players: SerialzedGamePlayers;
-    question: number[];
-    expectedAnswer: number;
-    startTime: string;
 }
 
 export const serializeGameState = ({
     ready,
     players,
-    question,
-    expectedAnswer,
-    startTime,
 }: Game): SerializedGameState => ({
     ready,
-    players: serialzedPlayers(players),
-    question: getOrUndefined(question),
-    expectedAnswer: getOrUndefined(expectedAnswer),
-    startTime: getOrUndefined(startTime),
+    players: serialzedGamePlayers(players),
 });

@@ -1,7 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { GameStore } from './game.store';
 import { PlayerService } from '../player/player.service';
-import { filter, map, withLatestFrom, pluck } from 'rxjs/operators';
+import {
+    filter,
+    map,
+    withLatestFrom,
+    pluck,
+    tap,
+    distinctUntilKeyChanged,
+    distinctUntilChanged,
+    delay,
+} from 'rxjs/operators';
 import { merge, Observable } from 'rxjs';
 import { readyAction, startAction } from './game.action';
 import { PlayerMap } from '../player/player.store';
@@ -10,6 +19,7 @@ import { none } from 'fp-ts/lib/Option';
 import { Map } from 'immutable';
 import { EventService } from '../event/event.service';
 import { IN_EVENT } from '../event/in-events';
+import { serialzedGamePlayers } from './game.model';
 
 export const gameIsReady = (gameStore$: Observable<Game>) => <T>(
     source: Observable<T>,
@@ -61,14 +71,30 @@ export class GameService {
         private readonly eventService: EventService,
     ) {
         merge(
-            playersReadyAction$(playerService.currentPlayers$),
+            playersReadyAction$(playerService.onlinePlayers$),
             startGameAction$(this.startGame$),
         ).subscribe(i => gameStore.dispatch(i));
+        this.broadcastStartGame.subscribe(i =>
+            eventService.broadcastStartGame(i),
+        );
     }
     startGame$ = this.eventService.listenFor(IN_EVENT.START).pipe(
         gameIsReady(this.gameStore.store$),
-        withLatestFrom(this.playerService.currentPlayers$),
+        withLatestFrom(this.playerService.onlinePlayers$),
         pluck(1),
         map(transformToGamePlayerMap),
+    );
+
+    broadcastStartGame = this.startGame$.pipe(
+        withLatestFrom(this.playerService.onlinePlayers$),
+        map(([gamers, players]) => {
+            console.log(gamers);
+            const clients = gamers
+                .map((_, key) => players.get(key).client)
+                .toIndexedSeq()
+                .toArray();
+            const data = serialzedGamePlayers(gamers);
+            return { clients, data };
+        }),
     );
 }
