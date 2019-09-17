@@ -37,7 +37,7 @@ export class StoreService {
             const newState = store.getState();
             if (!equal(oldState, newState)) {
                 store$.next(newState);
-                return;
+                // console.log(JSON.stringify(newState.game, null, 2));
             }
         });
     }

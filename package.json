@@ -17,7 +17,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "deploy": "sh scripts/deploy.sh"
+    "deploy": "sh scripts/deploy.sh",
+    "devtools": "ts-node src/remote-devtools.ts"
   },
   "dependencies": {
     "@nestjs/common": "^6.0.0",
@@ -48,6 +49,8 @@
     "@types/uuid": "^3.4.5",
     "jest": "24.7.1",
     "prettier": "1.17.0",
+    "remote-redux-devtools": "^0.5.16",
+    "remotedev-server": "^0.3.1",
     "supertest": "4.0.2",
     "ts-jest": "24.0.2",
     "ts-node": "8.1.0",
