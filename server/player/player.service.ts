@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PlayerStore, isInRoom, PlayerMap } from './player.store';
-import * as uuidv4 from 'uuid/v4';
 import { PlayerInfo, Player } from '../models/player';
 import {
     map,
@@ -20,6 +19,8 @@ import {
     removePlayerAction,
     addPlayerAction,
 } from './player.action';
+import uuid from 'uuidv4';
+
 @Injectable()
 export class PlayerService {
     constructor(
@@ -69,11 +70,12 @@ export class PlayerService {
             pluck(0),
             map(
                 ({ client, data }): Player => {
-                    const id = uuidv4();
-                    const playerInfo: PlayerInfo = {
-                        ...data,
+                    const id = uuid();
+                    const player: Player = {
                         id,
                         ready: false,
+                        ...data,
+                        client,
                     };
                     return player;
                 },
@@ -105,8 +107,8 @@ export class PlayerService {
             withLatestFrom(this.onlinePlayers$),
             isInRoom(),
             map(
-                ([{ data, ...rest }, players]): [WebSocketEvent, Player[]] => [
-                    { ...rest, data: { ready: data } },
+                ([event, players]): [ReceiveEvent, PlayerMap] => [
+                    { ...event, data: { ready: event.data } },
                     players,
                 ],
             ),

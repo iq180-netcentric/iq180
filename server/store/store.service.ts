@@ -4,7 +4,8 @@ import { AppState } from './store';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { pluck, share } from 'rxjs/operators';
 import { Action } from './store.type';
-import * as equal from 'deep-equal';
+
+const equal = require('deep-equal');
 
 export const createAction = <Type = string, Payload = any>(type: Type) => (
     payload: Payload,

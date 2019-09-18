@@ -2,6 +2,7 @@ dist
 
 # compiled output
 /dist
+
 # Logs
 logs
 *.log
