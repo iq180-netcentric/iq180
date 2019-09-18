@@ -16,16 +16,14 @@ import { AuthService } from 'src/app/core/service/auth.service';
     templateUrl: './welcome-dialog.component.html',
     styleUrls: ['./welcome-dialog.component.scss'],
 })
-export class WelcomeDialogComponent {
+export class WelcomeDialogComponent implements OnInit {
     @Input() edit = false;
+    @Input() player: Player = undefined;
+    @Input() remember: boolean = false;
 
-    nickname = new FormControl(
-        this.auth.player$.value ? this.auth.player$.value.name : null,
-    );
-    avatar = new FormControl(
-        this.auth.player$.value ? this.auth.player$.value.avatar : null,
-    );
-    remember = new FormControl(this.auth.remember$.value);
+    nicknameInput: FormControl;
+    avatarInput: FormControl;
+    rememberInput: FormControl;
 
     nicknameError$ = new BehaviorSubject<string>(undefined);
 
@@ -50,7 +48,6 @@ export class WelcomeDialogComponent {
         'https://i.kym-cdn.com/news/images/desktop/000/000/157/cca.png',
         'https://pm1.narvii.com/7262/b3f2f5a56f2ae066fb0fe8fd3a459344faf3662ar1-1080-1076v2_00.jpg',
     ];
-    players$ = this.socket.listenFor<Player[]>(WebSocketIncomingEvent.players);
 
     constructor(
         private modal: NzModalRef,
@@ -58,16 +55,26 @@ export class WelcomeDialogComponent {
         private auth: AuthService,
     ) {}
 
+    ngOnInit() {
+        this.nicknameInput = new FormControl(
+            (this.player && this.player.name) || '',
+        );
+        this.avatarInput = new FormControl(
+            (this.player && this.player.avatar) || '',
+        );
+        this.rememberInput = new FormControl(this.remember);
+    }
+
     destroyModal(): void {
         this.modal.destroy({ data: 'this the result data' });
     }
 
     submitUser() {
         this.nicknameError$.next(undefined);
-        if (this.nickname.value) {
+        if (this.nicknameInput.value) {
             const player: Partial<Player> = {
-                name: this.nickname.value,
-                avatar: this.avatar.value,
+                name: this.nicknameInput.value,
+                avatar: this.avatarInput.value,
             };
             this.socket.emit({
                 event: this.edit
@@ -81,7 +88,7 @@ export class WelcomeDialogComponent {
                 .subscribe(data => {
                     this.destroyModal();
                     this.auth.setPlayer(data);
-                    this.auth.remember$.next(this.remember.value);
+                    this.auth.remember$.next(this.rememberInput.value);
                 });
         } else {
             this.nicknameError$.next('Please enter nickname');

@@ -4,11 +4,13 @@ import {
     WebSocketOutgoingEvent,
     WebSocketIncomingEvent,
 } from '../core/models/web-socket.model';
-import { NzModalService } from 'ng-zorro-antd';
+import { NzModalService, NzModalRef } from 'ng-zorro-antd';
 import { WelcomeDialogComponent } from './welcome-dialog/welcome-dialog.component';
 import { AuthService } from '../core/service/auth.service';
 import { Player } from '../core/models/player.model';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, Subject, combineLatest } from 'rxjs';
+
+import { take, takeUntil, filter, tap, map } from 'rxjs/operators';
 
 @Component({
     selector: 'app-home',
@@ -20,24 +22,31 @@ export class HomeComponent implements OnInit {
     currentGame$ = new BehaviorSubject<{}>(undefined);
     selectedPlayer$ = new BehaviorSubject<Player>(undefined);
 
+    destroy$ = new Subject();
+
+    welcomeModalInstance$ = new BehaviorSubject<NzModalRef>(undefined);
     constructor(
         private socket: WebSocketService,
         private modalService: NzModalService,
         private authService: AuthService,
-    ) {
-        this.socket.observable.subscribe();
-    }
+    ) {}
 
     ngOnInit() {
-        if (!this.authService.player$.value) {
-            this.showWelcomeModal();
-        } else {
-            const player: Player = this.authService.player$.getValue();
-            this.socket.emit({
-                event: WebSocketOutgoingEvent.join,
-                data: player,
+        this.authService.player$
+            .pipe(
+                take(1),
+                takeUntil(this.destroy$),
+            )
+            .subscribe(player => {
+                if (!player) {
+                    this.showWelcomeModal();
+                } else {
+                    this.socket.emit({
+                        event: WebSocketOutgoingEvent.join,
+                        data: player,
+                    });
+                }
             });
-        }
     }
 
     logout() {
@@ -45,23 +54,31 @@ export class HomeComponent implements OnInit {
     }
 
     showWelcomeModal(edit: boolean = false): void {
-        const modal = this.modalService.create({
-            nzTitle: 'Welcome to IQ180',
-            nzContent: WelcomeDialogComponent,
-            nzClosable: false,
-            nzComponentParams: {
-                edit,
-            },
-            nzFooter: [
-                {
-                    label: 'GO!',
-                    type: 'primary',
-                    onClick: instance => {
-                        instance.submitUser();
+        combineLatest(this.authService.player$, this.authService.remember$)
+            .pipe(take(1))
+            .subscribe(([player, remember]) => {
+                const modal = this.modalService.create({
+                    nzTitle: 'Welcome to IQ180',
+                    nzContent: WelcomeDialogComponent,
+                    nzClosable: edit,
+                    nzComponentParams: {
+                        edit,
+                        player,
+                        remember,
                     },
-                },
-            ],
-        });
-        const instance = modal.getContentComponent();
+                    nzFooter: [
+                        {
+                            label: 'GO!',
+                            type: 'primary',
+                            onClick: instance => {
+                                instance.submitUser();
+                            },
+                        },
+                    ],
+                    nzMaskClosable: edit,
+                    nzOnOk: () => this.welcomeModalInstance$.next(undefined),
+                });
+                this.welcomeModalInstance$.next(modal);
+            });
     }
 }

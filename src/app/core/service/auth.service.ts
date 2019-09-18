@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@angular/core';
-import { BehaviorSubject, combineLatest } from 'rxjs';
+import { BehaviorSubject, combineLatest, Subject } from 'rxjs';
 import { Player } from '../models/player.model';
 import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
@@ -8,11 +8,17 @@ import { isPlatformBrowser } from '@angular/common';
     providedIn: 'root',
 })
 export class AuthService {
-    player$ = new BehaviorSubject<Player>(undefined);
-    remember$ = new BehaviorSubject<boolean>(undefined);
+    player$: Subject<Player>;
+    remember$: Subject<boolean>;
 
-    constructor(@Inject(PLATFORM_ID) private platformId: Object) {
+    constructor(@Inject(PLATFORM_ID) private platformId: object) {
         if (isPlatformBrowser(this.platformId)) {
+            this.player$ = new BehaviorSubject<Player>(
+                JSON.parse(localStorage.getItem('player')) || undefined,
+            );
+            this.remember$ = new BehaviorSubject<boolean>(
+                !!localStorage.getItem('player'),
+            );
             combineLatest(this.player$, this.remember$).subscribe(([p, b]) => {
                 if (b) {
                     localStorage.setItem('player', JSON.stringify(p));
@@ -20,10 +26,9 @@ export class AuthService {
                     localStorage.removeItem('player');
                 }
             });
-            this.player$.next(
-                JSON.parse(localStorage.getItem('player')) || undefined,
-            );
-            this.remember$.next(!!localStorage.getItem('player'));
+        } else {
+            this.player$ = new Subject<Player>();
+            this.remember$ = new Subject<boolean>();
         }
     }
 

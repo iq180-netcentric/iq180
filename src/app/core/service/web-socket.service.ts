@@ -45,10 +45,6 @@ export class WebSocketService {
                     data: 'hi',
                 });
             });
-        } else {
-            this.connection = webSocket<WebSocketEvent<any>>(
-                'wss://staging-netcentric-game-server.herokuapp.com',
-            );
         }
     }
 
