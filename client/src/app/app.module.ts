@@ -21,7 +21,7 @@ registerLocaleData(en);
 @NgModule({
     declarations: [AppComponent],
     imports: [
-        BrowserModule,
+        BrowserModule.withServerTransition({ appId: 'serverApp' }),
         AppRoutingModule,
         IconsProviderModule,
         NgZorroAntdModule,

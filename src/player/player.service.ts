@@ -70,10 +70,11 @@ export class PlayerService {
             map(
                 ({ client, data }): Player => {
                     const id = uuidv4();
-                    const playerInfo: PlayerInfo = {
-                        ...data,
+                    const player: Player = {
                         id,
                         ready: false,
+                        ...data,
+                        client,
                     };
                     return player;
                 },
@@ -104,10 +105,12 @@ export class PlayerService {
         .pipe(
             withLatestFrom(this.onlinePlayers$),
             isInRoom(),
-            map(([{ data, ...rest }, players]): [WebSocketEvent, Player[]] => [
-                { ...rest, data: { ready: data } },
-                players,
-            ]),
+            map(
+                ([event, players]): [ReceiveEvent, PlayerMap] => [
+                    { ...event, data: { ready: event.data } },
+                    players,
+                ],
+            ),
         );
 
     private editPlayerInfo$ = merge(this.editPlayer$, this.ready$).pipe(

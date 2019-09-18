@@ -6,11 +6,13 @@ import { EventModule } from './event/event.module';
 import { PlayerModule } from './player/player.module';
 import { ChatModule } from './chat/chat.module';
 import { GameModule } from './game/game.module';
+import { AngularUniversalModule } from '@nestjs/ng-universal';
 
 @Module({
     imports: [
-        ServeStaticModule.forRoot({
-            rootPath: join(__dirname, '..', 'static'),
+        AngularUniversalModule.forRoot({
+            viewsPath: join(process.cwd(), 'dist/browser'),
+            bundle: require('./../dist/client/server/main.js'),
         }),
         StoreModule,
         PlayerModule,
