@@ -35,9 +35,9 @@ export class WebSocketService {
         @Inject(ENV) env: any,
     ) {
         if (isPlatformBrowser(this.platformId)) {
-            const url = env.production
-                ? `wss://${window.location.hostname}/`
-                : `ws://${window.location.hostname}:${window.location.port}`;
+            const url = `${location.protocol === 'https' ? 'wss' : 'ws'}://${
+                window.location.hostname
+            }${window.location.port && `:${window.location.port}`}/`;
             this.connection = webSocket<WebSocketEvent<any>>(url);
             interval(30000).subscribe(_ => {
                 this.emit({
