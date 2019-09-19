@@ -114,10 +114,15 @@
             "json",
             "ts"
         ],
-        "rootDir": "src",
+        "rootDir": "server",
         "testRegex": ".spec.ts$",
         "transform": {
             "^.+\\.(t|j)s$": "ts-jest"
+        },
+        "globals": {
+            "ts-jest": {
+              "tsConfig": "tsconfig.spec.json"
+            }
         },
         "coverageDirectory": "../coverage",
         "testEnvironment": "node"

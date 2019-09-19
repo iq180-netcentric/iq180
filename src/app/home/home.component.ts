@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { WebSocketService } from '../core/service/web-socket.service';
 import {
     WebSocketOutgoingEvent,
@@ -17,7 +17,7 @@ import { take, takeUntil, filter, tap, map } from 'rxjs/operators';
     templateUrl: './home.component.html',
     styleUrls: ['./home.component.scss'],
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
     currentPlayer$: Observable<Player> = this.authService.player$;
     currentGame$ = new BehaviorSubject<{}>(undefined);
     selectedPlayer$ = new BehaviorSubject<Player>(undefined);
@@ -47,6 +47,10 @@ export class HomeComponent implements OnInit {
                     });
                 }
             });
+    }
+
+    ngOnDestroy() {
+        this.destroy$.next();
     }
 
     logout() {

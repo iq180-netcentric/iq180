@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "./out-tsc/spec",
     "types": [
+      "jest",
       "jasmine",
       "node"
     ]
@@ -13,6 +14,8 @@
   ],
   "include": [
     "src/**/*.spec.ts",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    "server/**/*.spec.ts",
+    "server/**/*.d.ts"
   ]
 }
