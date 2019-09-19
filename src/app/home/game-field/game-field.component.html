@@ -2,10 +2,10 @@
     <div
         class="current"
         nz-row
-        nzType="flex"
         nzJustify="space-between"
         nz-col
         [nzXs]="24"
+        [nzGutter]="8"
     >
         <div nz-col [nzXs]="24" [nzLg]="18">
             <ng-container *ngIf="player; else notSelected">
@@ -29,8 +29,16 @@
                 </nz-card>
             </ng-template>
         </div>
-        <div *ngIf="timer$ | async as timer" nz-col [nzXs]="24" [nzLg]="6">
-            Timer: {{ timer }}
+        <div
+            *ngIf="timer$ | async as timer"
+            class="timer"
+            nz-col
+            [nzXs]="24"
+            [nzLg]="6"
+        >
+            <div>
+                <span>{{ timer }}</span>
+            </div>
         </div>
     </div>
     <div class="game" nz-row>

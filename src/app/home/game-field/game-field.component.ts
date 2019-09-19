@@ -5,7 +5,7 @@ import {
     NumberCard,
     CardType,
 } from 'src/app/core/models/game/card.model';
-import { BehaviorSubject, Observable, empty, interval, of } from 'rxjs';
+import { BehaviorSubject, Observable, empty, interval, of, timer } from 'rxjs';
 import {
     transferArrayItem,
     moveItemInArray,
@@ -95,17 +95,15 @@ export class GameFieldComponent implements OnInit {
     }
 
     createTimer(startTime: Date) {
-        const delayMS = startTime.valueOf() - new Date().valueOf();
-        this.timer$ = of(new Date()).pipe(
-            delay(delayMS),
-            switchMap(() => interval(1000)),
-            take(61),
+        this.timer$ = timer(startTime, 1000).pipe(
+            startWith(0),
+            take(60),
             map(t => 60 - t),
         );
     }
     /* Drag and Drop Stuff */
     startGame() {
-        const future = new Date().valueOf() + 2000;
+        const future = new Date().valueOf() + 1000;
         this.createTimer(new Date(future));
         this.timer$.subscribe(
             time => {
