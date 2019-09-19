@@ -8,7 +8,9 @@
     "target": "es2017",
     "sourceMap": true,
     "incremental": true,
+    "tsBuildInfoFile": "../dist/buildcache/server",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "outDir": "../dist/server-app",
     "typeRoots": [
       "./node_modules/@types"

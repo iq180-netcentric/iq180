@@ -1,3 +1,3 @@
-import * as remotedev from 'remotedev-server';
+import remotedev from 'remotedev-server';
 
 remotedev({ hostname: 'localhost', port: 3002 });

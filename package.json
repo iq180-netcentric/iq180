@@ -17,9 +17,8 @@
         "build": "rimraf dist && tsc -p tsconfig.build.json",
         "format": "prettier --write \"src/**/*.ts\"",
         "start": "ts-node -r tsconfig-paths/register server/main.ts",
-        "start:dev": "tsc-watch -p tsconfig.build.json --onSuccess \"node dist/main.js\"",
-        "start:debug": "tsc-watch -p tsconfig.build.json --onSuccess \"node --inspect-brk dist/main.js\"",
-        "start:prod": "node dist/main.js",
+        "start:dev": "tsc-watch -P server/tsconfig.build.json --onSuccess \"node dist/server-app/main.js\"",
+        "start:debug": "tsc-watch -p server/tsconfig.build.json --onSuccess \"node --inspect-brk dist/server-app/main.js\"",
         "lint": "tslint -p tsconfig.json -c tslint.json",
         "test": "jest",
         "test:watch": "jest --watch",
@@ -27,7 +26,7 @@
         "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
         "test:e2e": "jest --config ./test/jest-e2e.json",
         "deploy": "sh scripts/deploy.sh",
-        "devtools": "ts-node src/remote-devtools.ts"
+        "devtools": "ts-node -P server/tsconfig.json server/remote-devtools.ts"
     },
     "private": true,
     "dependencies": {
@@ -39,7 +38,7 @@
         "@angular/platform-browser": "~8.2.4",
         "@angular/platform-browser-dynamic": "~8.2.4",
         "@angular/platform-server": "~8.2.4",
-        "@angular/pwa": "^0.803.4",
+        "@angular/pwa": "^0.803.5",
         "@angular/router": "~8.2.4",
         "@angular/service-worker": "~8.2.4",
         "@nestjs/common": "^6.0.0",
