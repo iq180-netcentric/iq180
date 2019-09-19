@@ -108,6 +108,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     singlePlayer() {
         this.currentGame$.next({});
+        combineLatest(this.currentPlayer$)
+            .pipe(take(1))
+            .subscribe(([player]) => this.selectedPlayer$.next(player));
     }
 
     ready() {
