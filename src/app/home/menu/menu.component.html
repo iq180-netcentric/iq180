@@ -1,4 +1,12 @@
 <div class="main">
     <h1>Welcome to IQ180 !</h1>
-    <h4>You are not ready</h4>
+    <h4>You are {{ isReady ? '' : 'not' }} ready</h4>
+    <div>
+        <button nz-button nzType="primary" (click)="readyClicked()">
+            Ready
+        </button>
+        <button nz-button nzType="default" (click)="singlePlayerClicked()">
+            Single Player
+        </button>
+    </div>
 </div>

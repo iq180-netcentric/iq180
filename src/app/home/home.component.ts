@@ -8,9 +8,24 @@ import { NzModalService, NzModalRef } from 'ng-zorro-antd';
 import { WelcomeDialogComponent } from './welcome-dialog/welcome-dialog.component';
 import { AuthService } from '../core/service/auth.service';
 import { Player } from '../core/models/player.model';
-import { Observable, BehaviorSubject, Subject, combineLatest } from 'rxjs';
+import {
+    Observable,
+    BehaviorSubject,
+    Subject,
+    combineLatest,
+    from,
+} from 'rxjs';
 
-import { take, takeUntil, filter, tap, map } from 'rxjs/operators';
+import {
+    take,
+    takeUntil,
+    filter,
+    tap,
+    map,
+    withLatestFrom,
+    switchMap,
+    pluck,
+} from 'rxjs/operators';
 
 @Component({
     selector: 'app-home',
@@ -46,6 +61,11 @@ export class HomeComponent implements OnInit, OnDestroy {
                         data: player,
                     });
                 }
+            });
+        this.socket
+            .listenFor<Player>(WebSocketIncomingEvent.playerInfo)
+            .subscribe(newPlayer => {
+                this.authService.setPlayer(newPlayer);
             });
     }
 
@@ -83,6 +103,21 @@ export class HomeComponent implements OnInit, OnDestroy {
                     nzOnOk: () => this.welcomeModalInstance$.next(undefined),
                 });
                 this.welcomeModalInstance$.next(modal);
+            });
+    }
+
+    singlePlayer() {
+        this.currentGame$.next({});
+    }
+
+    ready() {
+        combineLatest(this.currentPlayer$)
+            .pipe(take(1))
+            .subscribe(([player]) => {
+                this.socket.emit({
+                    event: WebSocketOutgoingEvent.ready,
+                    data: !player.ready,
+                });
             });
     }
 }

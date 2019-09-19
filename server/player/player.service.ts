@@ -72,9 +72,9 @@ export class PlayerService {
                 ({ client, data }): Player => {
                     const id = uuid();
                     const player: Player = {
+                        ...data,
                         id,
                         ready: false,
-                        ...data,
                         client,
                     };
                     return player;

@@ -87,7 +87,6 @@ export class WelcomeDialogComponent implements OnInit {
                 .pipe(take(1))
                 .subscribe(data => {
                     this.destroyModal();
-                    this.auth.setPlayer(data);
                     this.auth.remember$.next(this.rememberInput.value);
                 });
         } else {

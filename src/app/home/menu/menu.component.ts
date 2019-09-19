@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, Input } from '@angular/core';
 
 @Component({
     selector: 'app-menu',
@@ -6,7 +6,20 @@ import { Component, OnInit } from '@angular/core';
     styleUrls: ['./menu.component.scss'],
 })
 export class MenuComponent implements OnInit {
+    @Output() ready = new EventEmitter();
+    @Output() singlePlayer = new EventEmitter();
+
+    @Input() isReady = false;
+
     constructor() {}
 
     ngOnInit() {}
+
+    readyClicked() {
+        this.ready.emit(undefined);
+    }
+
+    singlePlayerClicked() {
+        this.singlePlayer.emit(undefined);
+    }
 }
