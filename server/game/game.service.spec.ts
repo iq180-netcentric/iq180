@@ -1,15 +1,6 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StoreModule } from '../store/store.module';
-import { EventModule } from '../event/event.module';
-import {
-    GameService,
-    playersReady,
-    transformToGamePlayerMap,
-} from './game.service';
-import { GameStore } from './game.store';
-import { PlayerModule } from '../player/player.module';
+import { playersReady, transformToGamePlayerMap } from './game.service';
 import { PlayerMap } from '../player/player.store';
-import { Map, is } from 'immutable';
+import { Map } from 'immutable';
 import { Player } from '../models/player';
 import { GamePlayerMap } from '../models/game';
 import { none } from 'fp-ts/lib/Option';
@@ -115,22 +106,5 @@ describe('tranform PlayerMap to  GamePlayerMap', () => {
                 attempt: none,
             },
         }));
-    });
-});
-
-describe('GameService', () => {
-    let service: GameService;
-
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            imports: [StoreModule, EventModule, PlayerModule],
-            providers: [GameService, GameStore],
-        }).compile();
-
-        service = module.get(GameService);
-    });
-
-    it('should be defined', () => {
-        expect(service).toBeDefined();
     });
 });
