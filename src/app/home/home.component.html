@@ -16,8 +16,8 @@
                 <div nz-col [nzXs]="24" [nzLg]="18">
                     <ng-template #menu>
                         <app-menu
-                            (ready)="ready()"
-                            (singlePlayer)="singlePlayer()"
+                            (ready)="ready$.next($event)"
+                            (singlePlayer)="singlePlayer$.next($event)"
                             [isReady]="(currentPlayer$ | async)?.ready"
                         >
                         </app-menu>

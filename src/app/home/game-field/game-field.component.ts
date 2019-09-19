@@ -60,7 +60,6 @@ export class GameFieldComponent implements OnInit {
     );
 
     currentAnswer$ = this.answer$.pipe(
-        debounceTime(750),
         map(ans => {
             if (
                 Logic.validateForDisplay({

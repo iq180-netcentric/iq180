@@ -39,6 +39,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     destroy$ = new Subject();
 
+    ready$ = new Subject();
+    singlePlayer$ = new Subject();
+
     welcomeModalInstance$ = new BehaviorSubject<NzModalRef>(undefined);
     constructor(
         private socket: WebSocketService,
@@ -64,8 +67,32 @@ export class HomeComponent implements OnInit, OnDestroy {
             });
         this.socket
             .listenFor<Player>(WebSocketIncomingEvent.playerInfo)
-            .subscribe(newPlayer => {
+            .pipe(withLatestFrom(this.selectedPlayer$))
+            .subscribe(([newPlayer, selectedPlayer]) => {
+                if (selectedPlayer && selectedPlayer.id === newPlayer.id) {
+                    this.selectedPlayer$.next(newPlayer);
+                }
                 this.authService.setPlayer(newPlayer);
+            });
+        this.ready$
+            .pipe(
+                takeUntil(this.destroy$),
+                withLatestFrom(this.currentPlayer$),
+            )
+            .subscribe(([_, player]) => {
+                this.socket.emit({
+                    event: WebSocketOutgoingEvent.ready,
+                    data: !player.ready,
+                });
+            });
+        this.singlePlayer$
+            .pipe(
+                takeUntil(this.destroy$),
+                withLatestFrom(this.currentPlayer$),
+            )
+            .subscribe(([_, player]) => {
+                this.currentGame$.next({});
+                this.selectedPlayer$.next(player);
             });
     }
 
@@ -103,24 +130,6 @@ export class HomeComponent implements OnInit, OnDestroy {
                     nzOnOk: () => this.welcomeModalInstance$.next(undefined),
                 });
                 this.welcomeModalInstance$.next(modal);
-            });
-    }
-
-    singlePlayer() {
-        this.currentGame$.next({});
-        combineLatest(this.currentPlayer$)
-            .pipe(take(1))
-            .subscribe(([player]) => this.selectedPlayer$.next(player));
-    }
-
-    ready() {
-        combineLatest(this.currentPlayer$)
-            .pipe(take(1))
-            .subscribe(([player]) => {
-                this.socket.emit({
-                    event: WebSocketOutgoingEvent.ready,
-                    data: !player.ready,
-                });
             });
     }
 }
