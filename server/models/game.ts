@@ -15,7 +15,13 @@ export interface GamePlayer {
 
 export type GamePlayerMap = Map<string, GamePlayer>;
 
+export const enum GAME_STATUS {
+    WAITING = 'WAITING',
+    PLAYING = 'PLAYING',
+}
+
 export interface Game {
     ready: boolean;
+    status: GAME_STATUS;
     players: GamePlayerMap;
 }

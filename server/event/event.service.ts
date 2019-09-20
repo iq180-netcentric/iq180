@@ -13,6 +13,7 @@ import {
     NewPlayerInfoEvent,
     OutChatMessageEvent,
     StartGameEvent,
+    StartRoundEvent,
 } from './out-events';
 import { IN_EVENT } from './in-events';
 import { emitEvent, filterEvent } from './event.utils';
@@ -60,5 +61,9 @@ export class EventService {
 
     broadcastStartGame = this.broadcastEvent<StartGameEvent>(
         OUT_EVENT.START_GAME,
+    );
+
+    broadcastStartRound = this.broadcastEvent<StartRoundEvent>(
+        OUT_EVENT.START_ROUND,
     );
 }

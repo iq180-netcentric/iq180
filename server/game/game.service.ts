@@ -6,8 +6,6 @@ import {
     map,
     withLatestFrom,
     pluck,
-    tap,
-    distinctUntilKeyChanged,
     distinctUntilChanged,
     delay,
 } from 'rxjs/operators';
@@ -78,6 +76,14 @@ export class GameService {
             eventService.broadcastStartGame(i),
         );
     }
+
+    gamePlayers$ = this.gameStore.store$.pipe(
+        pluck('players'),
+        withLatestFrom(this.playerService.onlinePlayers$),
+        map(([gamers, players]) =>
+            gamers.map((_, key) => players.get(key).client),
+        ),
+    );
     startGame$ = this.eventService.listenFor(IN_EVENT.START).pipe(
         gameIsReady(this.gameStore.store$),
         withLatestFrom(this.playerService.onlinePlayers$),
@@ -88,7 +94,6 @@ export class GameService {
     broadcastStartGame = this.startGame$.pipe(
         withLatestFrom(this.playerService.onlinePlayers$),
         map(([gamers, players]) => {
-            console.log(gamers);
             const clients = gamers
                 .map((_, key) => players.get(key).client)
                 .toIndexedSeq()

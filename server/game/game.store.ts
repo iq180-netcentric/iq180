@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Game } from '../models/game';
+import { Game, GAME_STATUS } from '../models/game';
 import { Action, Reducer } from '../store/store.type';
 import { StoreService } from '../store/store.service';
 import { GameAction, GAME_ACTION } from './game.action';
@@ -16,7 +16,8 @@ export const game: Reducer<Game, GameAction> = (
         }
         case GAME_ACTION.START: {
             const { payload } = action;
-            return gameLens(['players']).set(payload)(state);
+            const temp = gameLens(['players']).set(payload)(state);
+            return gameLens(['status']).set(GAME_STATUS.PLAYING)(temp);
         }
         default:
             return state;

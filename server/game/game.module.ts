@@ -8,5 +8,6 @@ import { EventModule } from '../event/event.module';
 @Module({
     imports: [PlayerModule, StoreModule, EventModule],
     providers: [GameStore, GameService],
+    exports: [GameService],
 })
 export class GameModule {}

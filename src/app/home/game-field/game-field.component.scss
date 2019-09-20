@@ -11,6 +11,12 @@
         border: 1px solid #e8e8e8;
     }
 
+    .current {
+        display: flex;
+        align-items: stretch;
+        flex-wrap: wrap;
+        width: 100%;
+    }
     .game {
         .numbers,
         .operators {
@@ -59,6 +65,24 @@
     .card-list {
         height: 100%;
         min-height: 64px;
+    }
+    .timer {
+        align-items: stretch;
+        & > div {
+            border: 1px solid #e8e8e8;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            .card {
+                height: 100%;
+            }
+            span {
+                font-size: 3em;
+                height: fit-content;
+            }
+        }
     }
 }
 .card,

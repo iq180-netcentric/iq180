@@ -43,6 +43,7 @@ export class PlayerService {
     onlinePlayers$ = this.playerStore.store$;
 
     private broadcastOnlinePlayers$ = this.onlinePlayers$.pipe(
+        distinctUntilChanged(),
         map(players => players.toIndexedSeq().toArray()),
         map(players => {
             const data: PlayerInfo[] = [];

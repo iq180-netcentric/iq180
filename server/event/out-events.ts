@@ -1,6 +1,7 @@
 import { ChatMessage } from '../models/chatMessage';
 import { SerialzedGamePlayers } from '../game/game.model';
 import { PlayerInfo } from '../models/player';
+import { Round } from '../models/round';
 
 export const enum OUT_EVENT {
     PLAYERS = 'PLAYERS',
@@ -20,3 +21,8 @@ export type NewPlayerInfoEvent = PlayerInfo;
 export type OutChatMessageEvent = ChatMessage;
 
 export type StartGameEvent = SerialzedGamePlayers;
+
+export type StartRoundEvent = Pick<
+    Round,
+    'question' | 'expectedAnswer' | 'startTime'
+>;

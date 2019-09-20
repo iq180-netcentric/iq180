@@ -1,31 +1,40 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, OnDestroy } from '@angular/core';
 import { NzModalRef } from 'ng-zorro-antd';
-import { FormControl } from '@angular/forms';
+import { FormControl, Validators } from '@angular/forms';
 import { WebSocketService } from 'src/app/core/service/web-socket.service';
 import {
     WebSocketOutgoingEvent,
     WebSocketIncomingEvent,
 } from 'src/app/core/models/web-socket.model';
-import { take } from 'rxjs/operators';
-import { BehaviorSubject } from 'rxjs';
+import { take, takeUntil, pluck, filter } from 'rxjs/operators';
+import { BehaviorSubject, fromEvent, Subject } from 'rxjs';
 import { Player } from 'src/app/core/models/player.model';
 import { AuthService } from 'src/app/core/service/auth.service';
+import { FormBuilder, FormGroup } from 'ngx-strongly-typed-forms';
 
 @Component({
     selector: 'app-welcome-dialog',
     templateUrl: './welcome-dialog.component.html',
     styleUrls: ['./welcome-dialog.component.scss'],
 })
-export class WelcomeDialogComponent implements OnInit {
+export class WelcomeDialogComponent implements OnInit, OnDestroy {
     @Input() edit = false;
     @Input() player: Player = undefined;
     @Input() remember: boolean = false;
+
+    form: FormGroup<WelcomeInput>;
 
     nicknameInput: FormControl;
     avatarInput: FormControl;
     rememberInput: FormControl;
 
     nicknameError$ = new BehaviorSubject<string>(undefined);
+
+    destroy$ = new Subject();
+
+    keypress$ = fromEvent<KeyboardEvent>(document, 'keydown').pipe(
+        takeUntil(this.destroy$),
+    );
 
     avatars = [
         'https://i.pinimg.com/originals/fa/0c/05/fa0c05778206cb2b2dddf89267b7a31c.jpg',
@@ -53,16 +62,30 @@ export class WelcomeDialogComponent implements OnInit {
         private modal: NzModalRef,
         private socket: WebSocketService,
         private auth: AuthService,
+        private fb: FormBuilder,
     ) {}
 
+    ngOnDestroy() {
+        this.destroy$.next(undefined);
+    }
     ngOnInit() {
-        this.nicknameInput = new FormControl(
-            (this.player && this.player.name) || '',
-        );
-        this.avatarInput = new FormControl(
-            (this.player && this.player.avatar) || '',
-        );
-        this.rememberInput = new FormControl(this.remember);
+        this.keypress$
+            .pipe(
+                pluck('key'),
+                filter(k => k === 'Enter'),
+            )
+            .subscribe(_ => this.submitUser());
+        this.form = this.fb.group<WelcomeInput>({
+            name: [
+                (this.player && this.player.name) || '',
+                [Validators.required],
+            ],
+            avatar: [
+                (this.player && this.player.avatar) || '',
+                [Validators.required],
+            ],
+            remember: [this.remember, [Validators.required]],
+        });
     }
 
     destroyModal(): void {
@@ -71,11 +94,9 @@ export class WelcomeDialogComponent implements OnInit {
 
     submitUser() {
         this.nicknameError$.next(undefined);
-        if (this.nicknameInput.value) {
-            const player: Partial<Player> = {
-                name: this.nicknameInput.value,
-                avatar: this.avatarInput.value,
-            };
+        if (this.form.valid) {
+            const { name, avatar, remember } = this.form.value;
+            const player: Partial<Player> = { name, avatar };
             this.socket.emit({
                 event: this.edit
                     ? WebSocketOutgoingEvent.edit
@@ -87,10 +108,16 @@ export class WelcomeDialogComponent implements OnInit {
                 .pipe(take(1))
                 .subscribe(data => {
                     this.destroyModal();
-                    this.auth.remember$.next(this.rememberInput.value);
+                    this.auth.remember$.next(remember);
                 });
         } else {
             this.nicknameError$.next('Please enter nickname');
         }
     }
+}
+
+interface WelcomeInput {
+    name: string;
+    remember: boolean;
+    avatar: string;
 }
