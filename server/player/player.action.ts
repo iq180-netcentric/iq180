@@ -2,16 +2,20 @@ import { createAction } from '../store/store.service';
 import { Player } from '../models/player';
 import { ActionType } from '../store/store.type';
 
-export const enum ACTION {
+export const enum PLAYER_ACTION {
     ADD = 'ADD',
     REMOVE = 'REMOVE',
     EDIT = 'EDIT',
 }
 
-export const addPlayerAction = createAction<ACTION.ADD, Player>(ACTION.ADD);
-export const editPlayerAction = createAction<ACTION.EDIT, Player>(ACTION.EDIT);
-export const removePlayerAction = createAction<ACTION.REMOVE, string>(
-    ACTION.REMOVE,
+export const addPlayerAction = createAction<PLAYER_ACTION.ADD, Player>(
+    PLAYER_ACTION.ADD,
+);
+export const editPlayerAction = createAction<PLAYER_ACTION.EDIT, Player>(
+    PLAYER_ACTION.EDIT,
+);
+export const removePlayerAction = createAction<PLAYER_ACTION.REMOVE, string>(
+    PLAYER_ACTION.REMOVE,
 );
 
 export type AddPlayer = ActionType<typeof addPlayerAction>;

@@ -5,7 +5,7 @@ import { Player } from '../models/player';
 import { Action, Reducer } from '../store/store.type';
 import { ReceiveEvent } from '../event/event.type';
 import { filter } from 'rxjs/operators';
-import { ACTION, PlayerAction } from './player.action';
+import { PLAYER_ACTION, PlayerAction } from './player.action';
 
 export type PlayerMap = Map<string, Player>;
 
@@ -14,17 +14,17 @@ export const players: Reducer<PlayerMap, PlayerAction> = (
     action,
 ) => {
     switch (action.type) {
-        case ACTION.ADD: {
+        case PLAYER_ACTION.ADD: {
             const { payload } = action;
             return state.has(payload.id)
                 ? state
                 : state.set(payload.id, payload);
         }
-        case ACTION.REMOVE: {
+        case PLAYER_ACTION.REMOVE: {
             const { payload } = action;
             return state.delete(payload);
         }
-        case ACTION.EDIT: {
+        case PLAYER_ACTION.EDIT: {
             const { payload } = action;
             return state.set(payload.id, payload);
         }
