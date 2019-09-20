@@ -1,11 +1,12 @@
 import { getOrElse, Option, none } from 'fp-ts/lib/Option';
-import { Game, GamePlayerMap } from '../models/game';
+import { Game, GamePlayerMap, GAME_STATUS } from '../models/game';
 import { Monoid } from 'fp-ts/lib/Monoid';
 import { Map } from 'immutable';
 import { Lens } from 'monocle-ts';
 
 export const initialState: Game = {
     ready: false,
+    status: GAME_STATUS.WAITING,
     players: Map(),
 };
 

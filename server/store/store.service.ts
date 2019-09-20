@@ -4,8 +4,7 @@ import { AppState } from './store';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { pluck, share } from 'rxjs/operators';
 import { Action } from './store.type';
-
-const equal = require('deep-equal');
+import equal from 'deep-equal';
 
 export const createAction = <Type = string, Payload = any>(type: Type) => (
     payload: Payload,
@@ -38,7 +37,6 @@ export class StoreService {
             const newState = store.getState();
             if (!equal(oldState, newState)) {
                 store$.next(newState);
-                // console.log(JSON.stringify(newState.game, null, 2));
             }
         });
     }

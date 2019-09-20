@@ -6,7 +6,7 @@ export const enum ROUND_ACTION {
     NEW_QUESTION = 'NEW_QUESTION',
 }
 
-const newQuestionAction = createAction<ROUND_ACTION.NEW_QUESTION, Round>(
+export const newQuestionAction = createAction<ROUND_ACTION.NEW_QUESTION, Round>(
     ROUND_ACTION.NEW_QUESTION,
 );
 

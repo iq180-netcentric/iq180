@@ -11,9 +11,7 @@ const devTools = () => {
             port: 3002,
             suppressConnectErrors: false,
         });
-    } catch (error) {
-        console.log(error);
-    }
+    } catch {}
 };
 
 export const store = createStore(reducer, devTools());

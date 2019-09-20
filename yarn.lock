@@ -5486,10 +5486,10 @@ ipaddr.js@^1.9.0:
   resolved "https://registry.yarnpkg.com/ipaddr.js/-/ipaddr.js-1.9.1.tgz#bff38543eeb8984825079ff3a2a8e6cbd46781b3"
   integrity sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==
 
-iq180-logic@^1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/iq180-logic/-/iq180-logic-1.0.5.tgz#b28cd446790d6a34f56a1b590c4d21a82c32d124"
-  integrity sha512-ygaX0nVRczT/0CTilkGCFq4ogP1eLxwJlB1adISbFMMla1XZpjnlNtG8oIz/wl2wND+iGtxFBesQ6Ttd+SVwJQ==
+iq180-logic@^1.0.8:
+  version "1.0.8"
+  resolved "https://registry.yarnpkg.com/iq180-logic/-/iq180-logic-1.0.8.tgz#96a202fffeae8a87f3fc5a47677a806879d2a1ea"
+  integrity sha512-cw4SRXKyQiHp6zldNe14E8UMQz0fyoQGDYcnzC4aE3TmPzJDBexYAdoSP9YI1n4G3Q3caQFXfcBedZUvEI00yQ==
   dependencies:
     ts-node "^8.3.0"
     typescript "^3.6.2"
