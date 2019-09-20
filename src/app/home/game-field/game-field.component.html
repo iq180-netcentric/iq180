@@ -1,4 +1,4 @@
-<div class="main" nz-row>
+<div class="main" nz-row #main>
     <div
         class="current"
         nz-row
@@ -64,7 +64,7 @@
                     nzLg="1"
                     class="card"
                     cdkDragBoundary=".game"
-                    [cdkDragDisabled]="card.disabled"
+                    [cdkDragDisabled]="card.disabled || !isGaming$ | async"
                     *ngFor="let card of numbers$ | async; let i = index"
                     (click)="addNumber(card, i)"
                     [cdkDragData]="card"
@@ -101,6 +101,7 @@
                         cdkDragBoundary=".game"
                         *ngFor="let card of answer$ | async; let i = index"
                         (click)="removeCard(card, i)"
+                        [cdkDragDisabled]="!(isGaming$ | async)"
                         [cdkDragData]="card"
                         [ngClass]="{
                             invalid: (wrongPositions$ | async)?.includes(i)
@@ -139,7 +140,10 @@
                     [ngClass]="{
                         disabled: (operators$ | async)?.length === 4
                     }"
-                    [cdkDragDisabled]="(operators$ | async)?.length === 4"
+                    [cdkDragDisabled]="
+                        (operators$ | async)?.length === 4 ||
+                        !(isGaming$ | async)
+                    "
                     *ngFor="let card of operators; let i = index"
                     [cdkDragData]="card"
                     (click)="addOperator(card, i)"

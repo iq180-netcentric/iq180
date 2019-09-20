@@ -5,10 +5,15 @@ export enum GameMode {
     multiPlayer = 'MULTI_PLAYER',
 }
 
+export enum GameStatus {
+    playing = 'PLAYING',
+    waiting = 'WAITING',
+}
 export interface Game {
     mode: GameMode;
-    ready: boolean;
-    players: (Player & Attempt)[];
+    status: GameStatus;
+    ready?: boolean;
+    players?: (Player & Attempt)[];
 }
 
 export interface GameRound {

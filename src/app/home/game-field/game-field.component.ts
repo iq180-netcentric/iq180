@@ -1,11 +1,21 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, ElementRef, ViewChild } from '@angular/core';
 import {
     OperatorCard,
     DraggableCard,
     NumberCard,
     CardType,
 } from 'src/app/core/models/game/card.model';
-import { BehaviorSubject, Observable, empty, interval, of, timer } from 'rxjs';
+import {
+    BehaviorSubject,
+    Observable,
+    empty,
+    interval,
+    of,
+    timer,
+    fromEvent,
+    Subject,
+    combineLatest,
+} from 'rxjs';
 import {
     transferArrayItem,
     moveItemInArray,
@@ -26,9 +36,14 @@ import {
     debounce,
     debounceTime,
     share,
+    takeUntil,
+    pluck,
+    withLatestFrom,
 } from 'rxjs/operators';
 import * as Logic from 'iq180-logic';
 import { Player } from 'src/app/core/models/player.model';
+import { DragAndDropService } from './drag-and-drop.service';
+import { isNumber, isOperator } from 'src/app/core/functions/predicates';
 
 @Component({
     selector: 'app-game-field',
@@ -38,205 +53,103 @@ import { Player } from 'src/app/core/models/player.model';
 export class GameFieldComponent implements OnInit {
     @Input() player: Player;
 
-    numbers$ = new BehaviorSubject<NumberCard[]>([]);
-    answer$ = new BehaviorSubject<DraggableCard[]>([]);
-    expectedAnswer$ = new BehaviorSubject<number>(null);
-    wrongPositions$ = this.answer$.pipe(
-        filter(answer => !!answer),
-        debounceTime(750),
-        map(answer => answer.map(e => e.value)),
-        map(answers => Logic.highlightWrongLocation({ array: answers })),
-    );
+    // Game Data
+    numbers$ = this.dndService.numbers$;
+    answer$ = this.dndService.answer$;
+    expectedAnswer$ = this.dndService.expectedAnswer$;
 
-    isValidAnswer$ = this.answer$.pipe(
-        debounceTime(750),
-        map(ans => {
-            return Logic.validateForDisplay({
-                array: ans.map(e => e.value),
-                operators: ['+', '-', '*', '/'],
-            });
-        }),
-        startWith(true),
-    );
+    // Game Validation
+    wrongPositions$ = this.dndService.wrongPositions$;
+    isValidAnswer$ = this.dndService.isValidAnswer$;
+    currentAnswer$ = this.dndService.currentAnswer$;
+    operators$ = this.dndService.operators$;
 
-    currentAnswer$ = this.answer$.pipe(
-        map(ans => {
-            if (
-                Logic.validateForDisplay({
-                    array: ans.map(e => e.value),
-                    operators: ['+', '-', '*', '/'],
-                })
-            ) {
-                return Logic.calculate(ans.map(e => e.value));
-            } else {
-                return 'Invalid';
-            }
-        }, share()),
-    );
+    addNumber = this.dndService.addNumber;
+    addOperator = this.dndService.addOperator;
+    dropNumber = this.dndService.dropNumber;
+    dropOperator = this.dndService.dropOperator;
+    dropAnswer = this.dndService.dropAnswer;
+    removeCard = this.dndService.removeCard;
+    removeNumber = this.dndService.removeNumber;
+    removeOperator = this.dndService.removeOperator;
+    reset = this.dndService.reset;
 
-    operators: OperatorCard[] = [
-        { value: '+', display: '+', disabled: false },
-        { value: '-', display: '-', disabled: false },
-        { value: 'x', display: 'x', disabled: false },
-        { value: '÷', display: '÷', disabled: false },
-    ].map(e => ({ ...e, type: CardType.operator }));
-    operators$ = this.answer$.pipe(
-        map(ans => ans.filter(e => e.type === CardType.operator)),
-    );
+    operators = this.dndService.operators;
+
+    @ViewChild('main', { static: true }) main: ElementRef;
 
     timer$: Observable<number>;
-    gaming$ = new BehaviorSubject<boolean>(false);
+    isGaming$ = new BehaviorSubject<boolean>(false);
 
-    constructor() {}
+    destroy$ = new Subject();
+
+    keypress$ = fromEvent<KeyboardEvent>(document, 'keydown').pipe(
+        takeUntil(this.destroy$),
+        pluck('key'),
+    );
+
+    constructor(private dndService: DragAndDropService) {}
 
     ngOnInit() {
-        this.reset();
+        this.keypress$
+            .pipe(
+                withLatestFrom(this.numbers$, this.answer$, this.isGaming$),
+                filter(([, , , isGaming]) => isGaming),
+            )
+            .subscribe(([key, numbers, answers]) => {
+                if (isNumber(key)) {
+                    const n = Number(key);
+                    const idx = numbers.findIndex(e => e.value === n);
+                    if (idx >= 0) {
+                        this.addNumber(numbers[idx], idx);
+                    }
+                } else if (isOperator(this.operators.map(e => e.value), key)) {
+                    const idx = this.operators.findIndex(e => e.value === key);
+                    if (idx >= 0) {
+                        this.addOperator(this.operators[idx], idx);
+                    }
+                } else if (key === 'Backspace') {
+                    const idx = answers.length - 1;
+                    if (idx >= 0) {
+                        this.removeCard(answers[idx], idx);
+                    }
+                }
+            });
+        this.dndService.reset();
         this.startGame();
     }
 
     createTimer(startTime: Date) {
         this.timer$ = timer(startTime, 1000).pipe(
-            startWith(0),
-            take(60),
+            take(61),
             map(t => 60 - t),
+            startWith(0),
         );
     }
+
     /* Drag and Drop Stuff */
     startGame() {
         const future = new Date().valueOf() + 1000;
         this.createTimer(new Date(future));
         this.timer$.subscribe(
             time => {
-                this.gaming$.next(true);
+                this.isGaming$.next(true);
             },
             () => null,
             () => {
-                this.gaming$.next(false);
+                this.isGaming$.next(false);
             },
         );
-    }
-
-    reset() {
-        const { question, operators, expectedAnswer } = Logic.generate({
-            numberLength: 5,
-            operators: ['+', '-', '*', '/'],
-            integerAnswer: true,
-        });
-        this.operators = [
-            { value: '+', display: '+', disabled: false },
-            { value: '-', display: '-', disabled: false },
-            { value: '*', display: 'x', disabled: false },
-            { value: '/', display: '÷', disabled: false },
-        ].map(e => ({ ...e, type: CardType.operator }));
-        this.numbers$.next(
-            question
-                .map(e => ({
-                    value: e,
-                    display: e.toString(),
-                    disabled: false,
-                }))
-                .map(e => ({ ...e, type: CardType.number })),
-        );
-        this.expectedAnswer$.next(expectedAnswer);
-        this.answer$.next([]);
-    }
-    dropAnswer(event: CdkDragDrop<DraggableCard[]>) {
-        if (event.previousContainer === event.container) {
-            const arr = this.answer$.getValue();
-            moveItemInArray(arr, event.previousIndex, event.currentIndex);
-            this.answer$.next(arr);
-        } else {
-            const card = event.previousContainer.data[event.previousIndex];
-            if (card.type === CardType.number) {
-                this.addNumber(
-                    card as NumberCard,
-                    event.previousIndex,
-                    event.currentIndex,
-                );
-            } else if (card.type === CardType.operator) {
-                this.addOperator(
-                    card as OperatorCard,
-                    event.previousIndex,
-                    event.currentIndex,
-                );
-            }
-        }
-    }
-
-    dropNumber(event: CdkDragDrop<DraggableCard[]>) {
-        if (event.previousContainer === event.container) {
-            const arr = this.numbers$.getValue();
-            moveItemInArray(arr, event.previousIndex, event.currentIndex);
-            this.numbers$.next(arr);
-        } else {
-            const card = event.previousContainer.data[event.previousIndex];
-            if (card.type === CardType.number) {
-                this.removeNumber(event.previousIndex, event.currentIndex);
-            }
-        }
-    }
-
-    dropOperator(event: CdkDragDrop<DraggableCard[]>) {
-        if (event.previousContainer === event.container) {
-            const arr = this.operators;
-            moveItemInArray(arr, event.previousIndex, event.currentIndex);
-        } else {
-            const card = event.previousContainer.data[event.previousIndex];
-            if (card.type === CardType.operator) {
-                const ansArr = this.answer$.getValue();
-                ansArr.splice(event.previousIndex, 1);
-                this.answer$.next(ansArr);
-            }
-        }
-    }
-
-    removeNumber(fromIdx: number, toIdx?: number) {
-        const ans = this.answer$.getValue();
-        const dst = this.numbers$.getValue();
-        transferArrayItem(ans, dst, fromIdx, toIdx || dst.length);
-        this.numbers$.next(dst);
-        this.answer$.next(ans);
-    }
-
-    removeOperator(card: OperatorCard, idx: number) {
-        const ansArr = this.answer$.getValue();
-        ansArr.splice(idx, 1);
-        this.answer$.next(ansArr);
-    }
-
-    removeCard(card: DraggableCard, idx: number) {
-        if (card.type === CardType.number) {
-            this.removeNumber(idx);
-        } else {
-            this.removeOperator(card as OperatorCard, idx);
-        }
-    }
-
-    addNumber(card: NumberCard, numIdx: number, ansIdx?: number) {
-        const ansArr = this.answer$.getValue();
-        ansArr.splice(ansIdx !== undefined ? ansIdx : ansArr.length, 0, card);
-        this.answer$.next(ansArr);
-        const numArr = this.numbers$.getValue();
-        numArr.splice(numIdx, 1);
-        this.numbers$.next(numArr);
-    }
-
-    addOperator(card: OperatorCard, opIdx: number, ansIdx?: number) {
-        const ansArr = this.answer$.getValue();
-        if (ansArr.filter(e => e.type === CardType.operator).length < 4) {
-            ansArr.splice(
-                ansIdx !== undefined ? ansIdx : ansArr.length,
-                0,
-                card,
-            );
-            this.answer$.next(ansArr);
-        }
     }
 
     onDragEnded(event: CdkDragEnd) {
         event.source.element.nativeElement.style.transform = 'none'; // visually reset element to its origin
         const source: any = event.source;
         source._passiveTransform = { x: 0, y: 0 }; // make it so new drag starts from same origin
+    }
+
+    handleKeypress(event: KeyboardEvent) {
+        console.log(event);
     }
 
     isNumber(item: CdkDrag<DraggableCard>) {
