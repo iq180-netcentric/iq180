@@ -10,11 +10,11 @@ import { RoundModule } from './round/round.module';
 
 @Module({
     imports: [
-        // AngularUniversalModule.forRoot({
-        //     viewsPath: join(process.cwd(), 'dist/browser'),
-        //     bundle: require('../server/main'),
-        //     liveReload: true,
-        // }),
+        AngularUniversalModule.forRoot({
+            viewsPath: join(process.cwd(), 'dist/browser'),
+            bundle: require('../server/main'),
+            liveReload: true,
+        }),
         StoreModule,
         PlayerModule,
         EventModule,
