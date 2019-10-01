@@ -1,0 +1,45 @@
+<nz-layout>
+    <nz-header>
+        <div class="logo">
+            <h1>IQ180</h1>
+        </div>
+        <div class="right" *ngIf="currentPlayer$ | async as player">
+            <span
+                >Hello {{ player.name }},
+                <span class="link" (click)="logout()">not you ?</span></span
+            >
+        </div>
+    </nz-header>
+    <nz-content>
+        <div class="inner-content">
+            <div class="top" nz-row nzType="flex" nzGutter="16px">
+                <div nz-col [nzXs]="24" [nzLg]="18">
+                    <ng-template #menu>
+                        <app-menu
+                            (ready)="ready$.next($event)"
+                            (singlePlayer)="singlePlayer$.next($event)"
+                            [isReady]="(currentPlayer$ | async)?.ready"
+                        >
+                        </app-menu>
+                    </ng-template>
+                    <app-game-field
+                        *ngIf="currentGame$ | async; else menu"
+                        [player]="selectedPlayer$ | async"
+                    ></app-game-field>
+                </div>
+                <div nz-col [nzXs]="24" [nzLg]="6">
+                    <app-players
+                        (selectPlayer)="selectedPlayer$.next($event)"
+                        [selectedPlayer]="selectedPlayer$ | async"
+                    ></app-players>
+                </div>
+            </div>
+            <div class="bottom" nz-row>
+                <div nz-col nzSpan="24">
+                    <app-chat></app-chat>
+                </div>
+            </div>
+        </div>
+    </nz-content>
+    <nz-footer>Team GGG x Ken ©2019 Part of Netcentric Architecture</nz-footer>
+</nz-layout>

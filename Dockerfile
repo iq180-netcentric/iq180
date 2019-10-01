@@ -1,8 +1,9 @@
-FROM node:8-alpine
+FROM node:12-alpine
 WORKDIR /app
 COPY package.json .
 RUN yarn
 COPY . .
-RUN yarn build
+RUN yarn build:ssr
 RUN npm prune --production
-CMD yarn start:prod
+EXPOSE 3000
+CMD yarn serve:ssr

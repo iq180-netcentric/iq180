@@ -1,16 +1,31 @@
 version: 2.1
 jobs:
+  test:
+    working_directory: /app
+    docker:
+      - image: node:10-alpine
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: yarn
+      - run:
+          name: Test
+          command: yarn test
   build-and-deploy:
     working_directory: /app
     docker:
-      - image: docker:17.05.0-ce-git
+      - image: docker:17.09.0-git
     steps:
       - checkout
       - setup_remote_docker
       - run:
           name: Install dependencies
           command: |
-            apk add curl
+            apk add --no-cache curl
+            apk add --no-cache curl-dev
+            apk add --no-cache bash
+            apk add  --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/v3.7/main/ nodejs=8.9.3-r1
             curl https://cli-assets.heroku.com/install.sh | sh
       - restore_cache:
           keys:
@@ -19,7 +34,10 @@ jobs:
             - /caches/app.tar
       - run:  
           name: Login to Heroku Docker registy
-          command: docker login --username=_ --password=$TOKEN registry.heroku.com
+          command: docker login --username=_ --password=$HEROKU_TOKEN registry.heroku.com
+      - run:
+          name: Heroku Auth
+          command: sh scripts/setup-heroku.sh
       - run:
           name: Load Docker image layer cache
           command: |
@@ -32,7 +50,7 @@ jobs:
               heroku container:push web --app=$APP_NAME
             fi
             if [ "${CIRCLE_BRANCH}" == "staging" ]; then
-              heroku container:push web --app=$STAGIN_APP_NAME
+              heroku container:push web --app=$STAGING_APP_NAME
             fi
       - run:
           name: Deploy
@@ -41,13 +59,22 @@ jobs:
               heroku container:release web --app=$APP_NAME
             fi
             if [ "${CIRCLE_BRANCH}" == "staging" ]; then
-              heroku container:release web --app=$STAGIN_APP_NAME
+              heroku container:release web --app=$STAGING_APP_NAME
             fi
 workflows:
   version: 2.1
   build-and-deploy:
     jobs:
+      - test:
+          filters:
+            branches:
+              only:
+                - dev
+                - staging
+                - master
       - build-and-deploy:
+          requires:
+            - test
           filters:
             branches:
               only:
