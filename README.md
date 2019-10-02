@@ -11,3 +11,5 @@ Development server : https://staging-netcentric-game-server.herokuapp.com/
 ## How to play ?
 
 You have five numbers, do whatever it takes to make the number !
+
+## Technical Stuff
