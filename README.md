@@ -15,3 +15,4 @@ You have five numbers, do whatever it takes to make the number !
 ## Technical Stuff
 
 Frontend : Angular
+Backend : Nest.js
