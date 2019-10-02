@@ -13,3 +13,5 @@ Development server : https://staging-netcentric-game-server.herokuapp.com/
 You have five numbers, do whatever it takes to make the number !
 
 ## Technical Stuff
+
+Frontend : Angular
