@@ -23,7 +23,7 @@ import { GameService } from '../game/game.service';
 import { BroadcastMessage } from '../event/event.type';
 
 const createRound = (): Round => {
-    const generated = generate();
+    const generated = generate({});
     const now = currentTime();
     return {
         startTime: addSeconds(now, 5).toISOString(),
@@ -45,10 +45,6 @@ export class RoundService {
         eventService.listenFor(IN_EVENT.START).subscribe(() => this.newRound());
         this.endRound$.subscribe(() => this.newRound());
     }
-
-    newRound = () => {
-        this.startRound$.next();
-    };
 
     startRound$ = new Subject();
 
@@ -83,4 +79,8 @@ export class RoundService {
             }),
         ),
     );
+
+    newRound = () => {
+        this.startRound$.next();
+    };
 }

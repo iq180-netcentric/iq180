@@ -13,7 +13,7 @@ import { RoundModule } from './round/round.module';
         AngularUniversalModule.forRoot({
             viewsPath: join(process.cwd(), 'dist/browser'),
             bundle: require('../server/main'),
-            liveReload: true,
+            liveReload: process.env.NODE_ENV !== 'production',
         }),
         StoreModule,
         PlayerModule,
