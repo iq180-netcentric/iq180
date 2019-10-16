@@ -149,13 +149,7 @@
                     nzLg="1"
                     class="card"
                     cdkDragBoundary=".game"
-                    [ngClass]="{
-                        disabled: (operators$ | async)?.length === 4
-                    }"
-                    [cdkDragDisabled]="
-                        (operators$ | async)?.length === 4 ||
-                        (!(isGaming$ | async) && isCurrentPlayer)
-                    "
+                    [cdkDragDisabled]="!(isGaming$ | async) && isCurrentPlayer"
                     *ngFor="let card of operators; let i = index"
                     [cdkDragData]="card"
                     (click)="addOperator(card, i)"

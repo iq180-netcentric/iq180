@@ -33,7 +33,7 @@ export class DragAndDropService {
         map(ans => {
             return Logic.validateForDisplay({
                 array: ans.map(e => e.value),
-                operators: ['+', '-', '*', '/'],
+                operators: ['+', '-', '*', '/', '(', ')'],
             });
         }),
         startWith(true),
@@ -45,7 +45,7 @@ export class DragAndDropService {
             if (
                 Logic.validateForDisplay({
                     array: ans.map(e => e.value),
-                    operators: ['+', '-', '*', '/'],
+                    operators: ['+', '-', '*', '/', '(', ')'],
                 })
             ) {
                 return Logic.calculate(ans.map(e => e.value));
@@ -64,6 +64,8 @@ export class DragAndDropService {
         { value: '-', display: '-', disabled: false },
         { value: '*', display: 'x', disabled: false },
         { value: '/', display: '÷', disabled: false },
+        { value: '(', display: '(', disabled: false },
+        { value: ')', display: ')', disabled: false },
     ].map(e => ({ ...e, type: CardType.operator }));
 
     constructor() {}
@@ -71,7 +73,7 @@ export class DragAndDropService {
     reset() {
         const { question, operators, expectedAnswer } = Logic.generate({
             numberLength: 5,
-            operators: ['+', '-', '*', '/'],
+            operators: ['+', '-', '*', '/', , '(', ')'],
             integerAnswer: true,
         });
         this.operators = [
@@ -79,6 +81,8 @@ export class DragAndDropService {
             { value: '-', display: '-', disabled: false },
             { value: '*', display: 'x', disabled: false },
             { value: '/', display: '÷', disabled: false },
+            { value: '(', display: '(', disabled: false },
+            { value: ')', display: ')', disabled: false },
         ].map(e => ({ ...e, type: CardType.operator }));
         this.numbers$.next(
             question
@@ -176,13 +180,7 @@ export class DragAndDropService {
 
     addOperator(card: OperatorCard, opIdx: number, ansIdx?: number) {
         const ansArr = this.answer$.getValue();
-        if (ansArr.filter(e => e.type === CardType.operator).length < 4) {
-            ansArr.splice(
-                ansIdx !== undefined ? ansIdx : ansArr.length,
-                0,
-                card,
-            );
-            this.answer$.next(ansArr);
-        }
+        ansArr.splice(ansIdx !== undefined ? ansIdx : ansArr.length, 0, card);
+        this.answer$.next(ansArr);
     }
 }
