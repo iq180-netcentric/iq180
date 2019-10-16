@@ -64,7 +64,10 @@
                     nzLg="1"
                     class="card"
                     cdkDragBoundary=".game"
-                    [cdkDragDisabled]="card.disabled || !isGaming$ | async"
+                    [cdkDragDisabled]="
+                        card.disabled ||
+                        (!(isGaming$ | async) && isCurrentPlayer)
+                    "
                     *ngFor="let card of numbers$ | async; let i = index"
                     (click)="addNumber(card, i)"
                     [cdkDragData]="card"
@@ -73,10 +76,9 @@
                     <span>{{ card.display }}</span>
                 </div>
             </div>
-            <div>Expected Answer : {{ expectedAnswer$ | async }}</div>
         </div>
         <div class="answer" nz-row nz-col [nzXs]="24">
-            <div nz-col [nzMd]="18" [nzXs]="24">
+            <div nz-col [nzMd]="16" [nzXs]="24">
                 <div
                     cdkDropList
                     #answerList="cdkDropList"
@@ -101,7 +103,9 @@
                         cdkDragBoundary=".game"
                         *ngFor="let card of answer$ | async; let i = index"
                         (click)="removeCard(card, i)"
-                        [cdkDragDisabled]="!(isGaming$ | async)"
+                        [cdkDragDisabled]="
+                            isCurrentPlayer && !(isGaming$ | async)
+                        "
                         [cdkDragData]="card"
                         [ngClass]="{
                             invalid: (wrongPositions$ | async)?.includes(i)
@@ -112,8 +116,16 @@
                     </div>
                 </div>
             </div>
-            <div class="currentAnswer" nz-col [nzMd]="6" [nzXs]="24">
+            <div class="currentAnswer" nz-col [nzMd]="4" [nzXs]="12">
                 <span>= {{ currentAnswer$ | async }}</span>
+            </div>
+            <div class="expectedAnswer" nz-col [nzMd]="4" [nzXs]="12">
+                <div>
+                    <small>Make</small>
+                </div>
+                <div>
+                    <span>{{ expectedAnswer$ | async }}</span>
+                </div>
             </div>
         </div>
         <div class="operators" nz-col [nzXs]="24">
@@ -142,7 +154,7 @@
                     }"
                     [cdkDragDisabled]="
                         (operators$ | async)?.length === 4 ||
-                        !(isGaming$ | async)
+                        (!(isGaming$ | async) && isCurrentPlayer)
                     "
                     *ngFor="let card of operators; let i = index"
                     [cdkDragData]="card"

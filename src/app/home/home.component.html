@@ -25,6 +25,10 @@
                     <app-game-field
                         *ngIf="currentGame$ | async; else menu"
                         [player]="selectedPlayer$ | async"
+                        [isCurrentPlayer]="
+                            (selectedPlayer$ | async)?.id ===
+                            (currentPlayer$ | async)?.id
+                        "
                     ></app-game-field>
                 </div>
                 <div nz-col [nzXs]="24" [nzLg]="6">

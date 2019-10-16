@@ -46,6 +46,20 @@
                     overflow: hidden;
                 }
             }
+            .expectedAnswer {
+                border: 1px solid #e8e8e8;
+                padding: 10px;
+                display: flex;
+                align-items: center;
+                height: 100%;
+                font-size: 2em;
+                justify-content: space-between;
+                span {
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                    overflow: hidden;
+                }
+            }
         }
         .operators {
             .disabled {

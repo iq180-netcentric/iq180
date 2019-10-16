@@ -40,6 +40,7 @@ export class DragAndDropService {
     );
 
     currentAnswer$ = this.answer$.pipe(
+        filter(ans => ans.length >= 1),
         map(ans => {
             if (
                 Logic.validateForDisplay({

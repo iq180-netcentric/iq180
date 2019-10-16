@@ -52,6 +52,7 @@ import { isNumber, isOperator } from 'src/app/core/functions/predicates';
 })
 export class GameFieldComponent implements OnInit {
     @Input() player: Player;
+    @Input() isCurrentPlayer: boolean;
 
     // Game Data
     numbers$ = this.dndService.numbers$;
