@@ -36,15 +36,6 @@ describe('player ready', () => {
                 '345': fakePlayer(false),
             })),
         ).toBe(false);
-        expect(
-            playersReady(<PlayerMap>Map({
-                '123': fakePlayer(true),
-                '234': fakePlayer(true),
-                '345': fakePlayer(false),
-                '456': fakePlayer(false),
-                '567': fakePlayer(false),
-            })),
-        ).toBe(false);
     });
     it('should be true', () => {
         expect(
@@ -66,6 +57,15 @@ describe('player ready', () => {
                 '234': fakePlayer(true),
                 '345': fakePlayer(false),
                 '456': fakePlayer(false),
+            })),
+        ).toBe(true);
+        expect(
+            playersReady(<PlayerMap>Map({
+                '123': fakePlayer(true),
+                '234': fakePlayer(true),
+                '345': fakePlayer(false),
+                '456': fakePlayer(false),
+                '567': fakePlayer(false),
             })),
         ).toBe(true);
         expect(
