@@ -93,7 +93,7 @@ export class GameFieldComponent implements OnInit {
     constructor(private dndService: DragAndDropService) {}
 
     skip() {
-        this.createTimer();
+        this.createTimer(new Date());
         this.dndService.skip();
     }
     ngOnInit() {
