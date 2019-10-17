@@ -163,7 +163,11 @@
             </div>
         </div>
     </div>
-    <div class="reset">
+    <div class="buttons">
         <button nz-button nzType="danger" (click)="reset()">Reset</button>
+        <button nz-button nzType="primary" (click)="skip()">Skip</button>
+        <button nz-button nzType="default" (click)="exit.emit()">
+            Exit Single Player
+        </button>
     </div>
 </div>

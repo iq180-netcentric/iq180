@@ -1,4 +1,12 @@
-import { Component, OnInit, Input, ElementRef, ViewChild } from '@angular/core';
+import {
+    Component,
+    OnInit,
+    Input,
+    ElementRef,
+    ViewChild,
+    Output,
+    EventEmitter,
+} from '@angular/core';
 import {
     OperatorCard,
     DraggableCard,
@@ -16,22 +24,11 @@ import {
     Subject,
     combineLatest,
 } from 'rxjs';
-import {
-    transferArrayItem,
-    moveItemInArray,
-    CdkDragDrop,
-    CdkDrag,
-    CdkDropList,
-    CdkDragEnd,
-} from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
 import {
     startWith,
-    delay,
-    switchMap,
-    tap,
     take,
     map,
-    endWith,
     filter,
     debounce,
     debounceTime,
@@ -54,9 +51,11 @@ export class GameFieldComponent implements OnInit {
     @Input() player: Player;
     @Input() isCurrentPlayer: boolean;
 
+    @Output() exit = new EventEmitter();
     // Game Data
     numbers$ = this.dndService.numbers$;
     answer$ = this.dndService.answer$;
+    question$ = this.dndService.question$;
     expectedAnswer$ = this.dndService.expectedAnswer$;
 
     // Game Validation
@@ -73,6 +72,8 @@ export class GameFieldComponent implements OnInit {
     removeCard = this.dndService.removeCard;
     removeNumber = this.dndService.removeNumber;
     removeOperator = this.dndService.removeOperator;
+
+    generateQuestion = this.dndService.generateQuestion;
     reset = this.dndService.reset;
 
     operators = this.dndService.operators;
@@ -91,6 +92,10 @@ export class GameFieldComponent implements OnInit {
 
     constructor(private dndService: DragAndDropService) {}
 
+    skip() {
+        this.createTimer();
+        this.dndService.skip();
+    }
     ngOnInit() {
         this.keypress$
             .pipe(
@@ -116,7 +121,7 @@ export class GameFieldComponent implements OnInit {
                     }
                 }
             });
-        this.dndService.reset();
+        this.dndService.skip();
         this.startGame();
     }
 

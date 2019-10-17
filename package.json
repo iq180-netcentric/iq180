@@ -129,5 +129,19 @@
         },
         "coverageDirectory": "../coverage",
         "testEnvironment": "node"
+    },
+    "browser": {
+        "http": false,
+        "https": false,
+        "net": false,
+        "path": false,
+        "stream": false,
+        "tls": false,
+        "vm": false,
+        "os": false,
+        "repl": false,
+        "crypto": false,
+        "fs": false,
+        "child_process": false
     }
 }

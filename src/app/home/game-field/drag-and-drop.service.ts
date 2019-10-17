@@ -27,6 +27,10 @@ export class DragAndDropService {
         map(answer => answer.map(e => e.value)),
         map(answers => Logic.highlightWrongLocation({ array: answers })),
     );
+    question$ = new BehaviorSubject<{
+        question: number[];
+        expectedAnswer: number;
+    }>(null);
 
     isValidAnswer$ = this.answer$.pipe(
         debounceTime(750),
@@ -71,11 +75,15 @@ export class DragAndDropService {
     constructor() {}
 
     reset() {
-        const { question, operators, expectedAnswer } = Logic.generate({
-            numberLength: 5,
-            operators: ['+', '-', '*', '/', , '(', ')'],
-            integerAnswer: true,
-        });
+        this.answer$.next([]);
+        const question = this.question$.value.question
+            .map(e => ({
+                value: e,
+                display: e.toString(),
+                disabled: false,
+            }))
+            .map(e => ({ ...e, type: CardType.number }));
+        this.numbers$.next(question);
         this.operators = [
             { value: '+', display: '+', disabled: false },
             { value: '-', display: '-', disabled: false },
@@ -84,17 +92,20 @@ export class DragAndDropService {
             { value: '(', display: '(', disabled: false },
             { value: ')', display: ')', disabled: false },
         ].map(e => ({ ...e, type: CardType.operator }));
-        this.numbers$.next(
-            question
-                .map(e => ({
-                    value: e,
-                    display: e.toString(),
-                    disabled: false,
-                }))
-                .map(e => ({ ...e, type: CardType.number })),
-        );
+    }
+    skip() {
+        this.generateQuestion();
+        this.reset();
+    }
+
+    generateQuestion() {
+        const { question, operators, expectedAnswer } = Logic.generate({
+            numberLength: 5,
+            operators: ['+', '-', '*', '/', , '(', ')'],
+            integerAnswer: true,
+        });
         this.expectedAnswer$.next(expectedAnswer);
-        this.answer$.next([]);
+        this.question$.next({ question, expectedAnswer });
     }
 
     dropAnswer(event: CdkDragDrop<DraggableCard[]>) {
