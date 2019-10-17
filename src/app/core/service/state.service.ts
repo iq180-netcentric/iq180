@@ -43,6 +43,25 @@ export class StateService {
                     },
                 },
             },
+            single: {
+                initial: 'playing',
+                states: {
+                    playing: {
+                        on: {
+                            ANSWERED: 'endRound',
+                            TIMEOUT: 'endRound',
+                        },
+                    },
+                    endRound: {
+                        on: {
+                            RESTART: 'playing',
+                        },
+                    },
+                    end: {
+                        type: 'final',
+                    },
+                },
+            },
         },
     });
 

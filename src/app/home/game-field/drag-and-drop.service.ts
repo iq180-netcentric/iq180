@@ -180,7 +180,13 @@ export class DragAndDropService {
 
     addOperator(card: OperatorCard, opIdx: number, ansIdx?: number) {
         const ansArr = this.answer$.getValue();
-        ansArr.splice(ansIdx !== undefined ? ansIdx : ansArr.length, 0, card);
-        this.answer$.next(ansArr);
+        if (ansArr.filter(e => e.type === CardType.operator).length < 16) {
+            ansArr.splice(
+                ansIdx !== undefined ? ansIdx : ansArr.length,
+                0,
+                card,
+            );
+            this.answer$.next(ansArr);
+        }
     }
 }
