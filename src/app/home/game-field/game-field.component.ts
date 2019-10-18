@@ -187,8 +187,11 @@ export class GameFieldComponent implements OnInit {
                         combineLatest([
                             this.currentAnswer$,
                             this.expectedAnswer$,
+                            this.numbers$,
                         ]).pipe(
-                            filter(([cA, eA]) => cA === eA),
+                            filter(
+                                ([cA, eA, n]) => cA === eA && n.length === 0,
+                            ),
                             mapTo('CORRECT_ANSWER'),
                         ),
                     ).pipe(withLatestFrom(this.timer$));
