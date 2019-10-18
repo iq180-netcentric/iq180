@@ -92,6 +92,7 @@ export class GameFieldComponent implements OnInit {
 
     timer$: Observable<number>;
     isGaming$ = new BehaviorSubject<boolean>(false);
+    playable$ = new BehaviorSubject<boolean>(false);
 
     destroy$ = new Subject();
 
@@ -114,8 +115,13 @@ export class GameFieldComponent implements OnInit {
     ngOnInit() {
         this.keypress$
             .pipe(
-                withLatestFrom(this.numbers$, this.answer$, this.isGaming$),
-                filter(([, , , isGaming]) => isGaming),
+                withLatestFrom(
+                    this.numbers$,
+                    this.answer$,
+                    this.isGaming$,
+                    this.playable$,
+                ),
+                filter(([, , , isGaming, playable]) => isGaming && playable),
             )
             .subscribe(args => this.handleKeypress(args));
         this.dndService.skip();
@@ -126,6 +132,7 @@ export class GameFieldComponent implements OnInit {
         string,
         NumberCard[],
         DraggableCard[],
+        boolean,
         boolean
     ]) {
         if (isNumber(key)) {
@@ -171,6 +178,7 @@ export class GameFieldComponent implements OnInit {
             .pipe(
                 startWith(undefined),
                 switchMap(() => {
+                    this.playable$.next(true);
                     return race(
                         this.timer$.pipe(
                             filter(v => v === 0),
@@ -188,6 +196,7 @@ export class GameFieldComponent implements OnInit {
                 takeWhile(() => this.isGaming$.value),
             )
             .subscribe(([res, timeLeft]) => {
+                this.playable$.next(false);
                 if (res === 'CORRECT_ANSWER') {
                     this.modalService.success({
                         nzTitle: 'You win !',
