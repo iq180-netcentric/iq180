@@ -19,10 +19,12 @@ import {
     empty,
     interval,
     of,
+    merge,
     timer,
     fromEvent,
     Subject,
     combineLatest,
+    race,
 } from 'rxjs';
 import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
 import {
@@ -36,11 +38,19 @@ import {
     takeUntil,
     pluck,
     withLatestFrom,
+    takeLast,
+    switchMap,
+    tap,
+    mapTo,
+    takeWhile,
+    endWith,
+    mergeMap,
 } from 'rxjs/operators';
 import * as Logic from 'iq180-logic';
 import { Player } from 'src/app/core/models/player.model';
 import { DragAndDropService } from './drag-and-drop.service';
 import { isNumber, isOperator } from 'src/app/core/functions/predicates';
+import { NzModalService } from 'ng-zorro-antd';
 
 @Component({
     selector: 'app-game-field',
@@ -85,15 +95,20 @@ export class GameFieldComponent implements OnInit {
 
     destroy$ = new Subject();
 
+    resetTimer$ = new Subject();
+
     keypress$ = fromEvent<KeyboardEvent>(document, 'keydown').pipe(
         takeUntil(this.destroy$),
         pluck('key'),
     );
 
-    constructor(private dndService: DragAndDropService) {}
+    constructor(
+        private dndService: DragAndDropService,
+        private modalService: NzModalService,
+    ) {}
 
     skip() {
-        this.createTimer(new Date());
+        this.resetTimer$.next();
         this.dndService.skip();
     }
     ngOnInit() {
@@ -102,34 +117,46 @@ export class GameFieldComponent implements OnInit {
                 withLatestFrom(this.numbers$, this.answer$, this.isGaming$),
                 filter(([, , , isGaming]) => isGaming),
             )
-            .subscribe(([key, numbers, answers]) => {
-                if (isNumber(key)) {
-                    const n = Number(key);
-                    const idx = numbers.findIndex(e => e.value === n);
-                    if (idx >= 0) {
-                        this.addNumber(numbers[idx], idx);
-                    }
-                } else if (isOperator(this.operators.map(e => e.value), key)) {
-                    const idx = this.operators.findIndex(e => e.value === key);
-                    if (idx >= 0) {
-                        this.addOperator(this.operators[idx], idx);
-                    }
-                } else if (key === 'Backspace') {
-                    const idx = answers.length - 1;
-                    if (idx >= 0) {
-                        this.removeCard(answers[idx], idx);
-                    }
-                }
-            });
+            .subscribe(args => this.handleKeypress(args));
         this.dndService.skip();
         this.startGame();
     }
 
-    createTimer(startTime: Date) {
-        this.timer$ = timer(startTime, 1000).pipe(
-            take(61),
-            map(t => 60 - t),
-            startWith(0),
+    handleKeypress([key, numbers, answers]: [
+        string,
+        NumberCard[],
+        DraggableCard[],
+        boolean
+    ]) {
+        if (isNumber(key)) {
+            const n = Number(key);
+            const idx = numbers.findIndex(e => e.value === n);
+            if (idx >= 0) {
+                this.addNumber(numbers[idx], idx);
+            }
+        } else if (isOperator(this.operators.map(e => e.value), key)) {
+            const idx = this.operators.findIndex(e => e.value === key);
+            if (idx >= 0) {
+                this.addOperator(this.operators[idx], idx);
+            }
+        } else if (key === 'Backspace') {
+            const idx = answers.length - 1;
+            if (idx >= 0) {
+                this.removeCard(answers[idx], idx);
+            }
+        }
+    }
+
+    createTimer(startTime?: Date) {
+        const n = 60;
+        this.timer$ = this.resetTimer$.pipe(
+            startWith(undefined),
+            switchMap(() =>
+                timer(new Date(), 1000).pipe(
+                    take(n + 1),
+                    map(t => n - t),
+                ),
+            ),
         );
     }
 
@@ -137,25 +164,62 @@ export class GameFieldComponent implements OnInit {
     startGame() {
         const future = new Date().valueOf() + 1000;
         this.createTimer(new Date(future));
-        this.timer$.subscribe(
-            time => {
-                this.isGaming$.next(true);
-            },
-            () => null,
-            () => {
-                this.isGaming$.next(false);
-            },
-        );
+
+        this.isGaming$.next(true);
+
+        this.resetTimer$
+            .pipe(
+                startWith(undefined),
+                switchMap(() => {
+                    return race(
+                        this.timer$.pipe(
+                            filter(v => v === 0),
+                            mapTo('TIMER_END'),
+                        ),
+                        combineLatest([
+                            this.currentAnswer$,
+                            this.expectedAnswer$,
+                        ]).pipe(
+                            filter(([cA, eA]) => cA === eA),
+                            mapTo('CORRECT_ANSWER'),
+                        ),
+                    ).pipe(withLatestFrom(this.timer$));
+                }),
+                takeWhile(() => this.isGaming$.value),
+            )
+            .subscribe(([res, timeLeft]) => {
+                if (res === 'CORRECT_ANSWER') {
+                    this.modalService.success({
+                        nzTitle: 'You win !',
+                        nzContent: `It took you ${60 -
+                            timeLeft} seconds for you to solve this`,
+                        nzCancelText: 'Exit Game',
+                        nzOnOk: () => this.skip(),
+                        nzOnCancel: () => this.endGame(),
+                        nzKeyboard: false,
+                    });
+                } else {
+                    this.modalService.error({
+                        nzTitle: 'You Lose !',
+                        nzContent: 'Some Discouraging message',
+                        nzCancelText: 'Exit Game',
+                        nzOnOk: () => this.skip(),
+                        nzOnCancel: () => this.endGame(),
+                        nzKeyboard: false,
+                    });
+                }
+            });
+    }
+
+    endGame() {
+        this.exit.emit();
+        this.isGaming$.next(false);
     }
 
     onDragEnded(event: CdkDragEnd) {
         event.source.element.nativeElement.style.transform = 'none'; // visually reset element to its origin
         const source: any = event.source;
         source._passiveTransform = { x: 0, y: 0 }; // make it so new drag starts from same origin
-    }
-
-    handleKeypress(event: KeyboardEvent) {
-        console.log(event);
     }
 
     isNumber(item: CdkDrag<DraggableCard>) {

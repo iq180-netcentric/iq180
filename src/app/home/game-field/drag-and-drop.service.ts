@@ -33,7 +33,6 @@ export class DragAndDropService {
     }>(null);
 
     isValidAnswer$ = this.answer$.pipe(
-        debounceTime(750),
         map(ans => {
             return Logic.validateForDisplay({
                 array: ans.map(e => e.value),
@@ -44,8 +43,10 @@ export class DragAndDropService {
     );
 
     currentAnswer$ = this.answer$.pipe(
-        filter(ans => ans.length >= 1),
         map(ans => {
+            if (ans.length < 1) {
+                return 0;
+            }
             if (
                 Logic.validateForDisplay({
                     array: ans.map(e => e.value),
@@ -75,7 +76,6 @@ export class DragAndDropService {
     constructor() {}
 
     reset() {
-        this.answer$.next([]);
         const question = this.question$.value.question
             .map(e => ({
                 value: e,
@@ -92,6 +92,7 @@ export class DragAndDropService {
             { value: '(', display: '(', disabled: false },
             { value: ')', display: ')', disabled: false },
         ].map(e => ({ ...e, type: CardType.operator }));
+        this.answer$.next([]);
     }
     skip() {
         this.generateQuestion();

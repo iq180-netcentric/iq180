@@ -47,6 +47,7 @@
                             (selectedPlayer$ | async)?.id ===
                             (currentPlayer$ | async)?.id
                         "
+                        (exit)="exitGame()"
                     ></app-game-field>
                 </div>
                 <div nz-col [nzXs]="24" [nzLg]="6">

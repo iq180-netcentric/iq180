@@ -104,6 +104,9 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.showWelcomeModal(true);
     }
 
+    exitGame() {
+        this.currentGame$.next(undefined);
+    }
     showWelcomeModal(edit: boolean = false): void {
         combineLatest(this.authService.player$, this.authService.remember$)
             .pipe(take(1))
