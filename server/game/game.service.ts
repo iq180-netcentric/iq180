@@ -39,7 +39,6 @@ export const transformToGamePlayerMap = (playerMap: PlayerMap): GamePlayerMap =>
                 map.set(id, {
                     id,
                     score: 0,
-                    reset: false,
                     attempt: none,
                 }),
             <GamePlayerMap>Map(),
@@ -101,7 +100,9 @@ export class GameService {
     );
 
     broadcastStartGame$ = this.gameMachine.state$.pipe(
-        filter(state => state.matches(GameState.PLAYING)),
+        filter(state =>
+            state.matches({ PLAYING: { ROUND: 'START', TURN: 'IDLE' } }),
+        ),
         distinctUntilChanged(),
         withLatestFrom(
             this.gameMachine.gamers$,

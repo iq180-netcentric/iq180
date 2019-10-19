@@ -10,7 +10,6 @@ export interface GamePlayer {
     id: string;
     score: number;
     attempt: Option<Attempt>;
-    reset: boolean;
 }
 
 export type GamePlayerMap = Map<string, GamePlayer>;

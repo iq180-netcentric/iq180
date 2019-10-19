@@ -1,13 +1,10 @@
-import { Machine, assign, sendParent } from 'xstate';
-import { generate, validateForSubmission } from 'iq180-logic';
-import { addSeconds } from './round.utils';
+import { Machine, assign, sendParent, send, actions } from 'xstate';
+import { validateForSubmission } from 'iq180-logic';
 
 export const enum RoundState {
     START_ROUND = 'START_ROUND',
     NEW_TURN = 'NEW_TURN',
     START_TURN = 'START_TURN',
-    TIME_OUT = 'TIME_OUT',
-    CORRECT = 'CORRECT',
     END_TURN = 'END_TURN',
     END_ROUND = 'END_ROUND',
 }
@@ -17,8 +14,6 @@ interface RoundStateSchema {
         [RoundState.START_ROUND]: {};
         [RoundState.NEW_TURN]: {};
         [RoundState.START_TURN]: {};
-        [RoundState.TIME_OUT]: {};
-        [RoundState.CORRECT]: {};
         [RoundState.END_TURN]: {};
         [RoundState.END_ROUND]: {};
     };
@@ -30,7 +25,6 @@ interface RoundHistory {
 export interface RoundContext {
     players: string[];
     history: RoundHistory[];
-    turn: number;
     currentPlayer: string;
     winner: string;
     question: number[];
@@ -39,9 +33,11 @@ export interface RoundContext {
     solution: (string | number)[];
     startTime: Date;
 }
+
 export const enum RoundEventType {
     START_ROUND = 'START_ROUND',
     ANSWER = 'ANSWER',
+    TIME_OUT = 'TIME_OUT',
     START_TURN = 'START_TURN',
     END_TURN = 'END_TURN',
 }
@@ -69,13 +65,18 @@ export interface StartTurn {
 export interface EndTurn {
     type: RoundEventType.END_TURN;
 }
-export type RoundEvent = Answer | StartTurn | EndTurn;
+export interface TimeOut {
+    type: RoundEventType.TIME_OUT;
+}
+export type RoundEvent = StartRound | TimeOut | Answer | StartTurn | EndTurn;
 
 export const enum RoundActions {
     GENERATE_QUESTION = 'GENERATE_QUESTION',
     CHOOSE_PLAYER = 'CHOOSE_PLAYER',
     START_ROUND = 'START_ROUND',
     START_TURN = 'START_TURN',
+    TIME_OUT = 'TIME_OUT',
+    CANCEL_TIMER = 'CANCEL_TIMER',
     WRONG = 'WRONG',
     CORRECT = 'CORRECT',
     END_TURN = 'END_TURN',
@@ -93,7 +94,7 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
         initial: RoundState.START_ROUND,
         states: {
             [RoundState.START_ROUND]: {
-                entry: RoundActions.GENERATE_QUESTION,
+                entry: RoundActions.START_ROUND,
                 on: {
                     '': RoundState.NEW_TURN,
                 },
@@ -105,31 +106,24 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                 },
             },
             [RoundState.START_TURN]: {
-                entry: RoundActions.START_TURN,
-                after: {
-                    6500: RoundState.END_TURN,
-                },
+                entry: [RoundActions.START_TURN, RoundActions.TIME_OUT],
                 on: {
+                    [RoundEventType.TIME_OUT]: {
+                        target: RoundState.END_TURN,
+                        actions: RoundActions.WRONG,
+                    },
                     [RoundEventType.ANSWER]: {
                         target: RoundState.END_TURN,
+                        actions: [
+                            RoundActions.CANCEL_TIMER,
+                            RoundActions.CORRECT,
+                        ],
                         cond: RoundCond.CORRECT_ANSWER,
                     },
                 },
             },
-            [RoundState.TIME_OUT]: {
-                entry: RoundActions.WRONG,
-                on: {
-                    '': RoundState.END_TURN,
-                },
-            },
-            [RoundState.CORRECT]: {
-                entry: RoundActions.CORRECT,
-                on: {
-                    '': RoundState.END_TURN,
-                },
-            },
             [RoundState.END_TURN]: {
-                entry: RoundActions.END_TURN,
+                entry: [RoundActions.END_TURN],
                 on: {
                     '': [
                         {
@@ -153,15 +147,12 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
     },
     {
         actions: {
-            [RoundActions.GENERATE_QUESTION]: assign<RoundContext>({
-                ...generate(),
-                startTime: addSeconds(new Date(), 5),
-            }),
+            [RoundEventType.START_ROUND]: sendParent(
+                RoundEventType.START_ROUND,
+            ),
             [RoundActions.CHOOSE_PLAYER]: assign<RoundContext>({
-                currentPlayer: ({ currentPlayer, players }) => {
-                    const index = players.findIndex(
-                        player => player === currentPlayer,
-                    );
+                currentPlayer: ({ currentPlayer = '', players = [] }) => {
+                    const index = players.indexOf(currentPlayer);
                     return players[index + 1];
                 },
             }),
@@ -171,22 +162,30 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                     payload: { player: currentPlayer, startTime },
                 }),
             ),
+            [RoundActions.TIME_OUT]: actions.send(
+                { type: RoundEventType.TIME_OUT },
+                { delay: 5000, id: 'timer' },
+            ),
+            [RoundActions.CANCEL_TIMER]: actions.cancel('timer'),
             [RoundActions.CORRECT]: assign<RoundContext>({
-                history: ({ currentPlayer, history, startTime }) => {
+                history: ({ currentPlayer, history = [], startTime }) => {
                     const now = new Date();
                     const time = now.valueOf() - startTime.valueOf();
-                    return [...history, { player: currentPlayer, time }];
+                    const result = [
+                        ...history,
+                        { player: currentPlayer, time },
+                    ];
+                    return result;
                 },
             }),
             [RoundActions.WRONG]: assign<RoundContext>({
-                history: ({ currentPlayer, history }) => {
+                history: ({ currentPlayer, history = [] }) => {
                     return [...history, { player: currentPlayer }];
                 },
             }),
-            [RoundActions.END_TURN]: sendParent(({ currentPlayer }) => ({
+            [RoundActions.END_TURN]: sendParent({
                 type: RoundEventType.END_TURN,
-                payload: currentPlayer,
-            })),
+            }),
             [RoundActions.FIND_WINNER]: assign<RoundContext>({
                 winner: ({ history }) =>
                     history
@@ -200,17 +199,22 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
             [RoundCond.CORRECT_ANSWER]: (
                 { expectedAnswer, question, operators },
                 event: Answer,
-            ) =>
-                validateForSubmission({
+            ) => {
+                const result = validateForSubmission({
                     array: event.payload,
                     expectedAnswer,
                     question,
                     operators,
-                }),
-            [RoundCond.FINISHED]: ({ history, players }) =>
+                });
+                return result;
+            },
+
+            [RoundCond.FINISHED]: ({ history = [], players = [] }) =>
                 history.length === players.length,
-            [RoundCond.NOT_FINISHED]: ({ history, players }) =>
-                history.length < players.length,
+            [RoundCond.NOT_FINISHED]: context => {
+                const { history = [], players = [] } = context;
+                return history.length < players.length;
+            },
         },
     },
 );
