@@ -52,7 +52,10 @@ export interface StartRound {
 }
 export interface Answer {
     type: RoundEventType.ANSWER;
-    payload: (string | number)[];
+    payload: {
+        answer: (string | number)[];
+        player: string;
+    };
 }
 
 export interface StartTurn {
@@ -164,7 +167,7 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
             ),
             [RoundActions.TIME_OUT]: actions.send(
                 { type: RoundEventType.TIME_OUT },
-                { delay: 5000, id: 'timer' },
+                { delay: 10000, id: 'timer' },
             ),
             [RoundActions.CANCEL_TIMER]: actions.cancel('timer'),
             [RoundActions.CORRECT]: assign<RoundContext>({
@@ -201,7 +204,7 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                 event: Answer,
             ) => {
                 const result = validateForSubmission({
-                    array: event.payload,
+                    array: event.payload.answer,
                     expectedAnswer,
                     question,
                     operators,
