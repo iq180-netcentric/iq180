@@ -1,9 +1,6 @@
 import { GamePlayerMap } from '../models/game';
-import { Machine, assign, interpret, State, send } from 'xstate';
+import { Machine, assign, send } from 'xstate';
 import { Map } from 'immutable';
-import { Injectable } from '@nestjs/common';
-import { fromEventPattern } from 'rxjs';
-import { pluck, share } from 'rxjs/operators';
 import { roundMachine, RoundEventType, RoundEvent } from '../round/round.state';
 import { generate } from 'iq180-logic';
 import { addSeconds } from '../round/round.utils';
@@ -19,7 +16,12 @@ interface GameStateSchema {
     states: {
         [GameState.WATING]: {};
         [GameState.READY]: {};
-        [GameState.PLAYING]: {};
+        [GameState.PLAYING]: {
+            states: {
+                ROUND: { states: { IDLE: {}; START: {}; END: {} } };
+                TURN: { states: { IDLE: {}; START: {}; END: {} } };
+            };
+        };
         [GameState.END]: {};
     };
 }
@@ -156,7 +158,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                             },
                             END: {
                                 on: {
-                                    [RoundEventType.START_ROUND]: {
+                                    [RoundEventType.START_TURN]: {
                                         target: 'START',
                                         actions: 'START_TURN',
                                     },
@@ -174,13 +176,21 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
     {
         actions: {
             START_TURN: assign<GameContext>({
-                round: ({ round }, event) => ({
-                    ...round,
-                    ...event.payload,
-                }),
+                round: ({ round }, event) => {
+                    return {
+                        ...round,
+                        ...event.payload,
+                    };
+                },
             }),
             UPDATE_SCORE: assign<GameContext>({
-                // players: ({players,round:{}}) =>
+                players: ({ players }, { data: winner }) =>
+                    winner
+                        ? players.update(winner, player => ({
+                              ...player,
+                              score: player.score + 1,
+                          }))
+                        : players,
                 round: undefined,
             }),
             UPDATE_ROUND: assign<GameContext>({
@@ -193,33 +203,3 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
         },
     },
 );
-
-@Injectable()
-export class GameMachine {
-    private machine = interpret(gameMachine);
-    constructor() {}
-    state$ = fromEventPattern<State<GameContext, GameEvent>>(
-        handler => {
-            this.machine
-                // Listen for state transitions
-                .onTransition(state => {
-                    if (state.changed) {
-                        console.log('event: ', state.event);
-                        console.log('state: ', state.value);
-                        // console.log(state.context);
-                        handler(state);
-                    }
-                })
-                // Start the service
-                .start();
-
-            return this.machine;
-        },
-        (handler, service) => service.stop(),
-    ).pipe(share());
-    context$ = this.state$.pipe(pluck('context'));
-    gamers$ = this.context$.pipe(pluck('players'));
-    sendEvent(event: GameEvent) {
-        this.machine.send(event);
-    }
-}

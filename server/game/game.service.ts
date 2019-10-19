@@ -16,13 +16,12 @@ import { EventService } from '../event/event.service';
 import { IN_EVENT } from '../event/in-events';
 import { serialzedGamePlayers } from './game.model';
 import {
-    GameMachine,
     GameEventType,
     GameReady,
     GameNotReady,
-    GameState,
     GameStart,
 } from './game.state';
+import { GameMachine } from './game.machine';
 
 export const playersReady = (players: PlayerMap): boolean => {
     const numberOfReady = players.filter(p => p.ready).size;
