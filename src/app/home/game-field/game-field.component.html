@@ -52,7 +52,6 @@
                 class="card-list"
                 nz-row
                 nzType="flex"
-                (cdkDropListEntered)="vibrate()"
                 nzJustify="space-around"
                 (cdkDropListDropped)="dropNumber($event)"
                 [cdkDropListEnterPredicate]="isNumber"

@@ -26,6 +26,9 @@ import {
     switchMap,
     pluck,
 } from 'rxjs/operators';
+import { StateService, AppEventType } from '../core/service/state.service';
+import { GameMode } from '../core/models/game/game.model';
+import { GameEventType } from './game-field/game-state.service';
 
 @Component({
     selector: 'app-home',
@@ -34,22 +37,23 @@ import {
 })
 export class HomeComponent implements OnInit, OnDestroy {
     currentPlayer$: Observable<Player> = this.authService.player$;
-    currentGame$ = new BehaviorSubject<{}>(undefined);
     selectedPlayer$ = new BehaviorSubject<Player>(undefined);
 
     destroy$ = new Subject();
 
-    ready$ = new Subject();
-    singlePlayer$ = new Subject();
-
+    ready$ = this.stateService.ready$;
+    currentGame$ = this.stateService.game$;
     welcomeModalInstance$ = new BehaviorSubject<NzModalRef>(undefined);
+
     constructor(
         private socket: WebSocketService,
         private modalService: NzModalService,
         private authService: AuthService,
+        private stateService: StateService,
     ) {}
 
     ngOnInit() {
+        this.stateService.state$.subscribe(console.log);
         this.authService.player$
             .pipe(
                 take(1),
@@ -74,26 +78,32 @@ export class HomeComponent implements OnInit, OnDestroy {
                 }
                 this.authService.setPlayer(newPlayer);
             });
-        this.ready$
-            .pipe(
-                takeUntil(this.destroy$),
-                withLatestFrom(this.currentPlayer$),
-            )
-            .subscribe(([_, player]) => {
-                this.socket.emit({
-                    event: WebSocketOutgoingEvent.ready,
-                    data: !player.ready,
+        this.ready$.pipe(takeUntil(this.destroy$)).subscribe(ready => {
+            this.socket.emit({
+                event: WebSocketOutgoingEvent.ready,
+                data: ready,
+            });
+        });
+    }
+
+    ready() {
+        combineLatest(this.currentPlayer$)
+            .pipe(take(1))
+            .subscribe(([player]) => {
+                this.stateService.sendEvent({
+                    type: AppEventType.READY,
+                    payload: player.ready,
                 });
             });
-        this.singlePlayer$
-            .pipe(
-                takeUntil(this.destroy$),
-                withLatestFrom(this.currentPlayer$),
-            )
-            .subscribe(([_, player]) => {
-                this.currentGame$.next({});
-                this.selectedPlayer$.next(player);
-            });
+    }
+
+    singlePlayer() {
+        this.stateService.sendEvent({
+            type: AppEventType.START_GAME,
+            payload: {
+                mode: GameMode.singlePlayer,
+            },
+        });
     }
 
     ngOnDestroy() {
@@ -105,7 +115,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     exitGame() {
-        this.currentGame$.next(undefined);
+        this.stateService.sendEvent({
+            type: AppEventType.END_GAME,
+        });
     }
     showWelcomeModal(edit: boolean = false): void {
         combineLatest(this.authService.player$, this.authService.remember$)

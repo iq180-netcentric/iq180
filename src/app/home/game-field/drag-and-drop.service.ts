@@ -13,6 +13,7 @@ import {
     moveItemInArray,
     transferArrayItem,
 } from '@angular/cdk/drag-drop';
+import { GameQuestion } from 'src/app/core/models/game/game.model';
 
 @Injectable({
     providedIn: 'root',
@@ -27,10 +28,7 @@ export class DragAndDropService {
         map(answer => answer.map(e => e.value)),
         map(answers => Logic.highlightWrongLocation({ array: answers })),
     );
-    question$ = new BehaviorSubject<{
-        question: number[];
-        expectedAnswer: number;
-    }>(null);
+    question$ = new BehaviorSubject<GameQuestion>(null);
 
     isValidAnswer$ = this.answer$.pipe(
         map(ans => {
@@ -95,16 +93,16 @@ export class DragAndDropService {
         this.answer$.next([]);
     }
     skip() {
-        this.generateQuestion();
-        this.reset();
-    }
-
-    generateQuestion() {
         const { question, operators, expectedAnswer } = Logic.generate({
             numberLength: 5,
             operators: ['+', '-', '*', '/', , '(', ')'],
             integerAnswer: true,
         });
+        this.setQuestion({ question, expectedAnswer });
+        this.reset();
+    }
+
+    setQuestion({ question, expectedAnswer }: GameQuestion) {
         this.expectedAnswer$.next(expectedAnswer);
         this.question$.next({ question, expectedAnswer });
     }

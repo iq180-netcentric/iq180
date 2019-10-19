@@ -83,9 +83,6 @@ export class GameFieldComponent implements OnInit {
     removeNumber = this.dndService.removeNumber;
     removeOperator = this.dndService.removeOperator;
 
-    generateQuestion = this.dndService.generateQuestion;
-    reset = this.dndService.reset;
-
     operators = this.dndService.operators;
 
     @ViewChild('main', { static: true }) main: ElementRef;
@@ -102,6 +99,8 @@ export class GameFieldComponent implements OnInit {
         takeUntil(this.destroy$),
         pluck('key'),
     );
+
+    reset = () => this.dndService.reset();
 
     constructor(
         private dndService: DragAndDropService,
@@ -240,9 +239,5 @@ export class GameFieldComponent implements OnInit {
 
     isOperator(item: CdkDrag<DraggableCard>) {
         return item.data.type === CardType.operator;
-    }
-
-    vibrate() {
-        navigator.vibrate(200);
     }
 }
