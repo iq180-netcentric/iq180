@@ -51,6 +51,8 @@ import { Player } from 'src/app/core/models/player.model';
 import { DragAndDropService } from './drag-and-drop.service';
 import { isNumber, isOperator } from 'src/app/core/functions/predicates';
 import { NzModalService } from 'ng-zorro-antd';
+import { StateService } from 'src/app/core/service/state.service';
+import { AuthService } from 'src/app/core/service/auth.service';
 
 @Component({
     selector: 'app-game-field',
@@ -58,8 +60,10 @@ import { NzModalService } from 'ng-zorro-antd';
     styleUrls: ['./game-field.component.scss'],
 })
 export class GameFieldComponent implements OnInit {
-    @Input() player: Player;
-    @Input() isCurrentPlayer: boolean;
+    @Input() player;
+    isCurrentPlayer$ = combineLatest([this.authService.player$]).pipe(
+        map(([c]) => this.player.id === c.id),
+    );
 
     @Output() exit = new EventEmitter();
     // Game Data
@@ -105,6 +109,8 @@ export class GameFieldComponent implements OnInit {
     constructor(
         private dndService: DragAndDropService,
         private modalService: NzModalService,
+        private stateService: StateService,
+        private authService: AuthService,
     ) {}
 
     skip() {

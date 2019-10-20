@@ -65,7 +65,7 @@
                     cdkDragBoundary=".game"
                     [cdkDragDisabled]="
                         card.disabled ||
-                        (!(isGaming$ | async) && isCurrentPlayer)
+                        (!(isGaming$ | async) && (isCurrentPlayer$ | async))
                     "
                     *ngFor="let card of numbers$ | async; let i = index"
                     (click)="addNumber(card, i)"
@@ -103,7 +103,7 @@
                         *ngFor="let card of answer$ | async; let i = index"
                         (click)="removeCard(card, i)"
                         [cdkDragDisabled]="
-                            isCurrentPlayer && !(isGaming$ | async)
+                            (isCurrentPlayer$ | async) && !(isGaming$ | async)
                         "
                         [cdkDragData]="card"
                         [ngClass]="{
@@ -150,7 +150,7 @@
                     cdkDragBoundary=".game"
                     [cdkDragDisabled]="
                         (operators$ | async)?.length >= 16 ||
-                        (!(isGaming$ | async) && isCurrentPlayer)
+                        (!(isGaming$ | async) && (isCurrentPlayer$ | async))
                     "
                     *ngFor="let card of operators; let i = index"
                     [cdkDragData]="card"

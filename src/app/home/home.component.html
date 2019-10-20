@@ -40,15 +40,12 @@
                         >
                         </app-menu>
                     </ng-template>
-                    <app-game-field
-                        *ngIf="currentGame$ | async; else menu"
-                        [player]="selectedPlayer$ | async"
-                        [isCurrentPlayer]="
-                            (selectedPlayer$ | async)?.id ===
-                            (currentPlayer$ | async)?.id
-                        "
-                        (exit)="exitGame()"
-                    ></app-game-field>
+                    <ng-container *ngIf="currentGame$ | async; else menu">
+                        <app-game-field
+                            [player]="selectedPlayer$ | async"
+                            (exit)="exitGame()"
+                        ></app-game-field>
+                    </ng-container>
                 </div>
                 <div nz-col [nzXs]="24" [nzLg]="6">
                     <app-players

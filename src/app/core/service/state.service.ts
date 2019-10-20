@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Machine, interpret, assign, send } from 'xstate';
 import { fromEventPattern } from 'rxjs';
-import { pluck, share } from 'rxjs/operators';
+import { pluck, share, shareReplay } from 'rxjs/operators';
 import {
     GameEvent,
     gameMachine,
@@ -139,7 +139,9 @@ export class StateService {
                     currentGame: undefined,
                 }),
                 SET_GAME: assign<AppContext>({
-                    selectedPlayer: (_, evt) => evt.payload.player,
+                    selectedPlayer: (_, evt) => {
+                        return evt.payload.player;
+                    },
                     currentGame: (_, evt) => evt.payload.info,
                 }),
                 SELECT_PLAYER: assign<AppContext>({
@@ -178,6 +180,7 @@ export class StateService {
     );
     selectedPlayer$ = this.state$.pipe(
         pluck<AppContext, Player>('context', 'selectedPlayer'),
+        shareReplay(),
     );
     sendEvent(event: AppEvent) {
         this.machine.send(event);
