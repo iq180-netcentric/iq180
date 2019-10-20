@@ -8,6 +8,7 @@ import {
     GameEventType,
 } from 'src/app/home/game-field/game-state.service';
 import { GameInfo, GameMode } from '../models/game/game.model';
+import { Player } from '../models/player.model';
 
 export const enum AppState {
     IDLE = 'IDLE',
@@ -24,7 +25,8 @@ interface AppStateSchema {
 }
 
 export interface AppContext {
-    players: any[];
+    players: Player[];
+    selectedPlayer?: Player;
     ready: boolean;
     currentGame?: GameInfo;
 }
@@ -33,6 +35,7 @@ export const enum AppEventType {
     READY = 'READY',
     START_GAME = 'START_GAME',
     END_GAME = 'END_GAME',
+    SELECT_PLAYER = 'SELECT_PLAYER',
 }
 
 export interface AppReady {
@@ -42,13 +45,22 @@ export interface AppReady {
 
 export interface AppStart {
     type: AppEventType.START_GAME;
-    payload: GameInfo;
+    payload: {
+        info: GameInfo;
+        player: Player;
+    };
 }
 
 export interface AppEndGame {
     type: AppEventType.END_GAME;
 }
-export type AppEvent = AppReady | AppStart | AppEndGame;
+
+export interface AppSelectPlayer {
+    type: AppEventType.SELECT_PLAYER;
+    payload: Player;
+}
+
+export type AppEvent = AppReady | AppStart | AppEndGame | AppSelectPlayer;
 @Injectable({
     providedIn: 'root',
 })
@@ -70,23 +82,28 @@ export class StateService {
                         },
                         [AppEventType.START_GAME]: {
                             target: AppState.PLAYING,
-                            actions: 'SET_GAME',
+                            actions: ['UNSET_READY', 'SET_GAME'],
                         },
                     },
                 },
                 [AppState.PLAYING]: {
                     on: {
+                        [AppEventType.SELECT_PLAYER]: {
+                            actions: ['SELECT_PLAYER'],
+                        },
                         [AppEventType.END_GAME]: {
                             target: AppState.IDLE,
                             cond: (ctx, evt) =>
                                 ctx.currentGame.mode === GameMode.singlePlayer,
-                            actions: ['CLEAR_GAME'],
-                            // actions: send(
-                            //     () => ({
-                            //         type: GameEventType.EXIT,
-                            //     }),
-                            //     { to: 'game' },
-                            // ),
+                            actions: [
+                                'CLEAR_GAME',
+                                // send(
+                                //     () => ({
+                                //         type: GameEventType.EXIT,
+                                //     }),
+                                //     { to: 'game' },
+                                // ),
+                            ],
                         },
                     },
                     invoke: {
@@ -105,7 +122,10 @@ export class StateService {
                     entry: 'SET_READY',
                     on: {
                         [AppEventType.READY]: AppState.IDLE,
-                        [AppEventType.START_GAME]: AppState.PLAYING,
+                        [AppEventType.START_GAME]: {
+                            target: AppState.PLAYING,
+                            actions: ['UNSET_READY', 'SET_GAME'],
+                        },
                     },
                 },
             },
@@ -114,11 +134,16 @@ export class StateService {
             actions: {
                 SET_READY: assign<AppContext>({ ready: () => true }),
                 UNSET_READY: assign<AppContext>({ ready: () => false }),
-                SET_GAME: assign<AppContext>({
-                    currentGame: (ctx, evt) => evt.payload,
-                }),
                 CLEAR_GAME: assign<AppContext>({
-                    currentGame: () => undefined,
+                    selectedPlayer: undefined,
+                    currentGame: undefined,
+                }),
+                SET_GAME: assign<AppContext>({
+                    selectedPlayer: (_, evt) => evt.payload.player,
+                    currentGame: (_, evt) => evt.payload.info,
+                }),
+                SELECT_PLAYER: assign<AppContext>({
+                    selectedPlayer: (_, evt) => evt.payload,
                 }),
             },
         },
@@ -147,8 +172,13 @@ export class StateService {
             service.stop();
         },
     ).pipe(share());
-    ready$ = this.state$.pipe(pluck('context', 'ready'));
-    game$ = this.state$.pipe(pluck('context', 'currentGame'));
+    ready$ = this.state$.pipe(pluck<AppContext, boolean>('context', 'ready'));
+    game$ = this.state$.pipe(
+        pluck<AppContext, GameInfo>('context', 'currentGame'),
+    );
+    selectedPlayer$ = this.state$.pipe(
+        pluck<AppContext, Player>('context', 'selectedPlayer'),
+    );
     sendEvent(event: AppEvent) {
         this.machine.send(event);
     }

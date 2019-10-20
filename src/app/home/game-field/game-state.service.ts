@@ -133,7 +133,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>({
                 ],
             },
             after: {
-                60000: 'lose',
+                60000: GameState.LOSE,
             },
         },
         [GameState.WAITING]: {

@@ -25,6 +25,8 @@ import {
     withLatestFrom,
     switchMap,
     pluck,
+    distinctUntilChanged,
+    distinctUntilKeyChanged,
 } from 'rxjs/operators';
 import { StateService, AppEventType } from '../core/service/state.service';
 import { GameMode } from '../core/models/game/game.model';
@@ -37,7 +39,7 @@ import { GameEventType } from './game-field/game-state.service';
 })
 export class HomeComponent implements OnInit, OnDestroy {
     currentPlayer$: Observable<Player> = this.authService.player$;
-    selectedPlayer$ = new BehaviorSubject<Player>(undefined);
+    selectedPlayer$ = this.stateService.selectedPlayer$;
 
     destroy$ = new Subject();
 
@@ -71,10 +73,20 @@ export class HomeComponent implements OnInit, OnDestroy {
             });
         this.socket
             .listenFor<Player>(WebSocketIncomingEvent.playerInfo)
-            .pipe(withLatestFrom(this.selectedPlayer$))
+            .pipe(
+                withLatestFrom(
+                    this.selectedPlayer$.pipe(
+                        filter(player => !!player),
+                        distinctUntilKeyChanged('id'),
+                    ),
+                ),
+            )
             .subscribe(([newPlayer, selectedPlayer]) => {
                 if (selectedPlayer && selectedPlayer.id === newPlayer.id) {
-                    this.selectedPlayer$.next(newPlayer);
+                    this.stateService.sendEvent({
+                        type: AppEventType.SELECT_PLAYER,
+                        payload: newPlayer,
+                    });
                 }
                 this.authService.setPlayer(newPlayer);
             });
@@ -86,6 +98,12 @@ export class HomeComponent implements OnInit, OnDestroy {
         });
     }
 
+    selectPlayer(player: Player) {
+        this.stateService.sendEvent({
+            type: AppEventType.SELECT_PLAYER,
+            payload: player,
+        });
+    }
     ready() {
         combineLatest(this.currentPlayer$)
             .pipe(take(1))
@@ -98,12 +116,19 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     singlePlayer() {
-        this.stateService.sendEvent({
-            type: AppEventType.START_GAME,
-            payload: {
-                mode: GameMode.singlePlayer,
-            },
-        });
+        combineLatest(this.currentPlayer$)
+            .pipe(take(1))
+            .subscribe(([player]) => {
+                this.stateService.sendEvent({
+                    type: AppEventType.START_GAME,
+                    payload: {
+                        info: {
+                            mode: GameMode.singlePlayer,
+                        },
+                        player,
+                    },
+                });
+            });
     }
 
     ngOnDestroy() {

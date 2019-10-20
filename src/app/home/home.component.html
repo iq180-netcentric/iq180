@@ -52,7 +52,7 @@
                 </div>
                 <div nz-col [nzXs]="24" [nzLg]="6">
                     <app-players
-                        (selectPlayer)="selectedPlayer$.next($event)"
+                        (selectPlayer)="selectPlayer($event)"
                         [selectedPlayer]="selectedPlayer$ | async"
                     ></app-players>
                 </div>
