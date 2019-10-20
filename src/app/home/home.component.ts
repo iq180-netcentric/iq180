@@ -55,7 +55,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     ) {}
 
     ngOnInit() {
-        this.stateService.state$.subscribe(console.log);
         this.authService.player$
             .pipe(
                 take(1),

@@ -92,19 +92,11 @@ export class DragAndDropService {
         ].map(e => ({ ...e, type: CardType.operator }));
         this.answer$.next([]);
     }
-    skip() {
-        const { question, operators, expectedAnswer } = Logic.generate({
-            numberLength: 5,
-            operators: ['+', '-', '*', '/', , '(', ')'],
-            integerAnswer: true,
-        });
-        this.setQuestion({ question, expectedAnswer });
-        this.reset();
-    }
 
     setQuestion({ question, expectedAnswer }: GameQuestion) {
         this.expectedAnswer$.next(expectedAnswer);
         this.question$.next({ question, expectedAnswer });
+        this.reset();
     }
 
     dropAnswer(event: CdkDragDrop<DraggableCard[]>) {

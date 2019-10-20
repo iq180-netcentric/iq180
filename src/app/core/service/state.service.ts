@@ -1,14 +1,21 @@
 import { Injectable } from '@angular/core';
 import { Machine, interpret, assign, send } from 'xstate';
 import { fromEventPattern } from 'rxjs';
-import { pluck, share, shareReplay } from 'rxjs/operators';
+import {
+    pluck,
+    share,
+    shareReplay,
+    distinctUntilChanged,
+} from 'rxjs/operators';
 import {
     GameEvent,
     gameMachine,
     GameEventType,
+    GameContext,
 } from 'src/app/home/game-field/game-state.service';
 import { GameInfo, GameMode } from '../models/game/game.model';
 import { Player } from '../models/player.model';
+import { generate } from 'iq180-logic';
 
 export const enum AppState {
     IDLE = 'IDLE',
@@ -29,6 +36,8 @@ export interface AppContext {
     selectedPlayer?: Player;
     ready: boolean;
     currentGame?: GameInfo;
+    question?: number[];
+    expectedAnswer?: number;
 }
 
 export const enum AppEventType {
@@ -65,7 +74,7 @@ export type AppEvent = AppReady | AppStart | AppEndGame | AppSelectPlayer;
     providedIn: 'root',
 })
 export class StateService {
-    static machine = Machine<AppContext, AppStateSchema, AppEvent>(
+    static machine = Machine<AppContext, AppStateSchema, AppEvent | GameEvent>(
         {
             id: 'app',
             initial: AppState.IDLE,
@@ -87,7 +96,14 @@ export class StateService {
                     },
                 },
                 [AppState.PLAYING]: {
+                    entry: 'GENERATE_QUESTION',
                     on: {
+                        [GameEventType.SKIP]: {
+                            actions: 'GENERATE_QUESTION',
+                        },
+                        [GameEventType.ATTEMPT]: {
+                            actions: send((_, evt) => evt, { to: 'game' }),
+                        },
                         [AppEventType.SELECT_PLAYER]: {
                             actions: ['SELECT_PLAYER'],
                         },
@@ -95,15 +111,7 @@ export class StateService {
                             target: AppState.IDLE,
                             cond: (ctx, evt) =>
                                 ctx.currentGame.mode === GameMode.singlePlayer,
-                            actions: [
-                                'CLEAR_GAME',
-                                // send(
-                                //     () => ({
-                                //         type: GameEventType.EXIT,
-                                //     }),
-                                //     { to: 'game' },
-                                // ),
-                            ],
+                            actions: ['CLEAR_GAME'],
                         },
                     },
                     invoke: {
@@ -111,7 +119,10 @@ export class StateService {
                         src: gameMachine,
                         data: {
                             game: ctx => ctx.currentGame,
+                            question: ctx => ctx.question,
+                            expectedAnswer: ctx => ctx.expectedAnswer,
                         },
+                        autoForward: true,
                         onDone: {
                             target: 'IDLE',
                             actions: ['CLEAR_GAME'],
@@ -137,6 +148,8 @@ export class StateService {
                 CLEAR_GAME: assign<AppContext>({
                     selectedPlayer: undefined,
                     currentGame: undefined,
+                    question: undefined,
+                    expectedAnswer: undefined,
                 }),
                 SET_GAME: assign<AppContext>({
                     selectedPlayer: (_, evt) => {
@@ -146,6 +159,14 @@ export class StateService {
                 }),
                 SELECT_PLAYER: assign<AppContext>({
                     selectedPlayer: (_, evt) => evt.payload,
+                }),
+                GENERATE_QUESTION: assign<AppContext>((ctx, evt) => {
+                    const { question, expectedAnswer } = generate();
+                    return {
+                        ...ctx,
+                        question,
+                        expectedAnswer,
+                    };
                 }),
             },
         },
@@ -170,10 +191,9 @@ export class StateService {
             return this.machine;
         },
         (handler, service) => {
-            console.log(handler, service);
             service.stop();
         },
-    ).pipe(share());
+    ).pipe(shareReplay());
     ready$ = this.state$.pipe(pluck<AppContext, boolean>('context', 'ready'));
     game$ = this.state$.pipe(
         pluck<AppContext, GameInfo>('context', 'currentGame'),
@@ -182,7 +202,20 @@ export class StateService {
         pluck<AppContext, Player>('context', 'selectedPlayer'),
         shareReplay(),
     );
-    sendEvent(event: AppEvent) {
+
+    question$ = this.state$.pipe(
+        pluck<AppContext, number[]>('context', 'question'),
+        distinctUntilChanged(),
+        shareReplay(),
+    );
+
+    expectedAnswer$ = this.state$.pipe(
+        pluck<AppContext, number>('context', 'expectedAnswer'),
+        distinctUntilChanged(),
+        shareReplay(),
+    );
+
+    sendEvent(event: AppEvent | GameEvent) {
         this.machine.send(event);
     }
 }

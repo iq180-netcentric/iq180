@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
-import { Machine, assign, State, interpret, send } from 'xstate';
+import { Machine, assign, State, interpret, send, sendParent } from 'xstate';
 import { fromEventPattern } from 'rxjs';
-import { pluck } from 'rxjs/operators';
+import { pluck, filter } from 'rxjs/operators';
 import { GameMode } from 'src/app/core/models/game/game.model';
-import { AppEventType } from 'src/app/core/service/state.service';
+import { AppEventType, StateService } from 'src/app/core/service/state.service';
+import { DragAndDropService } from './drag-and-drop.service';
 
 export const enum GameState {
     WAITING = 'WAITING',
@@ -44,6 +45,7 @@ export const enum GameEventType {
     CANCEL_CLICK = 'CANCEL_CLICK',
     ATTEMPT = 'ATTEMPT',
     EXIT = 'EXIT',
+    SKIP = 'SKIP',
 }
 export interface GameWin {
     type: GameEventType.WIN;
@@ -79,7 +81,11 @@ export interface GameAnswerAttempt {
 export interface GameExit {
     type: GameEventType.EXIT;
 }
+export interface GeneraicGameEvent {
+    type: GameEventType;
+}
 export type GameEvent =
+    | GeneraicGameEvent
     | GameWin
     | GameLose
     | GameEnd
@@ -227,26 +233,5 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>({
     providedIn: 'root',
 })
 export class GameStateService {
-    private machine = interpret(gameMachine);
-    constructor() {}
-    state$ = fromEventPattern(
-        handler => {
-            this.machine
-                // Listen for state transitions
-                .onTransition(state => {
-                    if (state.changed) {
-                        handler(state);
-                    }
-                })
-                // Start the service
-                .start();
-
-            return this.machine;
-        },
-        (handler, service) => service.stop(),
-    );
-    gamers$ = this.state$.pipe(pluck('context', 'players'));
-    sendEvent(event: GameEvent) {
-        this.machine.send(event);
-    }
+    constructor(private dragAndDrop: DragAndDropService) {}
 }

@@ -16,15 +16,12 @@ import {
 import {
     BehaviorSubject,
     Observable,
-    empty,
-    interval,
-    of,
-    merge,
     timer,
     fromEvent,
     Subject,
     combineLatest,
     race,
+    zip,
 } from 'rxjs';
 import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
 import {
@@ -46,13 +43,12 @@ import {
     endWith,
     mergeMap,
 } from 'rxjs/operators';
-import * as Logic from 'iq180-logic';
-import { Player } from 'src/app/core/models/player.model';
 import { DragAndDropService } from './drag-and-drop.service';
 import { isNumber, isOperator } from 'src/app/core/functions/predicates';
 import { NzModalService } from 'ng-zorro-antd';
-import { StateService } from 'src/app/core/service/state.service';
+import { StateService, AppEventType } from 'src/app/core/service/state.service';
 import { AuthService } from 'src/app/core/service/auth.service';
+import { GameEventType } from './game-state.service';
 
 @Component({
     selector: 'app-game-field',
@@ -92,7 +88,7 @@ export class GameFieldComponent implements OnInit {
     @ViewChild('main', { static: true }) main: ElementRef;
 
     timer$: Observable<number>;
-    isGaming$ = new BehaviorSubject<boolean>(false);
+    isGaming$ = this.stateService.game$.pipe(map(e => !!e));
     playable$ = new BehaviorSubject<boolean>(false);
 
     destroy$ = new Subject();
@@ -115,9 +111,24 @@ export class GameFieldComponent implements OnInit {
 
     skip() {
         this.resetTimer$.next();
-        this.dndService.skip();
+        this.stateService.sendEvent({
+            type: GameEventType.SKIP,
+        });
     }
     ngOnInit() {
+        combineLatest([
+            this.stateService.question$,
+            this.stateService.expectedAnswer$,
+        ])
+            .pipe(
+                filter(
+                    ([question, expectedAnswer]) =>
+                        !!question && !!expectedAnswer,
+                ),
+            )
+            .subscribe(([question, expectedAnswer]: [number[], number]) => {
+                this.dndService.setQuestion({ question, expectedAnswer });
+            });
         this.keypress$
             .pipe(
                 withLatestFrom(
@@ -129,7 +140,22 @@ export class GameFieldComponent implements OnInit {
                 filter(([, , , isGaming, playable]) => isGaming && playable),
             )
             .subscribe(args => this.handleKeypress(args));
-        this.dndService.skip();
+        combineLatest([
+            this.answer$,
+            this.currentAnswer$,
+            this.expectedAnswer$,
+            this.numbers$,
+        ])
+            .pipe(
+                // takeWhile(([, , , , isGaming]) => isGaming),
+                filter(([A, cA, eA, n]) => cA === eA),
+            )
+            .subscribe(([A, , , , ,]) => {
+                this.stateService.sendEvent({
+                    type: GameEventType.ATTEMPT,
+                    payload: 'WIN',
+                });
+            });
         this.startGame();
     }
 
@@ -176,61 +202,60 @@ export class GameFieldComponent implements OnInit {
     startGame() {
         const future = new Date().valueOf() + 1000;
         this.createTimer(new Date(future));
+        // this.resetTimer$
+        //     .pipe(
+        //         startWith(undefined),
+        //         withLatestFrom(this.isGaming$),
+        //         takeWhile(([_, isGaming]) => isGaming),
+        //         switchMap(() => {
+        //             this.playable$.next(true);
+        //             return race(
+        //                 this.timer$.pipe(
+        //                     filter(v => v === 0),
+        //                     mapTo('TIMER_END'),
+        //                 ),
 
-        this.isGaming$.next(true);
+        //             ).pipe(withLatestFrom(this.timer$));
+        //         }),
+        //     )
+        //     .subscribe(([res, timeLeft]) => {
+        //         this.playable$.next(false);
+        //         if (res === 'CORRECT_ANSWER') {
+        //             this.showWinDialog(timeLeft);
+        //         } else {
+        //             this.showLoseDialog();
+        //         }
+        //     });
+    }
 
-        this.resetTimer$
-            .pipe(
-                startWith(undefined),
-                switchMap(() => {
-                    this.playable$.next(true);
-                    return race(
-                        this.timer$.pipe(
-                            filter(v => v === 0),
-                            mapTo('TIMER_END'),
-                        ),
-                        combineLatest([
-                            this.currentAnswer$,
-                            this.expectedAnswer$,
-                            this.numbers$,
-                        ]).pipe(
-                            filter(
-                                ([cA, eA, n]) => cA === eA && n.length === 0,
-                            ),
-                            mapTo('CORRECT_ANSWER'),
-                        ),
-                    ).pipe(withLatestFrom(this.timer$));
-                }),
-                takeWhile(() => this.isGaming$.value),
-            )
-            .subscribe(([res, timeLeft]) => {
-                this.playable$.next(false);
-                if (res === 'CORRECT_ANSWER') {
-                    this.modalService.success({
-                        nzTitle: 'You win !',
-                        nzContent: `It took you ${60 -
-                            timeLeft} seconds for you to solve this`,
-                        nzCancelText: 'Exit Game',
-                        nzOnOk: () => this.skip(),
-                        nzOnCancel: () => this.endGame(),
-                        nzKeyboard: false,
-                    });
-                } else {
-                    this.modalService.error({
-                        nzTitle: 'You Lose !',
-                        nzContent: 'Some Discouraging message',
-                        nzCancelText: 'Exit Game',
-                        nzOnOk: () => this.skip(),
-                        nzOnCancel: () => this.endGame(),
-                        nzKeyboard: false,
-                    });
-                }
-            });
+    showWinDialog(timeLeft: number) {
+        this.modalService.success({
+            nzTitle: 'You win !',
+            nzContent: `It took you ${60 -
+                timeLeft} seconds for you to solve this`,
+            nzCancelText: 'Exit Game',
+            nzOnOk: () => this.skip(),
+            nzOnCancel: () => this.endGame(),
+            nzKeyboard: false,
+        });
+    }
+
+    showLoseDialog() {
+        this.modalService.error({
+            nzTitle: 'You Lose !',
+            nzContent: 'Some Discouraging message',
+            nzCancelText: 'Exit Game',
+            nzOnOk: () => this.skip(),
+            nzOnCancel: () => this.endGame(),
+            nzKeyboard: false,
+        });
     }
 
     endGame() {
         this.exit.emit();
-        this.isGaming$.next(false);
+        this.stateService.sendEvent({
+            type: AppEventType.END_GAME,
+        });
     }
 
     onDragEnded(event: CdkDragEnd) {
