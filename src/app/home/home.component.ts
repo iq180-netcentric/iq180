@@ -74,11 +74,9 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.socket
             .listenFor<Player>(WebSocketIncomingEvent.playerInfo)
             .pipe(
+                distinctUntilChanged(),
                 withLatestFrom(
-                    this.selectedPlayer$.pipe(
-                        filter(player => !!player),
-                        distinctUntilKeyChanged('id'),
-                    ),
+                    this.selectedPlayer$.pipe(filter(player => !!player)),
                 ),
             )
             .subscribe(([newPlayer, selectedPlayer]) => {
@@ -90,12 +88,17 @@ export class HomeComponent implements OnInit, OnDestroy {
                 }
                 this.authService.setPlayer(newPlayer);
             });
-        this.ready$.pipe(takeUntil(this.destroy$)).subscribe(ready => {
-            this.socket.emit({
-                event: WebSocketOutgoingEvent.ready,
-                data: ready,
+        this.ready$
+            .pipe(
+                distinctUntilChanged(),
+                takeUntil(this.destroy$),
+            )
+            .subscribe(ready => {
+                this.socket.emit({
+                    event: WebSocketOutgoingEvent.ready,
+                    data: ready,
+                });
             });
-        });
     }
 
     selectPlayer(player: Player) {
