@@ -6,6 +6,7 @@ import {
     ViewChild,
     Output,
     EventEmitter,
+    OnDestroy,
 } from '@angular/core';
 import {
     OperatorCard,
@@ -16,15 +17,12 @@ import {
 import {
     BehaviorSubject,
     Observable,
-    empty,
-    interval,
-    of,
-    merge,
     timer,
     fromEvent,
     Subject,
     combineLatest,
     race,
+    zip,
 } from 'rxjs';
 import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
 import {
@@ -46,20 +44,23 @@ import {
     endWith,
     mergeMap,
 } from 'rxjs/operators';
-import * as Logic from 'iq180-logic';
-import { Player } from 'src/app/core/models/player.model';
 import { DragAndDropService } from './drag-and-drop.service';
 import { isNumber, isOperator } from 'src/app/core/functions/predicates';
 import { NzModalService } from 'ng-zorro-antd';
+import { StateService, AppEventType } from 'src/app/core/service/state.service';
+import { AuthService } from 'src/app/core/service/auth.service';
+import { GameEventType } from './game-state.service';
 
 @Component({
     selector: 'app-game-field',
     templateUrl: './game-field.component.html',
     styleUrls: ['./game-field.component.scss'],
 })
-export class GameFieldComponent implements OnInit {
-    @Input() player: Player;
-    @Input() isCurrentPlayer: boolean;
+export class GameFieldComponent implements OnInit, OnDestroy {
+    @Input() player;
+    isCurrentPlayer$ = combineLatest([this.authService.player$]).pipe(
+        map(([c]) => this.player.id === c.id),
+    );
 
     @Output() exit = new EventEmitter();
     // Game Data
@@ -83,15 +84,12 @@ export class GameFieldComponent implements OnInit {
     removeNumber = this.dndService.removeNumber;
     removeOperator = this.dndService.removeOperator;
 
-    generateQuestion = this.dndService.generateQuestion;
-    reset = this.dndService.reset;
-
     operators = this.dndService.operators;
 
     @ViewChild('main', { static: true }) main: ElementRef;
 
     timer$: Observable<number>;
-    isGaming$ = new BehaviorSubject<boolean>(false);
+    isGaming$ = this.stateService.game$.pipe(map(e => !!e));
     playable$ = new BehaviorSubject<boolean>(false);
 
     destroy$ = new Subject();
@@ -103,16 +101,63 @@ export class GameFieldComponent implements OnInit {
         pluck('key'),
     );
 
+    reset = () => this.dndService.reset();
+
     constructor(
         private dndService: DragAndDropService,
         private modalService: NzModalService,
+        private stateService: StateService,
+        private authService: AuthService,
     ) {}
 
     skip() {
         this.resetTimer$.next();
-        this.dndService.skip();
+        this.stateService.sendEvent({
+            type: GameEventType.SKIP,
+        });
+    }
+
+    okClick() {
+        this.stateService.sendEvent({
+            type: GameEventType.OK_CLICK,
+        });
+        this.resetTimer$.next();
+    }
+    ngOnDestroy() {
+        this.destroy$.next();
     }
     ngOnInit() {
+        this.stateService.win$
+            .pipe(
+                takeUntil(this.destroy$),
+                debounceTime(500),
+            )
+            .subscribe(timeLeft => {
+                this.showWinDialog(timeLeft);
+            });
+        this.stateService.lose$
+            .pipe(
+                takeUntil(this.destroy$),
+                debounceTime(500),
+            )
+            .subscribe(() => {
+                this.showLoseDialog();
+            });
+        combineLatest([
+            this.stateService.question$,
+            this.stateService.expectedAnswer$,
+        ])
+            .pipe(
+                filter(
+                    ([question, expectedAnswer]) =>
+                        !!question && !!expectedAnswer,
+                ),
+                takeUntil(this.destroy$),
+                debounceTime(100),
+            )
+            .subscribe(([question, expectedAnswer]: [number[], number]) => {
+                this.dndService.setQuestion({ question, expectedAnswer });
+            });
         this.keypress$
             .pipe(
                 withLatestFrom(
@@ -121,10 +166,24 @@ export class GameFieldComponent implements OnInit {
                     this.isGaming$,
                     this.playable$,
                 ),
-                filter(([, , , isGaming, playable]) => isGaming && playable),
+                takeUntil(this.destroy$),
+                // filter(([, , , isGaming, playable]) => isGaming && playable),
             )
             .subscribe(args => this.handleKeypress(args));
-        this.dndService.skip();
+        combineLatest([this.question$, this.expectedAnswer$, this.answer$])
+            .pipe(
+                takeUntil(this.destroy$),
+                debounceTime(100),
+            )
+            .subscribe(([question, expectedAnswer, answer]) => {
+                this.stateService.sendEvent({
+                    type: GameEventType.ATTEMPT,
+                    payload: {
+                        expectedAnswer,
+                        answer: answer.map(e => e.value),
+                    },
+                });
+            });
         this.startGame();
     }
 
@@ -164,6 +223,18 @@ export class GameFieldComponent implements OnInit {
                     map(t => n - t),
                 ),
             ),
+            tap(time => {
+                if (time === 0) {
+                    this.stateService.sendEvent({
+                        type: GameEventType.LOSE,
+                    });
+                } else {
+                    this.stateService.sendEvent({
+                        type: GameEventType.TIMER,
+                        payload: time,
+                    });
+                }
+            }),
         );
     }
 
@@ -171,61 +242,37 @@ export class GameFieldComponent implements OnInit {
     startGame() {
         const future = new Date().valueOf() + 1000;
         this.createTimer(new Date(future));
+        this.timer$.pipe(takeUntil(this.destroy$)).subscribe();
+    }
 
-        this.isGaming$.next(true);
+    showWinDialog(timeLeft: number) {
+        this.modalService.success({
+            nzTitle: 'You win !',
+            nzContent: `It took you ${60 -
+                timeLeft} seconds for you to solve this`,
+            nzCancelText: 'Exit Game',
+            nzOnOk: () => this.okClick(),
+            nzOnCancel: () => this.endGame(),
+            nzKeyboard: false,
+        });
+    }
 
-        this.resetTimer$
-            .pipe(
-                startWith(undefined),
-                switchMap(() => {
-                    this.playable$.next(true);
-                    return race(
-                        this.timer$.pipe(
-                            filter(v => v === 0),
-                            mapTo('TIMER_END'),
-                        ),
-                        combineLatest([
-                            this.currentAnswer$,
-                            this.expectedAnswer$,
-                            this.numbers$,
-                        ]).pipe(
-                            filter(
-                                ([cA, eA, n]) => cA === eA && n.length === 0,
-                            ),
-                            mapTo('CORRECT_ANSWER'),
-                        ),
-                    ).pipe(withLatestFrom(this.timer$));
-                }),
-                takeWhile(() => this.isGaming$.value),
-            )
-            .subscribe(([res, timeLeft]) => {
-                this.playable$.next(false);
-                if (res === 'CORRECT_ANSWER') {
-                    this.modalService.success({
-                        nzTitle: 'You win !',
-                        nzContent: `It took you ${60 -
-                            timeLeft} seconds for you to solve this`,
-                        nzCancelText: 'Exit Game',
-                        nzOnOk: () => this.skip(),
-                        nzOnCancel: () => this.endGame(),
-                        nzKeyboard: false,
-                    });
-                } else {
-                    this.modalService.error({
-                        nzTitle: 'You Lose !',
-                        nzContent: 'Some Discouraging message',
-                        nzCancelText: 'Exit Game',
-                        nzOnOk: () => this.skip(),
-                        nzOnCancel: () => this.endGame(),
-                        nzKeyboard: false,
-                    });
-                }
-            });
+    showLoseDialog() {
+        this.modalService.error({
+            nzTitle: 'You Lose !',
+            nzContent: 'Some Discouraging message',
+            nzCancelText: 'Exit Game',
+            nzOnOk: () => this.okClick(),
+            nzOnCancel: () => this.endGame(),
+            nzKeyboard: false,
+        });
     }
 
     endGame() {
         this.exit.emit();
-        this.isGaming$.next(false);
+        this.stateService.sendEvent({
+            type: AppEventType.END_GAME,
+        });
     }
 
     onDragEnded(event: CdkDragEnd) {
@@ -240,9 +287,5 @@ export class GameFieldComponent implements OnInit {
 
     isOperator(item: CdkDrag<DraggableCard>) {
         return item.data.type === CardType.operator;
-    }
-
-    vibrate() {
-        navigator.vibrate(200);
     }
 }

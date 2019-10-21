@@ -25,7 +25,12 @@ import {
     withLatestFrom,
     switchMap,
     pluck,
+    distinctUntilChanged,
+    distinctUntilKeyChanged,
 } from 'rxjs/operators';
+import { StateService, AppEventType } from '../core/service/state.service';
+import { GameMode } from '../core/models/game/game.model';
+import { GameEventType } from './game-field/game-state.service';
 
 @Component({
     selector: 'app-home',
@@ -34,19 +39,19 @@ import {
 })
 export class HomeComponent implements OnInit, OnDestroy {
     currentPlayer$: Observable<Player> = this.authService.player$;
-    currentGame$ = new BehaviorSubject<{}>(undefined);
-    selectedPlayer$ = new BehaviorSubject<Player>(undefined);
+    selectedPlayer$ = this.stateService.selectedPlayer$;
 
     destroy$ = new Subject();
 
-    ready$ = new Subject();
-    singlePlayer$ = new Subject();
-
+    ready$ = this.stateService.ready$;
+    currentGame$ = this.stateService.game$;
     welcomeModalInstance$ = new BehaviorSubject<NzModalRef>(undefined);
+
     constructor(
         private socket: WebSocketService,
         private modalService: NzModalService,
         private authService: AuthService,
+        private stateService: StateService,
     ) {}
 
     ngOnInit() {
@@ -67,32 +72,64 @@ export class HomeComponent implements OnInit, OnDestroy {
             });
         this.socket
             .listenFor<Player>(WebSocketIncomingEvent.playerInfo)
-            .pipe(withLatestFrom(this.selectedPlayer$))
+            .pipe(
+                distinctUntilChanged(),
+                withLatestFrom(
+                    this.selectedPlayer$.pipe(filter(player => !!player)),
+                ),
+            )
             .subscribe(([newPlayer, selectedPlayer]) => {
                 if (selectedPlayer && selectedPlayer.id === newPlayer.id) {
-                    this.selectedPlayer$.next(newPlayer);
+                    this.stateService.sendEvent({
+                        type: AppEventType.SELECT_PLAYER,
+                        payload: newPlayer,
+                    });
                 }
                 this.authService.setPlayer(newPlayer);
             });
         this.ready$
             .pipe(
+                distinctUntilChanged(),
                 takeUntil(this.destroy$),
-                withLatestFrom(this.currentPlayer$),
             )
-            .subscribe(([_, player]) => {
+            .subscribe(ready => {
                 this.socket.emit({
                     event: WebSocketOutgoingEvent.ready,
-                    data: !player.ready,
+                    data: ready,
                 });
             });
-        this.singlePlayer$
-            .pipe(
-                takeUntil(this.destroy$),
-                withLatestFrom(this.currentPlayer$),
-            )
-            .subscribe(([_, player]) => {
-                this.currentGame$.next({});
-                this.selectedPlayer$.next(player);
+    }
+
+    selectPlayer(player: Player) {
+        this.stateService.sendEvent({
+            type: AppEventType.SELECT_PLAYER,
+            payload: player,
+        });
+    }
+    ready() {
+        combineLatest(this.currentPlayer$)
+            .pipe(take(1))
+            .subscribe(([player]) => {
+                this.stateService.sendEvent({
+                    type: AppEventType.READY,
+                    payload: player.ready,
+                });
+            });
+    }
+
+    singlePlayer() {
+        combineLatest(this.currentPlayer$)
+            .pipe(take(1))
+            .subscribe(([player]) => {
+                this.stateService.sendEvent({
+                    type: AppEventType.START_GAME,
+                    payload: {
+                        info: {
+                            mode: GameMode.singlePlayer,
+                        },
+                        player,
+                    },
+                });
             });
     }
 
@@ -105,7 +142,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     exitGame() {
-        this.currentGame$.next(undefined);
+        this.stateService.sendEvent({
+            type: AppEventType.END_GAME,
+        });
     }
     showWelcomeModal(edit: boolean = false): void {
         combineLatest(this.authService.player$, this.authService.remember$)
