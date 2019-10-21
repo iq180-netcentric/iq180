@@ -3,5 +3,5 @@ export interface Round {
     operators: string[];
     expectedAnswer: number;
     solution: (number | string)[];
-    startTime: string;
+    startTime: Date;
 }

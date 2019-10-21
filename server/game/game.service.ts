@@ -10,18 +10,18 @@ import {
 import { merge } from 'rxjs';
 import { PlayerMap } from '../player/player.store';
 import { GamePlayerMap } from '../models/game';
-import { none } from 'fp-ts/lib/Option';
 import { Map } from 'immutable';
 import { EventService } from '../event/event.service';
 import { IN_EVENT } from '../event/in-events';
-import { serialzedGamePlayers } from './game.model';
 import {
     GameEventType,
     GameReady,
     GameNotReady,
     GameStart,
+    GameState,
 } from './game.state';
 import { GameMachine } from './game.machine';
+import { SocketClient } from '../event/event.type';
 
 export const playersReady = (players: PlayerMap): boolean => {
     const numberOfReady = players.filter(p => p.ready).size;
@@ -38,20 +38,19 @@ export const transformToGamePlayerMap = (playerMap: PlayerMap): GamePlayerMap =>
                 map.set(id, {
                     id,
                     score: 0,
-                    attempt: none,
                 }),
             <GamePlayerMap>Map(),
         );
 
 export const broadcastStartGame = (
     gamers: GamePlayerMap,
-    players: PlayerMap,
+    players: Map<string, SocketClient>,
 ) => {
-    const clients = gamers
-        .map((_, key) => players.get(key).client)
+    const clients = players.toIndexedSeq().toArray();
+    const data = gamers
+        .map(({ id, score }) => ({ score, id }))
         .toIndexedSeq()
         .toArray();
-    const data = serialzedGamePlayers(gamers);
     return { clients, data };
 };
 
@@ -103,10 +102,14 @@ export class GameService {
             state.matches({ PLAYING: { ROUND: 'START', TURN: 'IDLE' } }),
         ),
         distinctUntilChanged(),
-        withLatestFrom(
-            this.gameMachine.gamers$,
-            this.playerService.onlinePlayers$,
-        ),
+        withLatestFrom(this.gameMachine.gamers$, this.gamePlayers$),
+        map(([, gamers, players]) => {
+            return broadcastStartGame(gamers, players);
+        }),
+    );
+    endGame$ = this.gameMachine.state$.pipe(
+        filter(state => state.matches(GameState.END)),
+        withLatestFrom(this.gameMachine.gamers$, this.gamePlayers$),
         map(([, gamers, players]) => {
             return broadcastStartGame(gamers, players);
         }),

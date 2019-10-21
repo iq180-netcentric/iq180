@@ -1,5 +1,6 @@
 import { Machine, assign, sendParent, send, actions } from 'xstate';
 import { validateForSubmission } from 'iq180-logic';
+import { Round } from '../models/round';
 
 export const enum RoundState {
     START_ROUND = 'START_ROUND',
@@ -22,16 +23,11 @@ interface RoundHistory {
     player: string;
     time?: number;
 }
-export interface RoundContext {
+export interface RoundContext extends Round {
     players: string[];
     history: RoundHistory[];
     currentPlayer: string;
     winner: string;
-    question: number[];
-    operators: string[];
-    expectedAnswer: number;
-    solution: (string | number)[];
-    startTime: Date;
 }
 
 export const enum RoundEventType {
@@ -142,6 +138,7 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
             },
             [RoundState.END_ROUND]: {
                 type: 'final',
+                entry: RoundActions.FIND_WINNER,
                 data: {
                     winner: (context: RoundContext) => context.winner,
                 },
@@ -167,7 +164,7 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
             ),
             [RoundActions.TIME_OUT]: actions.send(
                 { type: RoundEventType.TIME_OUT },
-                { delay: 10000, id: 'timer' },
+                { delay: 65000, id: 'timer' },
             ),
             [RoundActions.CANCEL_TIMER]: actions.cancel('timer'),
             [RoundActions.CORRECT]: assign<RoundContext>({

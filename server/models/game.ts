@@ -1,4 +1,3 @@
-import { Option } from 'fp-ts/lib/Option';
 import { Map } from 'immutable';
 
 export interface Attempt {
@@ -9,7 +8,7 @@ export interface Attempt {
 export interface GamePlayer {
     id: string;
     score: number;
-    attempt: Option<Attempt>;
+    attempt?: Attempt;
 }
 
 export type GamePlayerMap = Map<string, GamePlayer>;
