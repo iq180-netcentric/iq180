@@ -1,86 +1,93 @@
 import { Injectable } from '@nestjs/common';
 import { EventService } from '../event/event.service';
-import { Round } from '../models/round';
-import { currentTime, addSeconds } from './round.utils';
-import { generate } from 'iq180-logic';
-import { Subject, combineLatest, timer, merge } from 'rxjs';
 import { IN_EVENT, AnswerEvent } from '../event/in-events';
-import {
-    switchMapTo,
-    take,
-    mapTo,
-    map,
-    filter,
-    pluck,
-    withLatestFrom,
-    tap,
-} from 'rxjs/operators';
-import { RoundStore } from './round.store';
-import { newQuestionAction } from './round.action';
-import { isSome } from 'fp-ts/lib/Option';
-import { StartRoundEvent } from '../event/out-events';
-import { GameService } from '../game/game.service';
-import { BroadcastMessage } from '../event/event.type';
-
-const createRound = (): Round => {
-    const generated = generate({});
-    const now = currentTime();
-    return {
-        startTime: addSeconds(now, 5).toISOString(),
-        ...generated,
-    };
-};
+import { map, filter, withLatestFrom } from 'rxjs/operators';
+import { Answer, RoundEventType } from './round.state';
+import { GameMachine } from '../game/game.machine';
+import { GameService, broadcastStartGame } from '../game/game.service';
 
 @Injectable()
 export class RoundService {
     constructor(
         private readonly eventService: EventService,
-        private readonly roundStore: RoundStore,
+        private readonly gameMachine: GameMachine,
         private readonly gameService: GameService,
     ) {
-        this.newRound$.subscribe(i => {
-            roundStore.dispatch(i);
-        });
-        this.sendNewRound$.subscribe(i => eventService.broadcastStartRound(i));
-        eventService.listenFor(IN_EVENT.START).subscribe(() => this.newRound());
-        this.endRound$.subscribe(() => this.newRound());
+        this.answer$.subscribe(answer => gameMachine.sendEvent(answer));
+        this.emitQuestion$.subscribe(question =>
+            eventService.emitStartTurn(question),
+        );
+        this.broadCurrentPlayer$.subscribe(player =>
+            eventService.broadcastCurrentPlayer(player),
+        );
+        this.endTurn$.subscribe(() => eventService.emitEndTurn(null));
+        this.startRound$.subscribe(p => eventService.broadcastStartRound(p));
+        this.endRound$.subscribe(w => eventService.broadcastEndRound(w));
     }
 
-    startRound$ = new Subject();
-
-    answer$ = this.eventService.listenFor<AnswerEvent>(IN_EVENT.ANSWER);
-
-    correct$ = this.answer$.pipe();
-
-    endRound$ = this.startRound$.pipe(
-        switchMapTo(merge(this.correct$, timer(65000)).pipe(take(1))),
-    );
-
-    newRound$ = this.startRound$.pipe(
-        map(createRound),
-        map(newQuestionAction),
-    );
-
-    sendNewRound$ = this.roundStore.store$.pipe(
-        filter(isSome),
-        pluck('value'),
+    answer$ = this.eventService.listenFor<AnswerEvent>(IN_EVENT.ANSWER).pipe(
         map(
-            ({ question, expectedAnswer, startTime }): StartRoundEvent => ({
-                question,
-                expectedAnswer,
-                startTime,
+            ({ data, client }): Answer => ({
+                type: RoundEventType.ANSWER,
+                payload: { answer: data, player: client.id },
             }),
         ),
-        withLatestFrom(this.gameService.gamePlayers$),
-        map(
-            ([round, players]): BroadcastMessage => ({
+    );
+    startRound$ = this.gameMachine.state$.pipe(
+        filter(state => state.matches('PLAYING.ROUND.START')),
+        withLatestFrom(this.gameMachine.gamers$, this.gameService.gamePlayers$),
+        map(([, gamers, players]) => {
+            return broadcastStartGame(gamers, players);
+        }),
+    );
+
+    endRound$ = this.gameMachine.state$.pipe(
+        filter(state => state.matches('PLAYING.ROUND.END')),
+        withLatestFrom(
+            this.gameMachine.context$,
+            this.gameService.gamePlayers$,
+        ),
+        map(([, context, players]) => {
+            const { winner } = context;
+            return {
+                data: winner,
                 clients: players.toIndexedSeq().toArray(),
-                data: round,
-            }),
-        ),
+            };
+        }),
+    );
+    startTurn$ = this.gameMachine.state$.pipe(
+        filter(state => state.matches('PLAYING.TURN.START')),
     );
 
-    newRound = () => {
-        this.startRound$.next();
-    };
+    emitQuestion$ = this.startTurn$.pipe(
+        withLatestFrom(this.gameMachine.round$, this.gameService.gamePlayers$),
+        map(([, round, players]) => {
+            const { currentPlayer, solution, startTime, ...rest } = round;
+            const client = players.get(currentPlayer);
+            return {
+                client,
+                data: { ...rest, startTime: startTime.toISOString() },
+            };
+        }),
+    );
+
+    broadCurrentPlayer$ = this.startTurn$.pipe(
+        withLatestFrom(this.gameMachine.round$, this.gameService.gamePlayers$),
+        map(([, round, players]) => {
+            const { currentPlayer } = round;
+            return {
+                clients: players.toIndexedSeq().toArray(),
+                data: currentPlayer,
+            };
+        }),
+    );
+    endTurn$ = this.gameMachine.state$.pipe(
+        filter(state => state.matches('PLAYING.TURN.END')),
+        withLatestFrom(this.gameMachine.round$, this.gameService.gamePlayers$),
+        map(([, round, players]) => {
+            const { currentPlayer } = round;
+            const client = players.get(currentPlayer);
+            return { client };
+        }),
+    );
 }

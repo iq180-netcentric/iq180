@@ -3,7 +3,6 @@ import { PlayerMap } from '../player/player.store';
 import { Map } from 'immutable';
 import { Player } from '../models/player';
 import { GamePlayerMap } from '../models/game';
-import { none } from 'fp-ts/lib/Option';
 
 const fakePlayer = (ready: boolean, id: string = '123'): Player => ({
     id,
@@ -36,15 +35,6 @@ describe('player ready', () => {
                 '345': fakePlayer(false),
             })),
         ).toBe(false);
-        expect(
-            playersReady(<PlayerMap>Map({
-                '123': fakePlayer(true),
-                '234': fakePlayer(true),
-                '345': fakePlayer(false),
-                '456': fakePlayer(false),
-                '567': fakePlayer(false),
-            })),
-        ).toBe(false);
     });
     it('should be true', () => {
         expect(
@@ -72,6 +62,15 @@ describe('player ready', () => {
             playersReady(<PlayerMap>Map({
                 '123': fakePlayer(true),
                 '234': fakePlayer(true),
+                '345': fakePlayer(false),
+                '456': fakePlayer(false),
+                '567': fakePlayer(false),
+            })),
+        ).toBe(true);
+        expect(
+            playersReady(<PlayerMap>Map({
+                '123': fakePlayer(true),
+                '234': fakePlayer(true),
                 '345': fakePlayer(true),
                 '456': fakePlayer(false),
                 '567': fakePlayer(false),
@@ -89,8 +88,6 @@ describe('tranform PlayerMap to  GamePlayerMap', () => {
             '1234': {
                 id: '1234',
                 score: 0,
-                reset: false,
-                attempt: none,
             },
         }));
     });
@@ -102,8 +99,6 @@ describe('tranform PlayerMap to  GamePlayerMap', () => {
             '1234': {
                 id: '1234',
                 score: 0,
-                reset: false,
-                attempt: none,
             },
         }));
     });
