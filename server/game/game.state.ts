@@ -30,6 +30,7 @@ export interface GameContext {
     players: GamePlayerMap;
     rounds: number;
     roundNumber: number;
+    winner?: string;
     round?: {
         currentPlayer: string;
         question: number[];
@@ -63,6 +64,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             players: Map(),
             rounds: 3,
             roundNumber: 0,
+            winner: '',
         },
         states: {
             [GameState.WATING]: {
@@ -102,11 +104,23 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                                     id: 'Round',
                                     src: roundMachine,
                                     data: {
-                                        players: (ctx: GameContext) =>
-                                            ctx.players
-                                                .map(player => player.id)
+                                        players: (ctx: GameContext) => {
+                                            const players = ctx.players
+                                                .map(p => p.id)
                                                 .toIndexedSeq()
-                                                .toArray(),
+                                                .toArray();
+                                            const { winner } = ctx;
+                                            if (!winner) return players;
+                                            else {
+                                                const { id } = ctx.players.get(
+                                                    winner,
+                                                );
+                                                const rest = players.filter(
+                                                    p => p !== winner,
+                                                );
+                                                return [id, ...rest];
+                                            }
+                                        },
                                         ...generate(),
                                         startTime: addSeconds(new Date(), 5),
                                     },
@@ -169,7 +183,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                 },
             },
             [GameState.END]: {
-                on: { '': GameState.WATING },
+                after: { 1000: GameState.WATING },
             },
         },
     },
@@ -191,6 +205,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                               score: player.score + 1,
                           }))
                         : players,
+                winner: (_, { data: winner }) => winner,
                 round: undefined,
             }),
             UPDATE_ROUND: assign<GameContext>({

@@ -36,7 +36,7 @@ export class PlayerService {
             eventService.broadcastOnlinePlayers(i),
         );
         this.sendNewPlayerInfo$.subscribe(i =>
-            eventService.sendNewPlayerInfo(i),
+            eventService.emitNewPlayerInfo(i),
         );
     }
 

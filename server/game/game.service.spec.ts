@@ -3,7 +3,6 @@ import { PlayerMap } from '../player/player.store';
 import { Map } from 'immutable';
 import { Player } from '../models/player';
 import { GamePlayerMap } from '../models/game';
-import { none } from 'fp-ts/lib/Option';
 
 const fakePlayer = (ready: boolean, id: string = '123'): Player => ({
     id,
@@ -89,8 +88,6 @@ describe('tranform PlayerMap to  GamePlayerMap', () => {
             '1234': {
                 id: '1234',
                 score: 0,
-                reset: false,
-                attempt: none,
             },
         }));
     });
@@ -102,8 +99,6 @@ describe('tranform PlayerMap to  GamePlayerMap', () => {
             '1234': {
                 id: '1234',
                 score: 0,
-                reset: false,
-                attempt: none,
             },
         }));
     });

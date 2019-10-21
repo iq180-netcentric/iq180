@@ -14,6 +14,9 @@ import {
     OutChatMessageEvent,
     StartGameEvent,
     StartRoundEvent,
+    EndGameEvent,
+    EndRoundEvent,
+    StartTurnEvent,
 } from './out-events';
 import { IN_EVENT } from './in-events';
 import { emitEvent, filterEvent } from './event.utils';
@@ -51,7 +54,7 @@ export class EventService {
         OUT_EVENT.PLAYERS,
     );
 
-    sendNewPlayerInfo = this.emitEvent<NewPlayerInfoEvent>(
+    emitNewPlayerInfo = this.emitEvent<NewPlayerInfoEvent>(
         OUT_EVENT.PLAYER_INFO,
     );
 
@@ -63,7 +66,17 @@ export class EventService {
         OUT_EVENT.START_GAME,
     );
 
+    broadcastEndGame = this.broadcastEvent<EndGameEvent>(OUT_EVENT.END_GAME);
+
     broadcastStartRound = this.broadcastEvent<StartRoundEvent>(
         OUT_EVENT.START_ROUND,
     );
+
+    broadcastEndRound = this.broadcastEvent<EndRoundEvent>(OUT_EVENT.END_ROUND);
+
+    emitStartTurn = this.emitEvent<StartTurnEvent>(OUT_EVENT.START_TURN);
+
+    emitEndTurn = this.emitEvent(OUT_EVENT.END_TURN);
+
+    broadcastCurrentPlayer = this.broadcastEvent(OUT_EVENT.CURRENT_PLAYER);
 }
