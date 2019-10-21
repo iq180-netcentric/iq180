@@ -73,10 +73,8 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.socket
             .listenFor<Player>(WebSocketIncomingEvent.playerInfo)
             .pipe(
-                distinctUntilChanged(),
-                withLatestFrom(
-                    this.selectedPlayer$.pipe(filter(player => !!player)),
-                ),
+                withLatestFrom(this.selectedPlayer$),
+                takeUntil(this.destroy$),
             )
             .subscribe(([newPlayer, selectedPlayer]) => {
                 if (selectedPlayer && selectedPlayer.id === newPlayer.id) {
