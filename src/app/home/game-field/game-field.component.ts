@@ -116,6 +116,13 @@ export class GameFieldComponent implements OnInit, OnDestroy {
             type: GameEventType.SKIP,
         });
     }
+
+    okClick() {
+        this.resetTimer$.next();
+        this.stateService.sendEvent({
+            type: GameEventType.OK_CLICK,
+        });
+    }
     ngOnDestroy() {
         this.destroy$.next();
     }
@@ -243,11 +250,7 @@ export class GameFieldComponent implements OnInit, OnDestroy {
             nzContent: `It took you ${60 -
                 timeLeft} seconds for you to solve this`,
             nzCancelText: 'Exit Game',
-            nzOnOk: () => {
-                this.stateService.sendEvent({
-                    type: GameEventType.OK_CLICK,
-                });
-            },
+            nzOnOk: () => this.okClick(),
             nzOnCancel: () => this.endGame(),
             nzKeyboard: false,
         });
@@ -258,11 +261,7 @@ export class GameFieldComponent implements OnInit, OnDestroy {
             nzTitle: 'You Lose !',
             nzContent: 'Some Discouraging message',
             nzCancelText: 'Exit Game',
-            nzOnOk: () => {
-                this.stateService.sendEvent({
-                    type: GameEventType.OK_CLICK,
-                });
-            },
+            nzOnOk: () => this.okClick(),
             nzOnCancel: () => this.endGame(),
             nzKeyboard: false,
         });
