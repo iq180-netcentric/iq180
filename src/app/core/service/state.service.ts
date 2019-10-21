@@ -1,21 +1,25 @@
 import { Injectable } from '@angular/core';
-import { Machine, interpret, assign, send } from 'xstate';
+import { Machine, interpret, assign, send, State } from 'xstate';
 import { fromEventPattern } from 'rxjs';
 import {
     pluck,
     share,
     shareReplay,
     distinctUntilChanged,
+    filter,
 } from 'rxjs/operators';
 import {
     GameEvent,
     gameMachine,
     GameEventType,
     GameContext,
+    GameState,
+    GameAnswerAttempt,
+    GenericGameEvent,
 } from 'src/app/home/game-field/game-state.service';
-import { GameInfo, GameMode } from '../models/game/game.model';
+import { GameInfo, GameMode, GameAnswer } from '../models/game/game.model';
 import { Player } from '../models/player.model';
-import { generate } from 'iq180-logic';
+import { generate, calculate } from 'iq180-logic';
 
 export const enum AppState {
     IDLE = 'IDLE',
@@ -26,7 +30,13 @@ export const enum AppState {
 interface AppStateSchema {
     states: {
         [AppState.IDLE]: {};
-        [AppState.PLAYING]: {};
+        [AppState.PLAYING]: {
+            states: {
+                [GameState.PLAYING]: {};
+                [GameState.WIN]: {};
+                [GameState.LOSE]: {};
+            };
+        };
         [AppState.READY]: {};
     };
 }
@@ -38,6 +48,7 @@ export interface AppContext {
     currentGame?: GameInfo;
     question?: number[];
     expectedAnswer?: number;
+    timeLeft?: number;
 }
 
 export const enum AppEventType {
@@ -97,12 +108,14 @@ export class StateService {
                 },
                 [AppState.PLAYING]: {
                     entry: 'GENERATE_QUESTION',
+                    initial: GameState.PLAYING,
                     on: {
                         [GameEventType.SKIP]: {
+                            target: AppState.PLAYING,
                             actions: 'GENERATE_QUESTION',
                         },
                         [GameEventType.ATTEMPT]: {
-                            actions: send((_, evt) => evt, { to: 'game' }),
+                            actions: [send((_, evt) => evt, { to: 'game' })],
                         },
                         [AppEventType.SELECT_PLAYER]: {
                             actions: ['SELECT_PLAYER'],
@@ -112,6 +125,84 @@ export class StateService {
                             cond: (ctx, evt) =>
                                 ctx.currentGame.mode === GameMode.singlePlayer,
                             actions: ['CLEAR_GAME'],
+                        },
+                    },
+                    states: {
+                        [GameState.PLAYING]: {
+                            on: {
+                                [GameEventType.ATTEMPT]: [
+                                    {
+                                        target: GameState.WIN,
+                                        cond: (
+                                            ctx,
+                                            evt: GenericGameEvent<GameAnswer>,
+                                        ) => {
+                                            const {
+                                                answer,
+                                                expectedAnswer,
+                                            } = evt.payload;
+                                            return (
+                                                calculate(answer) ===
+                                                    expectedAnswer &&
+                                                ctx.currentGame.mode ===
+                                                    GameMode.singlePlayer
+                                            );
+                                        },
+                                    },
+                                ],
+                                [GameEventType.TIMER]: {
+                                    actions: ['SET_TIMER'],
+                                },
+                                [GameEventType.SKIP]: {
+                                    cond: (ctx, evt) =>
+                                        ctx.currentGame.mode ===
+                                        GameMode.singlePlayer,
+                                    actions: 'GENERATE_QUESTION',
+                                },
+                                [GameEventType.LOSE]: {
+                                    target: GameState.LOSE,
+                                },
+                            },
+                        },
+                        [GameState.WIN]: {
+                            on: {
+                                [GameEventType.CANCEL_CLICK]: {
+                                    cond: (ctx, evt) =>
+                                        ctx.currentGame.mode ===
+                                        GameMode.singlePlayer,
+                                    actions: send(
+                                        () => ({ type: GameEventType.EXIT }),
+                                        { to: 'game' },
+                                    ),
+                                },
+                                [GameEventType.OK_CLICK]: {
+                                    target: GameState.PLAYING,
+                                    cond: (ctx, evt) =>
+                                        ctx.currentGame.mode ===
+                                        GameMode.singlePlayer,
+                                    actions: ['GENERATE_QUESTION'],
+                                },
+                            },
+                        },
+                        [GameState.LOSE]: {
+                            on: {
+                                [GameEventType.CANCEL_CLICK]: {
+                                    cond: (ctx, evt) =>
+                                        ctx.currentGame.mode ===
+                                        GameMode.singlePlayer,
+                                    actions: send(
+                                        () => ({ type: GameEventType.EXIT }),
+                                        { to: 'game' },
+                                    ),
+                                },
+                                [GameEventType.OK_CLICK]: {
+                                    target: GameState.PLAYING,
+                                    cond: (ctx, evt) =>
+                                        ctx.currentGame.mode ===
+                                        GameMode.singlePlayer,
+                                    actions: ['GENERATE_QUESTION'],
+                                },
+                            },
                         },
                     },
                     invoke: {
@@ -168,6 +259,9 @@ export class StateService {
                         expectedAnswer,
                     };
                 }),
+                SET_TIMER: assign<AppContext>({
+                    timeLeft: (_, evt) => evt.payload,
+                }),
             },
         },
     );
@@ -176,12 +270,15 @@ export class StateService {
 
     constructor() {}
 
-    state$ = fromEventPattern(
+    state$ = fromEventPattern<State<AppContext, AppEvent | GameEvent>>(
         handler => {
             this.machine
                 // Listen for state transitions
                 .onTransition(state => {
                     if (state.changed) {
+                        console.log('event: ', state.event);
+                        console.log('state: ', state.value);
+                        // console.log(state.context);
                         handler(state);
                     }
                 })
@@ -193,28 +290,41 @@ export class StateService {
         (handler, service) => {
             service.stop();
         },
-    ).pipe(shareReplay());
-    ready$ = this.state$.pipe(pluck<AppContext, boolean>('context', 'ready'));
+    ).pipe(share());
+    ready$ = this.state$.pipe(
+        pluck('context', 'ready'),
+        shareReplay(),
+    );
     game$ = this.state$.pipe(
-        pluck<AppContext, GameInfo>('context', 'currentGame'),
+        pluck('context', 'currentGame'),
+        shareReplay(),
     );
     selectedPlayer$ = this.state$.pipe(
-        pluck<AppContext, Player>('context', 'selectedPlayer'),
+        pluck('context', 'selectedPlayer'),
         shareReplay(),
     );
 
     question$ = this.state$.pipe(
-        pluck<AppContext, number[]>('context', 'question'),
+        pluck('context', 'question'),
         distinctUntilChanged(),
         shareReplay(),
     );
 
     expectedAnswer$ = this.state$.pipe(
-        pluck<AppContext, number>('context', 'expectedAnswer'),
+        pluck('context', 'expectedAnswer'),
         distinctUntilChanged(),
         shareReplay(),
     );
 
+    win$ = this.state$.pipe(
+        filter(state => state.matches('PLAYING.WIN')),
+        pluck('context', 'timeLeft'),
+    );
+
+    lose$ = this.state$.pipe(
+        filter(state => state.matches('PLAYING.LOSE')),
+        pluck('context', 'timeLeft'),
+    );
     sendEvent(event: AppEvent | GameEvent) {
         this.machine.send(event);
     }

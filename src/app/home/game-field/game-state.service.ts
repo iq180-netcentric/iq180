@@ -46,6 +46,7 @@ export const enum GameEventType {
     ATTEMPT = 'ATTEMPT',
     EXIT = 'EXIT',
     SKIP = 'SKIP',
+    TIMER = 'TIMER',
 }
 export interface GameWin {
     type: GameEventType.WIN;
@@ -81,11 +82,18 @@ export interface GameAnswerAttempt {
 export interface GameExit {
     type: GameEventType.EXIT;
 }
-export interface GeneraicGameEvent {
-    type: GameEventType;
+
+export interface GameTimer {
+    type: GameEventType.TIMER;
+    payload: number;
 }
+export interface GenericGameEvent<T = any> {
+    type: GameEventType;
+    payload?: T;
+}
+
 export type GameEvent =
-    | GeneraicGameEvent
+    | GenericGameEvent<any>
     | GameWin
     | GameLose
     | GameEnd
@@ -93,6 +101,7 @@ export type GameEvent =
     | GameStartRound
     | GameEndRound
     | GameOkClick
+    | GameTimer
     | GameCancelClick
     | GameExit
     | GameAnswerAttempt;
@@ -137,9 +146,6 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>({
                             evt.payload === 'LOSE',
                     },
                 ],
-            },
-            after: {
-                60000: GameState.LOSE,
             },
         },
         [GameState.WAITING]: {
@@ -188,6 +194,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>({
             },
         },
         [GameState.LOSE]: {
+            entry: sendParent((_, evt) => ({ type: GameEventType.LOSE })),
             on: {
                 [GameEventType.EXIT]: {
                     target: GameState.EXIT,

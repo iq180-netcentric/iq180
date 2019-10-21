@@ -26,3 +26,9 @@ export interface GameQuestion {
     question: number[];
     expectedAnswer: number;
 }
+
+export interface GameAnswer {
+    question: number[];
+    answer: (number | string)[];
+    expectedAnswer: number;
+}

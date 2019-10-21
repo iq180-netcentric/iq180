@@ -6,6 +6,7 @@ import {
     ViewChild,
     Output,
     EventEmitter,
+    OnDestroy,
 } from '@angular/core';
 import {
     OperatorCard,
@@ -55,7 +56,7 @@ import { GameEventType } from './game-state.service';
     templateUrl: './game-field.component.html',
     styleUrls: ['./game-field.component.scss'],
 })
-export class GameFieldComponent implements OnInit {
+export class GameFieldComponent implements OnInit, OnDestroy {
     @Input() player;
     isCurrentPlayer$ = combineLatest([this.authService.player$]).pipe(
         map(([c]) => this.player.id === c.id),
@@ -115,7 +116,26 @@ export class GameFieldComponent implements OnInit {
             type: GameEventType.SKIP,
         });
     }
+    ngOnDestroy() {
+        this.destroy$.next();
+    }
     ngOnInit() {
+        this.stateService.win$
+            .pipe(
+                takeUntil(this.destroy$),
+                debounceTime(500),
+            )
+            .subscribe(timeLeft => {
+                this.showWinDialog(timeLeft);
+            });
+        this.stateService.lose$
+            .pipe(
+                takeUntil(this.destroy$),
+                debounceTime(500),
+            )
+            .subscribe(timeLeft => {
+                this.showLoseDialog();
+            });
         combineLatest([
             this.stateService.question$,
             this.stateService.expectedAnswer$,
@@ -125,6 +145,8 @@ export class GameFieldComponent implements OnInit {
                     ([question, expectedAnswer]) =>
                         !!question && !!expectedAnswer,
                 ),
+                takeUntil(this.destroy$),
+                debounceTime(100),
             )
             .subscribe(([question, expectedAnswer]: [number[], number]) => {
                 this.dndService.setQuestion({ question, expectedAnswer });
@@ -137,23 +159,22 @@ export class GameFieldComponent implements OnInit {
                     this.isGaming$,
                     this.playable$,
                 ),
-                filter(([, , , isGaming, playable]) => isGaming && playable),
+                takeUntil(this.destroy$),
+                // filter(([, , , isGaming, playable]) => isGaming && playable),
             )
             .subscribe(args => this.handleKeypress(args));
-        combineLatest([
-            this.answer$,
-            this.currentAnswer$,
-            this.expectedAnswer$,
-            this.numbers$,
-        ])
+        combineLatest([this.question$, this.expectedAnswer$, this.answer$])
             .pipe(
-                // takeWhile(([, , , , isGaming]) => isGaming),
-                filter(([A, cA, eA, n]) => cA === eA),
+                takeUntil(this.destroy$),
+                debounceTime(100),
             )
-            .subscribe(([A, , , , ,]) => {
+            .subscribe(([question, expectedAnswer, answer]) => {
                 this.stateService.sendEvent({
                     type: GameEventType.ATTEMPT,
-                    payload: 'WIN',
+                    payload: {
+                        expectedAnswer,
+                        answer: answer.map(e => e.value),
+                    },
                 });
             });
         this.startGame();
@@ -195,6 +216,18 @@ export class GameFieldComponent implements OnInit {
                     map(t => n - t),
                 ),
             ),
+            tap(time => {
+                if (time === 0) {
+                    this.stateService.sendEvent({
+                        type: GameEventType.LOSE,
+                    });
+                } else {
+                    this.stateService.sendEvent({
+                        type: GameEventType.TIMER,
+                        payload: time,
+                    });
+                }
+            }),
         );
     }
 
@@ -202,30 +235,6 @@ export class GameFieldComponent implements OnInit {
     startGame() {
         const future = new Date().valueOf() + 1000;
         this.createTimer(new Date(future));
-        // this.resetTimer$
-        //     .pipe(
-        //         startWith(undefined),
-        //         withLatestFrom(this.isGaming$),
-        //         takeWhile(([_, isGaming]) => isGaming),
-        //         switchMap(() => {
-        //             this.playable$.next(true);
-        //             return race(
-        //                 this.timer$.pipe(
-        //                     filter(v => v === 0),
-        //                     mapTo('TIMER_END'),
-        //                 ),
-
-        //             ).pipe(withLatestFrom(this.timer$));
-        //         }),
-        //     )
-        //     .subscribe(([res, timeLeft]) => {
-        //         this.playable$.next(false);
-        //         if (res === 'CORRECT_ANSWER') {
-        //             this.showWinDialog(timeLeft);
-        //         } else {
-        //             this.showLoseDialog();
-        //         }
-        //     });
     }
 
     showWinDialog(timeLeft: number) {
@@ -234,7 +243,11 @@ export class GameFieldComponent implements OnInit {
             nzContent: `It took you ${60 -
                 timeLeft} seconds for you to solve this`,
             nzCancelText: 'Exit Game',
-            nzOnOk: () => this.skip(),
+            nzOnOk: () => {
+                this.stateService.sendEvent({
+                    type: GameEventType.OK_CLICK,
+                });
+            },
             nzOnCancel: () => this.endGame(),
             nzKeyboard: false,
         });
@@ -245,7 +258,11 @@ export class GameFieldComponent implements OnInit {
             nzTitle: 'You Lose !',
             nzContent: 'Some Discouraging message',
             nzCancelText: 'Exit Game',
-            nzOnOk: () => this.skip(),
+            nzOnOk: () => {
+                this.stateService.sendEvent({
+                    type: GameEventType.OK_CLICK,
+                });
+            },
             nzOnCancel: () => this.endGame(),
             nzKeyboard: false,
         });
