@@ -1,86 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import { EventService } from '../event/event.service';
-import { Round } from '../models/round';
-import { currentTime, addSeconds } from './round.utils';
-import { generate } from 'iq180-logic';
-import { Subject, combineLatest, timer, merge } from 'rxjs';
 import { IN_EVENT, AnswerEvent } from '../event/in-events';
-import {
-    switchMapTo,
-    take,
-    mapTo,
-    map,
-    filter,
-    pluck,
-    withLatestFrom,
-    tap,
-} from 'rxjs/operators';
-import { RoundStore } from './round.store';
-import { newQuestionAction } from './round.action';
-import { isSome } from 'fp-ts/lib/Option';
-import { StartRoundEvent } from '../event/out-events';
-import { GameService } from '../game/game.service';
-import { BroadcastMessage } from '../event/event.type';
-
-const createRound = (): Round => {
-    const generated = generate({});
-    const now = currentTime();
-    return {
-        startTime: addSeconds(now, 5).toISOString(),
-        ...generated,
-    };
-};
+import { map, filter } from 'rxjs/operators';
+import { Answer, RoundEventType } from './round.state';
+import { GameMachine } from '../game/game.machine';
 
 @Injectable()
 export class RoundService {
     constructor(
         private readonly eventService: EventService,
-        private readonly roundStore: RoundStore,
-        private readonly gameService: GameService,
+        private readonly gameMachine: GameMachine,
     ) {
-        this.newRound$.subscribe(i => {
-            roundStore.dispatch(i);
-        });
-        this.sendNewRound$.subscribe(i => eventService.broadcastStartRound(i));
-        eventService.listenFor(IN_EVENT.START).subscribe(() => this.newRound());
-        this.endRound$.subscribe(() => this.newRound());
+        this.answer$.subscribe(answer => gameMachine.sendEvent(answer));
     }
 
-    startRound$ = new Subject();
-
-    answer$ = this.eventService.listenFor<AnswerEvent>(IN_EVENT.ANSWER);
-
-    correct$ = this.answer$.pipe();
-
-    endRound$ = this.startRound$.pipe(
-        switchMapTo(merge(this.correct$, timer(65000)).pipe(take(1))),
-    );
-
-    newRound$ = this.startRound$.pipe(
-        map(createRound),
-        map(newQuestionAction),
-    );
-
-    sendNewRound$ = this.roundStore.store$.pipe(
-        filter(isSome),
-        pluck('value'),
+    answer$ = this.eventService.listenFor<AnswerEvent>(IN_EVENT.ANSWER).pipe(
         map(
-            ({ question, expectedAnswer, startTime }): StartRoundEvent => ({
-                question,
-                expectedAnswer,
-                startTime,
-            }),
-        ),
-        withLatestFrom(this.gameService.gamePlayers$),
-        map(
-            ([round, players]): BroadcastMessage => ({
-                clients: players.toIndexedSeq().toArray(),
-                data: round,
+            ({ data, client }): Answer => ({
+                type: RoundEventType.ANSWER,
+                payload: { answer: data, player: client.id },
             }),
         ),
     );
+    startRound$ = this.gameMachine.state$.pipe(
+        filter(state => state.matches('PLAYING.ROUND.START')),
+    );
 
-    newRound = () => {
-        this.startRound$.next();
-    };
+    endRound$ = this.gameMachine.state$.pipe(
+        filter(state => state.matches('PLAYING.ROUND.END')),
+    );
+    startTurn$ = this.gameMachine.state$.pipe(
+        filter(state => state.matches('PLAYING.TURN.START')),
+    );
+    endTurn$ = this.gameMachine.state$.pipe(
+        filter(state => state.matches('PLAYING.TURN.END')),
+    );
 }
