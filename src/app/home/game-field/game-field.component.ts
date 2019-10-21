@@ -118,10 +118,10 @@ export class GameFieldComponent implements OnInit, OnDestroy {
     }
 
     okClick() {
-        this.resetTimer$.next();
         this.stateService.sendEvent({
             type: GameEventType.OK_CLICK,
         });
+        this.resetTimer$.next();
     }
     ngOnDestroy() {
         this.destroy$.next();
@@ -140,7 +140,7 @@ export class GameFieldComponent implements OnInit, OnDestroy {
                 takeUntil(this.destroy$),
                 debounceTime(500),
             )
-            .subscribe(timeLeft => {
+            .subscribe(() => {
                 this.showLoseDialog();
             });
         combineLatest([
@@ -242,6 +242,7 @@ export class GameFieldComponent implements OnInit, OnDestroy {
     startGame() {
         const future = new Date().valueOf() + 1000;
         this.createTimer(new Date(future));
+        this.timer$.pipe(takeUntil(this.destroy$)).subscribe();
     }
 
     showWinDialog(timeLeft: number) {
