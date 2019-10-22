@@ -5,7 +5,6 @@ import {
     map,
     filter,
     withLatestFrom,
-    tap,
     distinctUntilChanged,
 } from 'rxjs/operators';
 import { Answer, RoundEventType } from './round.state';
@@ -32,7 +31,6 @@ export class RoundService {
     }
 
     answer$ = this.eventService.listenFor<AnswerEvent>(IN_EVENT.ANSWER).pipe(
-        tap(event => console.log(event.event, event.data, event.client.id)),
         map(
             ({ data, client }): Answer => ({
                 type: RoundEventType.ANSWER,

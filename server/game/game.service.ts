@@ -64,6 +64,7 @@ export class GameService {
         this.broadcastStartGame$.subscribe(i =>
             eventService.broadcastStartGame(i),
         );
+        this.endGame$.subscribe(i => eventService.broadcastEndGame(i));
         merge(this.gameReady$, this.startGame$).subscribe(i => {
             gameMachine.sendEvent(i);
         });

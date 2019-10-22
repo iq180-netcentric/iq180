@@ -223,10 +223,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             GENERATE_QUESTION: assign<GameContext>({
                 round: ctx => ({
                     ...ctx.round,
-                    question: [1, 2, 2, 3, 4],
-                    operators: ['+', '-', '*', '/'],
-                    expectedAnswer: 9,
-                    solution: ['(', 2, '+', 4, '*', 1, ')', '*', 3, '/', 2],
+                    ...generate(),
                 }),
             }),
         },
