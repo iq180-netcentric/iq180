@@ -9,6 +9,7 @@ import {
     EditEvent,
     InChatMessageEvent,
     ReadyEvent,
+    AnswerEvent,
 } from './in-events';
 import { EventService } from './event.service';
 import { SocketClient } from './event.type';
@@ -48,8 +49,8 @@ export class EventGateway implements OnGatewayDisconnect {
     }
 
     @SubscribeMessage(IN_EVENT.ANSWER)
-    answer(client: SocketClient) {
-        this.eventService.receiveEvent(client, IN_EVENT.ANSWER);
+    answer(client: SocketClient, input: AnswerEvent) {
+        this.eventService.receiveEvent(client, IN_EVENT.ANSWER, input);
     }
 
     handleDisconnect(client: SocketClient) {
