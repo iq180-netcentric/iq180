@@ -14,7 +14,6 @@ export const enum GameState {
     WATING = 'WAITING',
     READY = 'READY',
     PLAYING = 'PLAYING',
-    END = 'END',
 }
 
 interface GameStateSchema {
@@ -27,7 +26,6 @@ interface GameStateSchema {
                 TURN: { states: { IDLE: {}; START: {}; END: {} } };
             };
         };
-        [GameState.END]: {};
     };
 }
 
@@ -69,7 +67,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             players: Map(),
             rounds: 3,
             roundNumber: 0,
-            winner: '',
+            winner: null,
         },
         states: {
             [GameState.WATING]: {
@@ -95,7 +93,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                     },
                     [RoundEventType.START_ROUND]: {},
                     [GameEventType.END]: {
-                        target: GameState.END,
+                        target: GameState.WATING,
                     },
                 },
                 type: 'parallel',
@@ -107,7 +105,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                             START: {
                                 entry: 'GENERATE_QUESTION',
                                 invoke: {
-                                    id: 'Round',
+                                    id: 'round',
                                     src: roundMachine,
                                     data: (ctx: GameContext) => {
                                         const getPlayers = () => {
@@ -156,7 +154,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                                             target: 'IDLE',
                                             cond: 'FINISHED',
                                             actions: send({
-                                                type: GameState.END,
+                                                type: GameEventType.END,
                                             }),
                                         },
                                     ],
@@ -194,9 +192,6 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                     },
                 },
             },
-            [GameState.END]: {
-                after: { 1000: GameState.WATING },
-            },
         },
     },
     {
@@ -210,21 +205,29 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                 },
             }),
             UPDATE_SCORE: assign<GameContext>({
-                players: ({ players }, { data: winner }) =>
-                    winner
+                players: ({ players }, { data: { winner } }) => {
+                    console.log(winner);
+                    return winner
                         ? players.update(winner, player => ({
                               ...player,
                               score: player.score + 1,
                           }))
-                        : players,
-                winner: (_, { data: winner }) => winner,
+                        : players;
+                },
+                winner: (_, { data: { winner } }) => winner,
                 round: undefined,
             }),
             UPDATE_ROUND: assign<GameContext>({
                 roundNumber: ctx => ctx.roundNumber + 1,
             }),
             GENERATE_QUESTION: assign<GameContext>({
-                round: ctx => ({ ...ctx.round, ...generate() }),
+                round: ctx => ({
+                    ...ctx.round,
+                    question: [1, 2, 2, 3, 4],
+                    operators: ['+', '-', '*', '/'],
+                    expectedAnswer: 9,
+                    solution: ['(', 2, '+', 4, '*', 1, ')', '*', 3, '/', 2],
+                }),
             }),
         },
         guards: {

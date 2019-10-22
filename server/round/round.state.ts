@@ -190,8 +190,9 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                 winner: ({ history }) =>
                     history
                         .filter(({ time }) => time)
-                        .reduce((prev, cur) =>
-                            cur.time < prev.time ? cur : prev,
+                        .reduce(
+                            (prev, cur) => (cur.time < prev.time ? cur : prev),
+                            { player: null, time: 9999999 },
                         ).player,
             }),
         },

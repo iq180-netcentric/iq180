@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { EventService } from '../event/event.service';
 import { IN_EVENT, AnswerEvent } from '../event/in-events';
-import { map, filter, withLatestFrom, tap } from 'rxjs/operators';
+import {
+    map,
+    filter,
+    withLatestFrom,
+    tap,
+    distinctUntilChanged,
+} from 'rxjs/operators';
 import { Answer, RoundEventType } from './round.state';
 import { GameMachine } from '../game/game.machine';
 import { GameService, broadcastStartGame } from '../game/game.service';
@@ -20,12 +26,13 @@ export class RoundService {
         this.broadCurrentPlayer$.subscribe(player =>
             eventService.broadcastCurrentPlayer(player),
         );
-        this.endTurn$.subscribe(() => eventService.emitEndTurn(null));
+        this.endTurn$.subscribe(data => eventService.emitEndTurn(data));
         this.startRound$.subscribe(p => eventService.broadcastStartRound(p));
         this.endRound$.subscribe(w => eventService.broadcastEndRound(w));
     }
 
     answer$ = this.eventService.listenFor<AnswerEvent>(IN_EVENT.ANSWER).pipe(
+        tap(event => console.log(event.event, event.data, event.client.id)),
         map(
             ({ data, client }): Answer => ({
                 type: RoundEventType.ANSWER,
@@ -34,7 +41,7 @@ export class RoundService {
         ),
     );
     startRound$ = this.gameMachine.state$.pipe(
-        filter(state => state.matches('PLAYING.ROUND.START')),
+        filter(state => state.event.type === RoundEventType.START_ROUND),
         withLatestFrom(this.gameMachine.gamers$, this.gameService.gamePlayers$),
         map(([, gamers, players]) => {
             return broadcastStartGame(gamers, players);
@@ -42,7 +49,7 @@ export class RoundService {
     );
 
     endRound$ = this.gameMachine.state$.pipe(
-        filter(state => state.matches('PLAYING.ROUND.END')),
+        filter(state => state.event.type === ('done.invoke.round' as any)),
         withLatestFrom(
             this.gameMachine.context$,
             this.gameService.gamePlayers$,
@@ -56,7 +63,7 @@ export class RoundService {
         }),
     );
     startTurn$ = this.gameMachine.state$.pipe(
-        filter(state => state.matches('PLAYING.TURN.START')),
+        filter(state => state.event.type === RoundEventType.START_TURN),
     );
 
     emitQuestion$ = this.startTurn$.pipe(
@@ -71,7 +78,6 @@ export class RoundService {
                 data: { ...rest, startTime: startTime.toISOString() },
             };
         }),
-        // tap(q => console.log(q)),
     );
 
     broadCurrentPlayer$ = this.startTurn$.pipe(
@@ -85,7 +91,7 @@ export class RoundService {
         }),
     );
     endTurn$ = this.gameMachine.state$.pipe(
-        filter(state => state.matches('PLAYING.TURN.END')),
+        filter(state => state.event.type === RoundEventType.END_TURN),
         withLatestFrom(this.gameMachine.round$, this.gameService.gamePlayers$),
         map(([, round, players]) => {
             const { currentPlayer } = round;

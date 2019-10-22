@@ -108,9 +108,7 @@ export class GameService {
     );
 
     broadcastStartGame$ = this.gameMachine.state$.pipe(
-        filter(state =>
-            state.matches({ PLAYING: { ROUND: 'START', TURN: 'IDLE' } }),
-        ),
+        filter(state => state.event.type === GameEventType.START),
         distinctUntilChanged(),
         withLatestFrom(this.gameMachine.gamers$, this.gamePlayers$),
         map(([, gamers, players]) => {
@@ -118,7 +116,7 @@ export class GameService {
         }),
     );
     endGame$ = this.gameMachine.state$.pipe(
-        filter(state => state.matches(GameState.END)),
+        filter(state => state.event.type === GameEventType.END),
         withLatestFrom(this.gameMachine.gamers$, this.gamePlayers$),
         map(([, gamers, players]) => {
             return broadcastStartGame(gamers, players);
