@@ -43,6 +43,14 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     destroy$ = new Subject();
 
+    gameReady$ = this.socket
+        .listenFor<Player[]>(WebSocketIncomingEvent.players)
+        .pipe(
+            map(players => {
+                return players.filter(p => p.ready).length >= 2 ? true : false;
+            }),
+        );
+
     ready$ = this.stateService.ready$;
     currentGame$ = this.stateService.game$;
     welcomeModalInstance$ = new BehaviorSubject<NzModalRef>(undefined);
@@ -142,6 +150,13 @@ export class HomeComponent implements OnInit, OnDestroy {
     exitGame() {
         this.stateService.sendEvent({
             type: AppEventType.END_GAME,
+        });
+    }
+
+    startMultiplayer() {
+        this.socket.emit({
+            event: WebSocketOutgoingEvent.startGame,
+            data: null,
         });
     }
     showWelcomeModal(edit: boolean = false): void {

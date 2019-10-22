@@ -17,4 +17,5 @@ export enum WebSocketOutgoingEvent {
     chatMessage = 'CHAT_MESSAGE',
     ready = 'READY',
     notReady = 'NOT_READY',
+    startGame = 'START',
 }

@@ -36,7 +36,9 @@
                         <app-menu
                             (ready)="ready()"
                             (singlePlayer)="singlePlayer()"
+                            (multiPlayer)="startMultiplayer()"
                             [isReady]="ready$ | async"
+                            [isGameReady]="gameReady$ | async"
                         >
                         </app-menu>
                     </ng-template>
