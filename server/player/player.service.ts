@@ -109,7 +109,7 @@ export class PlayerService {
             isInRoom(),
             map(
                 ([event, players]): [ReceiveEvent, PlayerMap] => [
-                    { ...event, data: { ready: event.data } },
+                    { ...event, data: { ready: event.data || false } },
                     players,
                 ],
             ),
