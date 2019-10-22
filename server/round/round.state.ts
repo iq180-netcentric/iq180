@@ -57,7 +57,7 @@ export interface Answer {
 export interface StartTurn {
     type: RoundEventType.START_TURN;
     payload: {
-        player: string;
+        currentPlayer: string;
         startTime: Date;
     };
 }
@@ -159,7 +159,7 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
             [RoundActions.START_TURN]: sendParent(
                 ({ currentPlayer, startTime }) => ({
                     type: RoundEventType.START_TURN,
-                    payload: { player: currentPlayer, startTime },
+                    payload: { currentPlayer, startTime },
                 }),
             ),
             [RoundActions.TIME_OUT]: actions.send(
@@ -190,8 +190,9 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                 winner: ({ history }) =>
                     history
                         .filter(({ time }) => time)
-                        .reduce((prev, cur) =>
-                            cur.time < prev.time ? cur : prev,
+                        .reduce(
+                            (prev, cur) => (cur.time < prev.time ? cur : prev),
+                            { player: null, time: 9999999 },
                         ).player,
             }),
         },

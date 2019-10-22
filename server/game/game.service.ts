@@ -64,6 +64,7 @@ export class GameService {
         this.broadcastStartGame$.subscribe(i =>
             eventService.broadcastStartGame(i),
         );
+        this.endGame$.subscribe(i => eventService.broadcastEndGame(i));
         merge(this.gameReady$, this.startGame$).subscribe(i => {
             gameMachine.sendEvent(i);
         });
@@ -71,6 +72,16 @@ export class GameService {
 
     gameReady$ = this.playerService.onlinePlayers$.pipe(
         filter(playersReady),
+        distinctUntilChanged(),
+        map(
+            (ready): GameReady | GameNotReady =>
+                ready
+                    ? { type: GameEventType.READY }
+                    : { type: GameEventType.NOT_READY },
+        ),
+    );
+
+    gameStateReady$ = this.gameReady$.pipe(
         map(
             (ready): GameReady | GameNotReady =>
                 ready
@@ -98,9 +109,7 @@ export class GameService {
     );
 
     broadcastStartGame$ = this.gameMachine.state$.pipe(
-        filter(state =>
-            state.matches({ PLAYING: { ROUND: 'START', TURN: 'IDLE' } }),
-        ),
+        filter(state => state.event.type === GameEventType.START),
         distinctUntilChanged(),
         withLatestFrom(this.gameMachine.gamers$, this.gamePlayers$),
         map(([, gamers, players]) => {
@@ -108,7 +117,7 @@ export class GameService {
         }),
     );
     endGame$ = this.gameMachine.state$.pipe(
-        filter(state => state.matches(GameState.END)),
+        filter(state => state.event.type === GameEventType.END),
         withLatestFrom(this.gameMachine.gamers$, this.gamePlayers$),
         map(([, gamers, players]) => {
             return broadcastStartGame(gamers, players);

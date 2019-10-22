@@ -13,12 +13,11 @@ export class GameMachine {
             this.machine
                 // Listen for state transitions
                 .onTransition(state => {
-                    if (state.changed) {
-                        console.log('event: ', state.event);
-                        console.log('state: ', state.value);
-                        // console.log(state.context);
-                        handler(state);
-                    }
+                    // if (state.changed) {
+                    console.log('event: ', state.event);
+                    console.log('state: ', state.value);
+                    handler(state);
+                    // }
                 })
                 // Start the service
                 .start();
