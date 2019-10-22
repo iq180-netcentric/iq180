@@ -52,7 +52,6 @@
                 class="card-list"
                 nz-row
                 nzType="flex"
-                (cdkDropListEntered)="vibrate()"
                 nzJustify="space-around"
                 (cdkDropListDropped)="dropNumber($event)"
                 [cdkDropListEnterPredicate]="isNumber"
@@ -66,7 +65,7 @@
                     cdkDragBoundary=".game"
                     [cdkDragDisabled]="
                         card.disabled ||
-                        (!(isGaming$ | async) && isCurrentPlayer)
+                        (!(isGaming$ | async) && (isCurrentPlayer$ | async))
                     "
                     *ngFor="let card of numbers$ | async; let i = index"
                     (click)="addNumber(card, i)"
@@ -104,7 +103,7 @@
                         *ngFor="let card of answer$ | async; let i = index"
                         (click)="removeCard(card, i)"
                         [cdkDragDisabled]="
-                            isCurrentPlayer && !(isGaming$ | async)
+                            (isCurrentPlayer$ | async) && !(isGaming$ | async)
                         "
                         [cdkDragData]="card"
                         [ngClass]="{
@@ -149,7 +148,10 @@
                     nzLg="1"
                     class="card"
                     cdkDragBoundary=".game"
-                    [cdkDragDisabled]="!(isGaming$ | async) && isCurrentPlayer"
+                    [cdkDragDisabled]="
+                        (operators$ | async)?.length >= 16 ||
+                        (!(isGaming$ | async) && (isCurrentPlayer$ | async))
+                    "
                     *ngFor="let card of operators; let i = index"
                     [cdkDragData]="card"
                     (click)="addOperator(card, i)"
@@ -160,7 +162,11 @@
             </div>
         </div>
     </div>
-    <div class="reset">
+    <div class="buttons">
         <button nz-button nzType="danger" (click)="reset()">Reset</button>
+        <button nz-button nzType="primary" (click)="skip()">Skip</button>
+        <button nz-button nzType="default" (click)="endGame()">
+            Exit Single Player
+        </button>
     </div>
 </div>

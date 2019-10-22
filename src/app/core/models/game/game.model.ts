@@ -3,17 +3,12 @@ import { Player } from '../player.model';
 export enum GameMode {
     singlePlayer = 'SINGLE_PLAYER',
     multiPlayer = 'MULTI_PLAYER',
+    freeForAll = 'FreeForAll',
 }
 
-export enum GameStatus {
-    playing = 'PLAYING',
-    waiting = 'WAITING',
-}
-export interface Game {
+export interface GameInfo {
     mode: GameMode;
-    status: GameStatus;
-    ready?: boolean;
-    players?: (Player & Attempt)[];
+    rounds?: number;
 }
 
 export interface GameRound {
@@ -25,4 +20,15 @@ export interface GameRound {
 export interface Attempt {
     numbers: number[];
     answer: (string | number)[];
+}
+
+export interface GameQuestion {
+    question: number[];
+    expectedAnswer: number;
+}
+
+export interface GameAnswer {
+    question: number[];
+    answer: (number | string)[];
+    expectedAnswer: number;
 }

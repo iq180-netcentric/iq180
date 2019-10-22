@@ -71,6 +71,16 @@ export class GameService {
 
     gameReady$ = this.playerService.onlinePlayers$.pipe(
         filter(playersReady),
+        distinctUntilChanged(),
+        map(
+            (ready): GameReady | GameNotReady =>
+                ready
+                    ? { type: GameEventType.READY }
+                    : { type: GameEventType.NOT_READY },
+        ),
+    );
+
+    gameStateReady$ = this.gameReady$.pipe(
         map(
             (ready): GameReady | GameNotReady =>
                 ready

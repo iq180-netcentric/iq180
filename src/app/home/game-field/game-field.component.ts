@@ -1,4 +1,13 @@
-import { Component, OnInit, Input, ElementRef, ViewChild } from '@angular/core';
+import {
+    Component,
+    OnInit,
+    Input,
+    ElementRef,
+    ViewChild,
+    Output,
+    EventEmitter,
+    OnDestroy,
+} from '@angular/core';
 import {
     OperatorCard,
     DraggableCard,
@@ -8,30 +17,18 @@ import {
 import {
     BehaviorSubject,
     Observable,
-    empty,
-    interval,
-    of,
     timer,
     fromEvent,
     Subject,
     combineLatest,
+    race,
+    zip,
 } from 'rxjs';
-import {
-    transferArrayItem,
-    moveItemInArray,
-    CdkDragDrop,
-    CdkDrag,
-    CdkDropList,
-    CdkDragEnd,
-} from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
 import {
     startWith,
-    delay,
-    switchMap,
-    tap,
     take,
     map,
-    endWith,
     filter,
     debounce,
     debounceTime,
@@ -39,24 +36,37 @@ import {
     takeUntil,
     pluck,
     withLatestFrom,
+    takeLast,
+    switchMap,
+    tap,
+    mapTo,
+    takeWhile,
+    endWith,
+    mergeMap,
 } from 'rxjs/operators';
-import * as Logic from 'iq180-logic';
-import { Player } from 'src/app/core/models/player.model';
 import { DragAndDropService } from './drag-and-drop.service';
 import { isNumber, isOperator } from 'src/app/core/functions/predicates';
+import { NzModalService } from 'ng-zorro-antd';
+import { StateService, AppEventType } from 'src/app/core/service/state.service';
+import { AuthService } from 'src/app/core/service/auth.service';
+import { GameEventType } from './game-state.service';
 
 @Component({
     selector: 'app-game-field',
     templateUrl: './game-field.component.html',
     styleUrls: ['./game-field.component.scss'],
 })
-export class GameFieldComponent implements OnInit {
-    @Input() player: Player;
-    @Input() isCurrentPlayer: boolean;
+export class GameFieldComponent implements OnInit, OnDestroy {
+    @Input() player;
+    isCurrentPlayer$ = combineLatest([this.authService.player$]).pipe(
+        map(([c]) => this.player.id === c.id),
+    );
 
+    @Output() exit = new EventEmitter();
     // Game Data
     numbers$ = this.dndService.numbers$;
     answer$ = this.dndService.answer$;
+    question$ = this.dndService.question$;
     expectedAnswer$ = this.dndService.expectedAnswer$;
 
     // Game Validation
@@ -73,58 +83,158 @@ export class GameFieldComponent implements OnInit {
     removeCard = this.dndService.removeCard;
     removeNumber = this.dndService.removeNumber;
     removeOperator = this.dndService.removeOperator;
-    reset = this.dndService.reset;
 
     operators = this.dndService.operators;
 
     @ViewChild('main', { static: true }) main: ElementRef;
 
     timer$: Observable<number>;
-    isGaming$ = new BehaviorSubject<boolean>(false);
+    isGaming$ = this.stateService.game$.pipe(map(e => !!e));
+    playable$ = new BehaviorSubject<boolean>(false);
 
     destroy$ = new Subject();
+
+    resetTimer$ = new Subject();
 
     keypress$ = fromEvent<KeyboardEvent>(document, 'keydown').pipe(
         takeUntil(this.destroy$),
         pluck('key'),
     );
 
-    constructor(private dndService: DragAndDropService) {}
+    reset = () => this.dndService.reset();
 
+    constructor(
+        private dndService: DragAndDropService,
+        private modalService: NzModalService,
+        private stateService: StateService,
+        private authService: AuthService,
+    ) {}
+
+    skip() {
+        this.resetTimer$.next();
+        this.stateService.sendEvent({
+            type: GameEventType.SKIP,
+        });
+    }
+
+    okClick() {
+        this.stateService.sendEvent({
+            type: GameEventType.OK_CLICK,
+        });
+        this.resetTimer$.next();
+    }
+    ngOnDestroy() {
+        this.destroy$.next();
+    }
     ngOnInit() {
+        this.stateService.win$
+            .pipe(
+                takeUntil(this.destroy$),
+                debounceTime(500),
+            )
+            .subscribe(timeLeft => {
+                this.showWinDialog(timeLeft);
+            });
+        this.stateService.lose$
+            .pipe(
+                takeUntil(this.destroy$),
+                debounceTime(500),
+            )
+            .subscribe(() => {
+                this.showLoseDialog();
+            });
+        combineLatest([
+            this.stateService.question$,
+            this.stateService.expectedAnswer$,
+        ])
+            .pipe(
+                filter(
+                    ([question, expectedAnswer]) =>
+                        !!question && !!expectedAnswer,
+                ),
+                takeUntil(this.destroy$),
+                debounceTime(100),
+            )
+            .subscribe(([question, expectedAnswer]: [number[], number]) => {
+                this.dndService.setQuestion({ question, expectedAnswer });
+            });
         this.keypress$
             .pipe(
-                withLatestFrom(this.numbers$, this.answer$, this.isGaming$),
-                filter(([, , , isGaming]) => isGaming),
+                withLatestFrom(
+                    this.numbers$,
+                    this.answer$,
+                    this.isGaming$,
+                    this.playable$,
+                ),
+                takeUntil(this.destroy$),
+                // filter(([, , , isGaming, playable]) => isGaming && playable),
             )
-            .subscribe(([key, numbers, answers]) => {
-                if (isNumber(key)) {
-                    const n = Number(key);
-                    const idx = numbers.findIndex(e => e.value === n);
-                    if (idx >= 0) {
-                        this.addNumber(numbers[idx], idx);
-                    }
-                } else if (isOperator(this.operators.map(e => e.value), key)) {
-                    const idx = this.operators.findIndex(e => e.value === key);
-                    if (idx >= 0) {
-                        this.addOperator(this.operators[idx], idx);
-                    }
-                } else if (key === 'Backspace') {
-                    const idx = answers.length - 1;
-                    if (idx >= 0) {
-                        this.removeCard(answers[idx], idx);
-                    }
-                }
+            .subscribe(args => this.handleKeypress(args));
+        combineLatest([this.question$, this.expectedAnswer$, this.answer$])
+            .pipe(
+                takeUntil(this.destroy$),
+                debounceTime(100),
+            )
+            .subscribe(([question, expectedAnswer, answer]) => {
+                this.stateService.sendEvent({
+                    type: GameEventType.ATTEMPT,
+                    payload: {
+                        expectedAnswer,
+                        answer: answer.map(e => e.value),
+                    },
+                });
             });
-        this.dndService.reset();
         this.startGame();
     }
 
-    createTimer(startTime: Date) {
-        this.timer$ = timer(startTime, 1000).pipe(
-            take(61),
-            map(t => 60 - t),
-            startWith(0),
+    handleKeypress([key, numbers, answers]: [
+        string,
+        NumberCard[],
+        DraggableCard[],
+        boolean,
+        boolean
+    ]) {
+        if (isNumber(key)) {
+            const n = Number(key);
+            const idx = numbers.findIndex(e => e.value === n);
+            if (idx >= 0) {
+                this.addNumber(numbers[idx], idx);
+            }
+        } else if (isOperator(this.operators.map(e => e.value), key)) {
+            const idx = this.operators.findIndex(e => e.value === key);
+            if (idx >= 0) {
+                this.addOperator(this.operators[idx], idx);
+            }
+        } else if (key === 'Backspace') {
+            const idx = answers.length - 1;
+            if (idx >= 0) {
+                this.removeCard(answers[idx], idx);
+            }
+        }
+    }
+
+    createTimer(startTime?: Date) {
+        const n = 60;
+        this.timer$ = this.resetTimer$.pipe(
+            startWith(undefined),
+            switchMap(() =>
+                timer(new Date(), 1000).pipe(
+                    take(n + 1),
+                    map(t => n - t),
+                ),
+            ),
+            tap(time => {
+                if (time === 0) {
+                    this.stateService.sendEvent({
+                        type: GameEventType.LOSE,
+                    });
+                } else {
+                    this.stateService.sendEvent({
+                        type: GameEventType.TIMER,
+                        payload: time,
+                    });
+                }
+            }),
         );
     }
 
@@ -132,15 +242,37 @@ export class GameFieldComponent implements OnInit {
     startGame() {
         const future = new Date().valueOf() + 1000;
         this.createTimer(new Date(future));
-        this.timer$.subscribe(
-            time => {
-                this.isGaming$.next(true);
-            },
-            () => null,
-            () => {
-                this.isGaming$.next(false);
-            },
-        );
+        this.timer$.pipe(takeUntil(this.destroy$)).subscribe();
+    }
+
+    showWinDialog(timeLeft: number) {
+        this.modalService.success({
+            nzTitle: 'You win !',
+            nzContent: `It took you ${60 -
+                timeLeft} seconds for you to solve this`,
+            nzCancelText: 'Exit Game',
+            nzOnOk: () => this.okClick(),
+            nzOnCancel: () => this.endGame(),
+            nzKeyboard: false,
+        });
+    }
+
+    showLoseDialog() {
+        this.modalService.error({
+            nzTitle: 'You Lose !',
+            nzContent: 'Some Discouraging message',
+            nzCancelText: 'Exit Game',
+            nzOnOk: () => this.okClick(),
+            nzOnCancel: () => this.endGame(),
+            nzKeyboard: false,
+        });
+    }
+
+    endGame() {
+        this.exit.emit();
+        this.stateService.sendEvent({
+            type: AppEventType.END_GAME,
+        });
     }
 
     onDragEnded(event: CdkDragEnd) {
@@ -149,19 +281,11 @@ export class GameFieldComponent implements OnInit {
         source._passiveTransform = { x: 0, y: 0 }; // make it so new drag starts from same origin
     }
 
-    handleKeypress(event: KeyboardEvent) {
-        console.log(event);
-    }
-
     isNumber(item: CdkDrag<DraggableCard>) {
         return item.data.type === CardType.number;
     }
 
     isOperator(item: CdkDrag<DraggableCard>) {
         return item.data.type === CardType.operator;
-    }
-
-    vibrate() {
-        navigator.vibrate(200);
     }
 }

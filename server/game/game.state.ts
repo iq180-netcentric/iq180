@@ -1,7 +1,12 @@
 import { GamePlayerMap } from '../models/game';
 import { Machine, assign, send } from 'xstate';
 import { Map } from 'immutable';
-import { roundMachine, RoundEventType, RoundEvent } from '../round/round.state';
+import {
+    roundMachine,
+    RoundEventType,
+    RoundEvent,
+    StartTurn,
+} from '../round/round.state';
 import { generate } from 'iq180-logic';
 import { addSeconds } from '../round/round.utils';
 
@@ -100,11 +105,12 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                         states: {
                             IDLE: {},
                             START: {
+                                entry: 'GENERATE_QUESTION',
                                 invoke: {
                                     id: 'Round',
                                     src: roundMachine,
-                                    data: {
-                                        players: (ctx: GameContext) => {
+                                    data: (ctx: GameContext) => {
+                                        const getPlayers = () => {
                                             const players = ctx.players
                                                 .map(p => p.id)
                                                 .toIndexedSeq()
@@ -120,9 +126,15 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                                                 );
                                                 return [id, ...rest];
                                             }
-                                        },
-                                        ...generate(),
-                                        startTime: addSeconds(new Date(), 5),
+                                        };
+                                        return {
+                                            players: getPlayers(),
+                                            ...ctx.round,
+                                            startTime: addSeconds(
+                                                new Date(),
+                                                5,
+                                            ),
+                                        };
                                     },
                                     onDone: {
                                         target: 'END',
@@ -190,10 +202,10 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
     {
         actions: {
             START_TURN: assign<GameContext>({
-                round: ({ round }, event) => {
+                round: ({ round }, { payload }: StartTurn) => {
                     return {
                         ...round,
-                        ...event.payload,
+                        ...payload,
                     };
                 },
             }),
@@ -210,6 +222,9 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             }),
             UPDATE_ROUND: assign<GameContext>({
                 roundNumber: ctx => ctx.roundNumber + 1,
+            }),
+            GENERATE_QUESTION: assign<GameContext>({
+                round: ctx => ({ ...ctx.round, ...generate() }),
             }),
         },
         guards: {

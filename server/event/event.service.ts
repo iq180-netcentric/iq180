@@ -62,6 +62,8 @@ export class EventService {
         OUT_EVENT.CHAT_MESSAGE,
     );
 
+    broadcastGameReady = this.broadcastEvent(OUT_EVENT.GAME_READY);
+
     broadcastStartGame = this.broadcastEvent<StartGameEvent>(
         OUT_EVENT.START_GAME,
     );

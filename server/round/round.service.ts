@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventService } from '../event/event.service';
 import { IN_EVENT, AnswerEvent } from '../event/in-events';
-import { map, filter, withLatestFrom } from 'rxjs/operators';
+import { map, filter, withLatestFrom, tap } from 'rxjs/operators';
 import { Answer, RoundEventType } from './round.state';
 import { GameMachine } from '../game/game.machine';
 import { GameService, broadcastStartGame } from '../game/game.service';
@@ -64,11 +64,14 @@ export class RoundService {
         map(([, round, players]) => {
             const { currentPlayer, solution, startTime, ...rest } = round;
             const client = players.get(currentPlayer);
+            console.log('/////////');
+            console.log(round);
             return {
                 client,
                 data: { ...rest, startTime: startTime.toISOString() },
             };
         }),
+        // tap(q => console.log(q)),
     );
 
     broadCurrentPlayer$ = this.startTurn$.pipe(
