@@ -1,6 +1,7 @@
 import { Machine, assign, sendParent, send, actions } from 'xstate';
 import { validateForSubmission } from 'iq180-logic';
 import { Round } from '../models/round';
+import { addSeconds } from './round.utils';
 
 export const enum RoundState {
     START_ROUND = 'START_ROUND',
@@ -28,6 +29,7 @@ export interface RoundContext extends Round {
     history: RoundHistory[];
     currentPlayer: string;
     winner: string;
+    startTime: Date;
 }
 
 export const enum RoundEventType {
@@ -58,7 +60,6 @@ export interface StartTurn {
     type: RoundEventType.START_TURN;
     payload: {
         currentPlayer: string;
-        startTime: Date;
     };
 }
 export interface EndTurn {
@@ -74,6 +75,7 @@ export const enum RoundActions {
     CHOOSE_PLAYER = 'CHOOSE_PLAYER',
     START_ROUND = 'START_ROUND',
     START_TURN = 'START_TURN',
+    SET_START_TIME = 'SET_START_TIME',
     TIME_OUT = 'TIME_OUT',
     CANCEL_TIMER = 'CANCEL_TIMER',
     WRONG = 'WRONG',
@@ -105,7 +107,11 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                 },
             },
             [RoundState.START_TURN]: {
-                entry: [RoundActions.START_TURN, RoundActions.TIME_OUT],
+                entry: [
+                    RoundActions.SET_START_TIME,
+                    RoundActions.START_TURN,
+                    RoundActions.TIME_OUT,
+                ],
                 on: {
                     [RoundEventType.TIME_OUT]: {
                         target: RoundState.END_TURN,
@@ -156,12 +162,13 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                     return players[index + 1];
                 },
             }),
-            [RoundActions.START_TURN]: sendParent(
-                ({ currentPlayer, startTime }) => ({
-                    type: RoundEventType.START_TURN,
-                    payload: { currentPlayer, startTime },
-                }),
-            ),
+            [RoundActions.START_TURN]: sendParent(({ currentPlayer }) => ({
+                type: RoundEventType.START_TURN,
+                payload: { currentPlayer },
+            })),
+            [RoundActions.SET_START_TIME]: assign<RoundContext>({
+                startTime: () => addSeconds(new Date(), 5),
+            }),
             [RoundActions.TIME_OUT]: actions.send(
                 { type: RoundEventType.TIME_OUT },
                 { delay: 65000, id: 'timer' },

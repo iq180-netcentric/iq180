@@ -40,7 +40,6 @@ export interface GameContext {
         operators: string[];
         expectedAnswer: number;
         solution: (string | number)[];
-        startTime: Date;
     };
 }
 export const enum GameEventType {
@@ -128,10 +127,6 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                                         return {
                                             players: getPlayers(),
                                             ...ctx.round,
-                                            startTime: addSeconds(
-                                                new Date(),
-                                                5,
-                                            ),
                                         };
                                     },
                                     onDone: {

@@ -76,9 +76,9 @@ export class EventService {
 
     broadcastEndRound = this.broadcastEvent<EndRoundEvent>(OUT_EVENT.END_ROUND);
 
-    emitStartTurn = this.emitEvent<StartTurnEvent>(OUT_EVENT.START_TURN);
+    broadcastStartTurn = this.broadcastEvent<StartTurnEvent>(
+        OUT_EVENT.START_TURN,
+    );
 
     emitEndTurn = this.emitEvent(OUT_EVENT.END_TURN);
-
-    broadcastCurrentPlayer = this.broadcastEvent(OUT_EVENT.CURRENT_PLAYER);
 }
