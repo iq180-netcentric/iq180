@@ -50,6 +50,7 @@ import { NzModalService } from 'ng-zorro-antd';
 import { StateService, AppEventType } from 'src/app/core/service/state.service';
 import { AuthService } from 'src/app/core/service/auth.service';
 import { GameEventType } from './game-state.service';
+import { GameMode, GameInfo } from 'src/app/core/models/game/game.model';
 
 @Component({
     selector: 'app-game-field',
@@ -58,9 +59,7 @@ import { GameEventType } from './game-state.service';
 })
 export class GameFieldComponent implements OnInit, OnDestroy {
     @Input() player;
-    isCurrentPlayer$ = combineLatest([this.authService.player$]).pipe(
-        map(([c]) => this.player.id === c.id),
-    );
+    @Input() isCurrentPlayer = false;
 
     @Output() exit = new EventEmitter();
     // Game Data
@@ -184,6 +183,7 @@ export class GameFieldComponent implements OnInit, OnDestroy {
                     },
                 });
             });
+
         this.startGame();
     }
 
@@ -223,18 +223,20 @@ export class GameFieldComponent implements OnInit, OnDestroy {
                     map(t => n - t),
                 ),
             ),
-            tap(time => {
-                if (time === 0) {
+            withLatestFrom(this.stateService.game$),
+            tap(([time, game]: [number, GameInfo]) => {
+                this.stateService.sendEvent({
+                    type: GameEventType.TIMER,
+                    payload: time,
+                });
+                if (game.mode === GameMode.singlePlayer && time === 0) {
                     this.stateService.sendEvent({
                         type: GameEventType.LOSE,
                     });
-                } else {
-                    this.stateService.sendEvent({
-                        type: GameEventType.TIMER,
-                        payload: time,
-                    });
                 }
             }),
+            map(([time, game]) => time),
+            share(),
         );
     }
 

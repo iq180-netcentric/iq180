@@ -40,6 +40,7 @@ export const enum GameEventType {
     WAIT = 'WAIT',
     END = 'END',
     START_ROUND = 'START_ROUND',
+    START_TURN = 'START_TURN',
     END_ROUND = 'END_ROUND',
     OK_CLICK = 'OK_CLICK',
     CANCEL_CLICK = 'CANCEL_CLICK',
@@ -83,6 +84,14 @@ export interface GameExit {
     type: GameEventType.EXIT;
 }
 
+export interface GameStartTurn {
+    type: GameEventType.START_TURN;
+    payload: {
+        question: number[];
+        expectedAnswer: number;
+    };
+}
+
 export interface GameTimer {
     type: GameEventType.TIMER;
     payload: number;
@@ -103,6 +112,7 @@ export type GameEvent =
     | GameOkClick
     | GameTimer
     | GameCancelClick
+    | GameStartTurn
     | GameExit
     | GameAnswerAttempt;
 
