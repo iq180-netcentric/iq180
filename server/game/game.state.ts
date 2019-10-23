@@ -8,7 +8,6 @@ import {
     StartTurn,
 } from '../round/round.state';
 import { generate } from 'iq180-logic';
-import { addSeconds } from '../round/round.utils';
 
 export const enum GameState {
     WATING = 'WAITING',
@@ -23,7 +22,6 @@ interface GameStateSchema {
         [GameState.PLAYING]: {
             states: {
                 ROUND: { states: { IDLE: {}; START: {}; END: {} } };
-                TURN: { states: { IDLE: {}; START: {}; END: {} } };
             };
         };
     };
@@ -90,12 +88,10 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                     [RoundEventType.ANSWER]: {
                         actions: send((_, event) => event, { to: 'round' }),
                     },
-                    [RoundEventType.START_ROUND]: {},
                     [GameEventType.END]: {
                         target: GameState.WATING,
                     },
                 },
-                type: 'parallel',
                 states: {
                     ROUND: {
                         initial: 'START',
@@ -153,34 +149,6 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                                             }),
                                         },
                                     ],
-                                },
-                            },
-                        },
-                    },
-                    TURN: {
-                        initial: 'IDLE',
-                        states: {
-                            IDLE: {
-                                on: {
-                                    [RoundEventType.START_TURN]: {
-                                        target: 'START',
-                                        actions: 'START_TURN',
-                                    },
-                                },
-                            },
-                            START: {
-                                on: {
-                                    [RoundEventType.END_TURN]: {
-                                        target: 'END',
-                                    },
-                                },
-                            },
-                            END: {
-                                on: {
-                                    [RoundEventType.START_TURN]: {
-                                        target: 'START',
-                                        actions: 'START_TURN',
-                                    },
                                 },
                             },
                         },
