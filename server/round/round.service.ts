@@ -6,10 +6,12 @@ import {
     filter,
     withLatestFrom,
     distinctUntilChanged,
+    delay,
 } from 'rxjs/operators';
 import { Answer, RoundEventType } from './round.state';
 import { GameMachine } from '../game/game.machine';
 import { GameService, broadcastStartGame } from '../game/game.service';
+import { merge } from 'rxjs';
 
 @Injectable()
 export class RoundService {
@@ -19,11 +21,8 @@ export class RoundService {
         private readonly gameService: GameService,
     ) {
         this.answer$.subscribe(answer => gameMachine.sendEvent(answer));
-        this.emitQuestion$.subscribe(question =>
-            eventService.emitStartTurn(question),
-        );
-        this.broadCurrentPlayer$.subscribe(player =>
-            eventService.broadcastCurrentPlayer(player),
+        merge(this.emitQuestion$, this.broadCurrentPlayer$).subscribe(
+            question => eventService.broadcastStartTurn(question),
         );
         this.endTurn$.subscribe(data => eventService.emitEndTurn(data));
         this.startRound$.subscribe(p => eventService.broadcastStartRound(p));
@@ -62,18 +61,22 @@ export class RoundService {
     );
     startTurn$ = this.gameMachine.state$.pipe(
         filter(state => state.event.type === RoundEventType.START_TURN),
+        delay(5000),
     );
 
     emitQuestion$ = this.startTurn$.pipe(
         withLatestFrom(this.gameMachine.round$, this.gameService.gamePlayers$),
         map(([, round, players]) => {
-            const { currentPlayer, solution, startTime, ...rest } = round;
-            const client = players.get(currentPlayer);
+            const { currentPlayer, solution, ...rest } = round;
+            const clients = [players.get(currentPlayer)];
             console.log('/////////');
             console.log(round);
             return {
-                client,
-                data: { ...rest, startTime: startTime.toISOString() },
+                clients,
+                data: {
+                    ...rest,
+                    currentPlayer,
+                },
             };
         }),
     );
@@ -84,7 +87,7 @@ export class RoundService {
             const { currentPlayer } = round;
             return {
                 clients: players.toIndexedSeq().toArray(),
-                data: currentPlayer,
+                data: { currentPlayer },
             };
         }),
     );
