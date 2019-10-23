@@ -85,11 +85,12 @@ export class RoundService {
         withLatestFrom(this.gameMachine.round$, this.gameService.gamePlayers$),
         map(([, round, players]) => {
             const { currentPlayer } = round;
+            const clients = players
+                .filter(p => p.id != currentPlayer)
+                .toIndexedSeq()
+                .toArray();
             return {
-                clients: players
-                    .filter(p => p.id != currentPlayer)
-                    .toIndexedSeq()
-                    .toArray(),
+                clients,
                 data: { currentPlayer },
             };
         }),

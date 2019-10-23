@@ -21,7 +21,9 @@ interface GameStateSchema {
         [GameState.READY]: {};
         [GameState.PLAYING]: {
             states: {
-                ROUND: { states: { IDLE: {}; START: {}; END: {} } };
+                ROUND_START: {};
+                ROUND_END: {};
+                GAME_END: {};
             };
         };
     };
@@ -91,66 +93,60 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                     [GameEventType.END]: {
                         target: GameState.WATING,
                     },
+                    [RoundEventType.START_TURN]: {
+                        actions: 'START_TURN',
+                    },
                 },
+                initial: 'ROUND_START',
                 states: {
-                    ROUND: {
-                        initial: 'START',
-                        states: {
-                            IDLE: {},
-                            START: {
-                                entry: 'GENERATE_QUESTION',
-                                invoke: {
-                                    id: 'round',
-                                    src: roundMachine,
-                                    data: (ctx: GameContext) => {
-                                        const getPlayers = () => {
-                                            const players = ctx.players
-                                                .map(p => p.id)
-                                                .toIndexedSeq()
-                                                .toArray();
-                                            const { winner } = ctx;
-                                            if (!winner) return players;
-                                            else {
-                                                const { id } = ctx.players.get(
-                                                    winner,
-                                                );
-                                                const rest = players.filter(
-                                                    p => p !== winner,
-                                                );
-                                                return [id, ...rest];
-                                            }
-                                        };
-                                        return {
-                                            players: getPlayers(),
-                                            ...ctx.round,
-                                        };
-                                    },
-                                    onDone: {
-                                        target: 'END',
-                                        actions: [
-                                            'UPDATE_SCORE',
-                                            'UPDATE_ROUND',
-                                        ],
-                                    },
-                                },
+                    GAME_END: {},
+                    ROUND_START: {
+                        entry: 'GENERATE_QUESTION',
+                        invoke: {
+                            id: 'round',
+                            src: roundMachine,
+                            data: (ctx: GameContext) => {
+                                const getPlayers = () => {
+                                    const players = ctx.players
+                                        .map(p => p.id)
+                                        .toIndexedSeq()
+                                        .toArray();
+                                    const { winner } = ctx;
+                                    if (!winner) return players;
+                                    else {
+                                        const { id } = ctx.players.get(winner);
+                                        const rest = players.filter(
+                                            p => p !== winner,
+                                        );
+                                        return [id, ...rest];
+                                    }
+                                };
+                                return {
+                                    players: getPlayers(),
+                                    ...ctx.round,
+                                };
                             },
-                            END: {
-                                on: {
-                                    '': [
-                                        {
-                                            target: 'START',
-                                            cond: 'NOT_FINISHED',
-                                        },
-                                        {
-                                            target: 'IDLE',
-                                            cond: 'FINISHED',
-                                            actions: send({
-                                                type: GameEventType.END,
-                                            }),
-                                        },
-                                    ],
-                                },
+                            onDone: {
+                                target: 'ROUND_END',
+                                actions: ['UPDATE_SCORE', 'UPDATE_ROUND'],
                             },
+                        },
+                    },
+                    ROUND_END: {
+                        on: {
+                            '': [
+                                {
+                                    target: 'ROUND_START',
+                                    cond: 'NOT_FINISHED',
+                                },
+                                {
+                                    target: 'GAME_END',
+                                    cond: 'FINISHED',
+                                    actions: send({
+                                        type: GameEventType.END,
+                                    }),
+                                },
+                            ],
                         },
                     },
                 },
@@ -186,7 +182,11 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             GENERATE_QUESTION: assign<GameContext>({
                 round: ctx => ({
                     ...ctx.round,
-                    ...generate(),
+                    // ...generate(),
+                    question: [5, 4, 9, 4, 5],
+                    operators: ['+', '-', '*', '/'],
+                    expectedAnswer: 1,
+                    solution: ['(', 5, '-', 4, '*', 9, '/', 4, ')', '+', 5],
                 }),
             }),
         },
