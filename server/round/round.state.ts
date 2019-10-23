@@ -205,18 +205,17 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
         },
         guards: {
             [RoundCond.CORRECT_ANSWER]: (
-                { expectedAnswer, question, operators },
-                event: Answer,
+                { expectedAnswer, question, operators, currentPlayer },
+                { payload: { answer, player } }: Answer,
             ) => {
-                const result = validateForSubmission({
-                    array: event.payload.answer,
+                const correct = validateForSubmission({
+                    array: answer,
                     expectedAnswer,
                     question,
                     operators,
                 });
-                return result;
+                return correct && player == currentPlayer;
             },
-
             [RoundCond.FINISHED]: ({ history = [], players = [] }) =>
                 history.length === players.length,
             [RoundCond.NOT_FINISHED]: context => {
