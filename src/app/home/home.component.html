@@ -45,6 +45,7 @@
                     <ng-container *ngIf="currentGame$ | async; else menu">
                         <app-game-field
                             [player]="selectedPlayer$ | async"
+                            [isCurrentPlayer]="isCurrentPlayer$ | async"
                             (exit)="exitGame()"
                         ></app-game-field>
                     </ng-container>

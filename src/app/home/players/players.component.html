@@ -17,8 +17,17 @@
                 *ngIf="player"
                 [nzTitle]="nzTitle"
                 nzAvatar="{{ player.avatar }}"
-                [nzDescription]="player.ready ? 'Ready' : 'Not Ready'"
+                [nzDescription]="description"
             >
+                <ng-template #description>
+                    {{
+                        player.score !== undefined
+                            ? 'Score: ' + player.score
+                            : player.ready
+                            ? 'Ready'
+                            : 'Not Ready'
+                    }}
+                </ng-template>
                 <ng-template #nzTitle>
                     {{ player.name }}
                 </ng-template>

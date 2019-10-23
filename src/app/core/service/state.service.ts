@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Machine, interpret, assign, send, State } from 'xstate';
-import { fromEventPattern } from 'rxjs';
+import { fromEventPattern, Observable } from 'rxjs';
 import {
     pluck,
     share,
@@ -20,6 +20,7 @@ import {
 import { GameInfo, GameMode, GameAnswer } from '../models/game/game.model';
 import { Player } from '../models/player.model';
 import { generate, calculate } from 'iq180-logic';
+import { Game } from 'server/models/game';
 
 export const enum AppState {
     IDLE = 'IDLE',
@@ -32,6 +33,7 @@ interface AppStateSchema {
         [AppState.IDLE]: {};
         [AppState.PLAYING]: {
             states: {
+                [GameState.WAITING]: {};
                 [GameState.PLAYING]: {};
                 [GameState.WIN]: {};
                 [GameState.LOSE]: {};
@@ -67,7 +69,7 @@ export interface AppStart {
     type: AppEventType.START_GAME;
     payload: {
         info: GameInfo;
-        player: Player;
+        players?: Player[];
     };
 }
 
@@ -107,13 +109,19 @@ export class StateService {
                     },
                 },
                 [AppState.PLAYING]: {
-                    entry: 'GENERATE_QUESTION',
-                    initial: GameState.PLAYING,
+                    initial: GameState.WAITING,
                     on: {
                         [GameEventType.SKIP]: {
                             target: AppState.PLAYING,
                             actions: 'GENERATE_QUESTION',
                         },
+                        [GameEventType.START_ROUND]: {
+                            actions: [
+                                'SELECT_PLAYER',
+                                send((_, evt) => evt, { to: 'game' }),
+                            ],
+                        },
+
                         [GameEventType.ATTEMPT]: {
                             actions: [send((_, evt) => evt, { to: 'game' })],
                         },
@@ -122,12 +130,34 @@ export class StateService {
                         },
                         [AppEventType.END_GAME]: {
                             target: AppState.IDLE,
-                            cond: (ctx, evt) =>
-                                ctx.currentGame.mode === GameMode.singlePlayer,
+                            cond: 'SINGLE_PLAYER',
                             actions: ['CLEAR_GAME'],
                         },
                     },
                     states: {
+                        [GameState.WAITING]: {
+                            on: {
+                                [GameEventType.START_TURN]: {
+                                    target: GameState.PLAYING,
+                                    actions: [
+                                        assign((ctx, evt) => {
+                                            const {
+                                                question,
+                                                expectedAnswer,
+                                                currentPlayer,
+                                            } = evt.payload;
+                                            console.log(currentPlayer);
+                                            return {
+                                                ...ctx,
+                                                question,
+                                                expectedAnswer,
+                                                selectedPlayer: currentPlayer,
+                                            };
+                                        }),
+                                    ],
+                                },
+                            },
+                        },
                         [GameState.PLAYING]: {
                             on: {
                                 [GameEventType.ATTEMPT]: [
@@ -154,9 +184,7 @@ export class StateService {
                                     actions: ['SET_TIMER'],
                                 },
                                 [GameEventType.SKIP]: {
-                                    cond: (ctx, evt) =>
-                                        ctx.currentGame.mode ===
-                                        GameMode.singlePlayer,
+                                    cond: 'SINGLE_PLAYER',
                                     actions: 'GENERATE_QUESTION',
                                 },
                                 [GameEventType.LOSE]: {
@@ -167,9 +195,7 @@ export class StateService {
                         [GameState.WIN]: {
                             on: {
                                 [GameEventType.CANCEL_CLICK]: {
-                                    cond: (ctx, evt) =>
-                                        ctx.currentGame.mode ===
-                                        GameMode.singlePlayer,
+                                    cond: 'SINGLE_PLAYER',
                                     actions: send(
                                         () => ({ type: GameEventType.EXIT }),
                                         { to: 'game' },
@@ -177,9 +203,7 @@ export class StateService {
                                 },
                                 [GameEventType.OK_CLICK]: {
                                     target: GameState.PLAYING,
-                                    cond: (ctx, evt) =>
-                                        ctx.currentGame.mode ===
-                                        GameMode.singlePlayer,
+                                    cond: 'SINGLE_PLAYER',
                                     actions: ['GENERATE_QUESTION'],
                                 },
                             },
@@ -187,9 +211,7 @@ export class StateService {
                         [GameState.LOSE]: {
                             on: {
                                 [GameEventType.CANCEL_CLICK]: {
-                                    cond: (ctx, evt) =>
-                                        ctx.currentGame.mode ===
-                                        GameMode.singlePlayer,
+                                    cond: 'SINGLE_PLAYER',
                                     actions: send(
                                         () => ({ type: GameEventType.EXIT }),
                                         { to: 'game' },
@@ -197,9 +219,7 @@ export class StateService {
                                 },
                                 [GameEventType.OK_CLICK]: {
                                     target: GameState.PLAYING,
-                                    cond: (ctx, evt) =>
-                                        ctx.currentGame.mode ===
-                                        GameMode.singlePlayer,
+                                    cond: 'SINGLE_PLAYER',
                                     actions: ['GENERATE_QUESTION'],
                                 },
                             },
@@ -233,6 +253,10 @@ export class StateService {
             },
         },
         {
+            guards: {
+                SINGLE_PLAYER: (ctx, evt) =>
+                    ctx.currentGame.mode === GameMode.singlePlayer,
+            },
             actions: {
                 SET_READY: assign<AppContext>({ ready: () => true }),
                 UNSET_READY: assign<AppContext>({ ready: () => false }),
@@ -243,10 +267,8 @@ export class StateService {
                     expectedAnswer: undefined,
                 }),
                 SET_GAME: assign<AppContext>({
-                    selectedPlayer: (_, evt) => {
-                        return evt.payload.player;
-                    },
                     currentGame: (_, evt) => evt.payload.info,
+                    players: (_, evt) => evt.payload.players,
                 }),
                 SELECT_PLAYER: assign<AppContext>({
                     selectedPlayer: (_, evt) => evt.payload,
@@ -295,7 +317,7 @@ export class StateService {
         pluck('context', 'ready'),
         shareReplay(),
     );
-    game$ = this.state$.pipe(
+    game$: Observable<GameInfo> = this.state$.pipe(
         pluck('context', 'currentGame'),
         shareReplay(),
     );

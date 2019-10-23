@@ -7,6 +7,11 @@ export enum WebSocketIncomingEvent {
     players = 'PLAYERS',
     playerInfo = 'PLAYER_INFO',
     chatMessage = 'CHAT_MESSAGE',
+    startGame = 'START_GAME',
+    startRound = 'START_ROUND',
+    startTurn = 'START_TURN',
+    currentPlayer = 'CURRENT_PLAYER',
+    endTurn = 'END_TURN',
 }
 
 export enum WebSocketOutgoingEvent {

@@ -27,9 +27,10 @@ import {
     pluck,
     distinctUntilChanged,
     distinctUntilKeyChanged,
+    startWith,
 } from 'rxjs/operators';
 import { StateService, AppEventType } from '../core/service/state.service';
-import { GameMode } from '../core/models/game/game.model';
+import { GameQuestion, GameMode } from '../core/models/game/game.model';
 import { GameEventType } from './game-field/game-state.service';
 
 @Component({
@@ -40,7 +41,35 @@ import { GameEventType } from './game-field/game-state.service';
 export class HomeComponent implements OnInit, OnDestroy {
     currentPlayer$: Observable<Player> = this.authService.player$;
     selectedPlayer$ = this.stateService.selectedPlayer$;
+    isCurrentPlayer$ = combineLatest([
+        this.currentPlayer$,
+        this.selectedPlayer$,
+    ]).pipe(
+        tap(console.log),
+        map(([c, s]) => c && s && c.id === s.id),
+    );
 
+    players$ = this.socket
+        .listenFor<Player[]>(WebSocketIncomingEvent.players)
+        .pipe(
+            withLatestFrom(
+                this.socket
+                    .listenFor<{ id: string; score: number }[]>(
+                        WebSocketIncomingEvent.startRound,
+                    )
+                    .pipe(startWith([])),
+            ),
+            map(([players, playingPlayers]) => {
+                return players.map(player => {
+                    const scorePlayer = playingPlayers.find(
+                        p => p.id === player.id,
+                    );
+                    return scorePlayer
+                        ? { ...player, score: scorePlayer.score }
+                        : player;
+                });
+            }),
+        );
     destroy$ = new Subject();
 
     gameReady$ = this.socket
@@ -104,13 +133,61 @@ export class HomeComponent implements OnInit, OnDestroy {
                     data: ready,
                 });
             });
+        this.socket
+            .listenFor<Player[]>(WebSocketIncomingEvent.startGame)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(players => {
+                this.stateService.sendEvent({
+                    type: AppEventType.START_GAME,
+                    payload: {
+                        info: {
+                            mode: GameMode.multiPlayer,
+                        },
+                        players,
+                    },
+                });
+            });
+        this.socket
+            .listenFor<any>(WebSocketIncomingEvent.startTurn)
+            .pipe(
+                takeUntil(this.destroy$),
+                withLatestFrom(this.currentPlayer$, this.players$),
+            )
+            .subscribe(([args, player, players]) => {
+                const { currentPlayer, question, expectedAnswer } = args;
+                if (player.id === currentPlayer) {
+                    this.stateService.sendEvent({
+                        type: GameEventType.START_TURN,
+                        payload: {
+                            currentPlayer: player,
+                            question,
+                            expectedAnswer,
+                        },
+                    });
+                } else {
+                    this.stateService.sendEvent({
+                        type: GameEventType.START_TURN,
+                        payload: {
+                            currentPlayer: players.find(
+                                p => p.id === currentPlayer,
+                            ),
+                        },
+                    });
+                }
+            });
     }
 
     selectPlayer(player: Player) {
-        this.stateService.sendEvent({
-            type: AppEventType.SELECT_PLAYER,
-            payload: player,
-        });
+        combineLatest(this.currentGame$)
+            .pipe(take(1))
+            .subscribe(([game]) => {
+                if (game.mode === GameMode.singlePlayer) {
+                    this.stateService.sendEvent({
+                        type: AppEventType.SELECT_PLAYER,
+                        payload: player,
+                    });
+                }
+            });
     }
     ready() {
         combineLatest(this.currentPlayer$)
@@ -133,8 +210,11 @@ export class HomeComponent implements OnInit, OnDestroy {
                         info: {
                             mode: GameMode.singlePlayer,
                         },
-                        player,
                     },
+                });
+                this.stateService.sendEvent({
+                    type: GameEventType.START_ROUND,
+                    payload: player,
                 });
             });
     }
