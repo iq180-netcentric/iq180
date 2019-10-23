@@ -28,6 +28,9 @@ export const players: Reducer<PlayerMap, PlayerAction> = (
             const { payload } = action;
             return state.set(payload.id, payload);
         }
+        case PLAYER_ACTION.RESET: {
+            return state.map(player => ({ ...player, ready: false }));
+        }
         default:
             return state;
     }

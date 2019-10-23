@@ -18,7 +18,7 @@ export interface EmitEvent<T = any> extends EmitMessage<T> {
     event: string;
 }
 export interface BroadcastMessage<T = any> {
-    data: T;
+    data?: T;
     clients: SocketClient[];
 }
 

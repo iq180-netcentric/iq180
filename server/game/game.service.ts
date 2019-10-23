@@ -6,6 +6,8 @@ import {
     withLatestFrom,
     pluck,
     distinctUntilChanged,
+    mapTo,
+    tap,
 } from 'rxjs/operators';
 import { merge } from 'rxjs';
 import { PlayerMap } from '../player/player.store';
@@ -19,9 +21,11 @@ import {
     GameNotReady,
     GameStart,
     GameState,
+    GameEnd,
 } from './game.state';
 import { GameMachine } from './game.machine';
 import { SocketClient } from '../event/event.type';
+import { log } from '../utils';
 
 export const playersReady = (players: PlayerMap): boolean => {
     const numberOfReady = players.filter(p => p.ready).size;
@@ -44,9 +48,12 @@ export const transformToGamePlayerMap = (playerMap: PlayerMap): GamePlayerMap =>
 
 export const broadcastStartGame = (
     gamers: GamePlayerMap,
-    players: Map<string, SocketClient>,
+    players: PlayerMap,
 ) => {
-    const clients = players.toIndexedSeq().toArray();
+    const clients = players
+        .map(p => p.client)
+        .toIndexedSeq()
+        .toArray();
     const data = gamers
         .map(({ id, score }) => ({ score, id }))
         .toIndexedSeq()
@@ -65,9 +72,9 @@ export class GameService {
             eventService.broadcastStartGame(i),
         );
         this.endGame$.subscribe(i => eventService.broadcastEndGame(i));
-        merge(this.gameReady$, this.startGame$).subscribe(i => {
-            gameMachine.sendEvent(i);
-        });
+        merge(this.gameReady$, this.startGame$, this.playerQuit$).subscribe(i =>
+            gameMachine.sendEvent(i),
+        );
     }
 
     gameReady$ = this.playerService.onlinePlayers$.pipe(
@@ -93,7 +100,9 @@ export class GameService {
     gamePlayers$ = this.gameMachine.gamers$.pipe(
         withLatestFrom(this.playerService.onlinePlayers$),
         map(([gamers, players]) =>
-            gamers.map((_, key) => players.get(key).client),
+            gamers
+                .filter((_, key) => players.has(key))
+                .map((_, key) => players.get(key).client),
         ),
     );
 
@@ -109,18 +118,36 @@ export class GameService {
     );
 
     broadcastStartGame$ = this.gameMachine.state$.pipe(
-        filter(state => state.event.type === GameEventType.START),
+        filter(
+            state =>
+                state.event.type === GameEventType.START &&
+                state.matches('PLAYING'),
+        ),
         distinctUntilChanged(),
-        withLatestFrom(this.gameMachine.gamers$, this.gamePlayers$),
+        withLatestFrom(
+            this.gameMachine.gamers$,
+            this.playerService.onlinePlayers$,
+        ),
         map(([, gamers, players]) => {
             return broadcastStartGame(gamers, players);
         }),
     );
+
     endGame$ = this.gameMachine.state$.pipe(
         filter(state => state.event.type === GameEventType.END),
-        withLatestFrom(this.gameMachine.gamers$, this.gamePlayers$),
+        withLatestFrom(
+            this.gameMachine.gamers$,
+            this.playerService.onlinePlayers$,
+        ),
         map(([, gamers, players]) => {
             return broadcastStartGame(gamers, players);
         }),
+        tap(() => this.eventService.receiveEvent(null, IN_EVENT.RESET, '')),
+    );
+
+    playerQuit$ = this.playerService.removePlayer$.pipe(
+        withLatestFrom(this.gameMachine.gamers$),
+        filter(([player, gamers]) => gamers.has(player)),
+        mapTo({ type: GameEventType.END } as GameEnd),
     );
 }

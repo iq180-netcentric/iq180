@@ -80,5 +80,5 @@ export class EventService {
         OUT_EVENT.START_TURN,
     );
 
-    emitEndTurn = this.emitEvent(OUT_EVENT.END_TURN);
+    broadcastEndTurn = this.broadcastEvent(OUT_EVENT.END_TURN);
 }

@@ -38,6 +38,7 @@ export const enum RoundEventType {
     TIME_OUT = 'TIME_OUT',
     START_TURN = 'START_TURN',
     END_TURN = 'END_TURN',
+    END_ROUND = 'END_ROUND',
 }
 export interface StartRound {
     type: RoundEventType.START_ROUND;
@@ -68,7 +69,17 @@ export interface EndTurn {
 export interface TimeOut {
     type: RoundEventType.TIME_OUT;
 }
-export type RoundEvent = StartRound | TimeOut | Answer | StartTurn | EndTurn;
+export interface EndRound {
+    type: RoundEventType.END_ROUND;
+    payload: string;
+}
+export type RoundEvent =
+    | StartRound
+    | TimeOut
+    | Answer
+    | StartTurn
+    | EndTurn
+    | EndRound;
 
 export const enum RoundActions {
     GENERATE_QUESTION = 'GENERATE_QUESTION',
@@ -82,6 +93,7 @@ export const enum RoundActions {
     CORRECT = 'CORRECT',
     END_TURN = 'END_TURN',
     FIND_WINNER = ' FIND_WINNER',
+    END_ROUND = 'END_ROUND',
 }
 
 export const enum RoundCond {
@@ -144,10 +156,7 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
             },
             [RoundState.END_ROUND]: {
                 type: 'final',
-                entry: RoundActions.FIND_WINNER,
-                data: {
-                    winner: (context: RoundContext) => context.winner,
-                },
+                entry: [RoundActions.FIND_WINNER, RoundActions.END_ROUND],
             },
         },
     },
@@ -202,21 +211,26 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                             { player: null, time: 9999999 },
                         ).player,
             }),
+            [RoundActions.END_ROUND]: sendParent(
+                (ctx): EndRound => ({
+                    type: RoundEventType.END_ROUND,
+                    payload: ctx.winner,
+                }),
+            ),
         },
         guards: {
             [RoundCond.CORRECT_ANSWER]: (
-                { expectedAnswer, question, operators },
-                event: Answer,
+                { expectedAnswer, question, operators, currentPlayer },
+                { payload: { answer, player } }: Answer,
             ) => {
-                const result = validateForSubmission({
-                    array: event.payload.answer,
+                const correct = validateForSubmission({
+                    array: answer,
                     expectedAnswer,
                     question,
                     operators,
                 });
-                return result;
+                return correct && player == currentPlayer;
             },
-
             [RoundCond.FINISHED]: ({ history = [], players = [] }) =>
                 history.length === players.length,
             [RoundCond.NOT_FINISHED]: context => {
