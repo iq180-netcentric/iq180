@@ -26,7 +26,7 @@ export class RoundService {
         merge(this.emitQuestion$, this.broadcastCurrentPlayer$).subscribe(
             question => eventService.broadcastStartTurn(question),
         );
-        this.endTurn$.subscribe(data => eventService.emitEndTurn(data));
+        this.endTurn$.subscribe(data => eventService.broadcastEndTurn(data));
         this.startRound$.subscribe(p => eventService.broadcastStartRound(p));
         this.endRound$.subscribe(w => eventService.broadcastEndRound(w));
     }
@@ -110,11 +110,13 @@ export class RoundService {
     );
     endTurn$ = this.gameMachine.state$.pipe(
         filter(state => state.event.type === RoundEventType.END_TURN),
-        withLatestFrom(this.gameMachine.round$, this.gameService.gamePlayers$),
-        map(([, round, players]) => {
-            const { currentPlayer } = round;
-            const client = players.get(currentPlayer);
-            return { client };
+        withLatestFrom(this.playerService.onlinePlayers$),
+        map(([, players]) => {
+            const clients = players
+                .map(p => p.client)
+                .toIndexedSeq()
+                .toArray();
+            return { clients };
         }),
     );
 }
