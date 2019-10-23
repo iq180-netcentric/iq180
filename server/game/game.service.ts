@@ -6,6 +6,7 @@ import {
     withLatestFrom,
     pluck,
     distinctUntilChanged,
+    mapTo,
 } from 'rxjs/operators';
 import { merge } from 'rxjs';
 import { PlayerMap } from '../player/player.store';
@@ -19,6 +20,7 @@ import {
     GameNotReady,
     GameStart,
     GameState,
+    GameEnd,
 } from './game.state';
 import { GameMachine } from './game.machine';
 import { SocketClient } from '../event/event.type';
@@ -65,9 +67,9 @@ export class GameService {
             eventService.broadcastStartGame(i),
         );
         this.endGame$.subscribe(i => eventService.broadcastEndGame(i));
-        merge(this.gameReady$, this.startGame$).subscribe(i => {
-            gameMachine.sendEvent(i);
-        });
+        merge(this.gameReady$, this.startGame$, this.playerQuit$).subscribe(i =>
+            gameMachine.sendEvent(i),
+        );
     }
 
     gameReady$ = this.playerService.onlinePlayers$.pipe(
@@ -116,11 +118,18 @@ export class GameService {
             return broadcastStartGame(gamers, players);
         }),
     );
+
     endGame$ = this.gameMachine.state$.pipe(
         filter(state => state.event.type === GameEventType.END),
         withLatestFrom(this.gameMachine.gamers$, this.gamePlayers$),
         map(([, gamers, players]) => {
             return broadcastStartGame(gamers, players);
         }),
+    );
+
+    playerQuit$ = this.playerService.removePlayer$.pipe(
+        withLatestFrom(this.gameMachine.gamers$),
+        filter(([player, gamers]) => gamers.has(player)),
+        mapTo({ type: GameEventType.END } as GameEnd),
     );
 }

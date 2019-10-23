@@ -8,7 +8,7 @@ import {
     filter,
     tap,
     pluck,
-    distinctUntilChanged,
+    debounceTime,
 } from 'rxjs/operators';
 import { JoinEvent, EditEvent, IN_EVENT, ReadyEvent } from '../event/in-events';
 import { merge } from 'rxjs';
@@ -43,7 +43,7 @@ export class PlayerService {
     onlinePlayers$ = this.playerStore.store$;
 
     private broadcastOnlinePlayers$ = this.onlinePlayers$.pipe(
-        distinctUntilChanged(),
+        debounceTime(1000),
         map(players => players.toIndexedSeq().toArray()),
         map(players => {
             const data: PlayerInfo[] = [];
@@ -87,7 +87,7 @@ export class PlayerService {
 
     private addPlayerAction$ = this.addPlayer$.pipe(map(addPlayerAction));
 
-    private removePlayer$ = this.eventService
+    removePlayer$ = this.eventService
         .listenFor(IN_EVENT.LEAVE)
         .pipe(map(({ client }) => client.id));
 

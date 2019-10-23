@@ -59,15 +59,17 @@ export type GameEvent =
     | GameEnd
     | RoundEvent;
 
+const initialContext = {
+    players: Map() as GamePlayerMap,
+    rounds: 3,
+    roundNumber: 0,
+    winner: null,
+};
+
 export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
     {
         initial: GameState.WATING,
-        context: {
-            players: Map(),
-            rounds: 3,
-            roundNumber: 0,
-            winner: null,
-        },
+        context: initialContext,
         states: {
             [GameState.WATING]: {
                 on: {
@@ -92,6 +94,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                     },
                     [GameEventType.END]: {
                         target: GameState.WATING,
+                        actions: 'RESET_STATE',
                     },
                     [RoundEventType.START_TURN]: {
                         actions: 'START_TURN',
@@ -189,6 +192,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                     solution: ['(', 5, '-', 4, '*', 9, '/', 4, ')', '+', 5],
                 }),
             }),
+            RESET_STATE: assign(initialContext),
         },
         guards: {
             FINISHED: ctx => ctx.roundNumber === ctx.rounds,
