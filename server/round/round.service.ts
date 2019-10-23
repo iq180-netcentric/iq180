@@ -86,7 +86,10 @@ export class RoundService {
         map(([, round, players]) => {
             const { currentPlayer } = round;
             return {
-                clients: players.toIndexedSeq().toArray(),
+                clients: players
+                    .filter(p => p.id != currentPlayer)
+                    .toIndexedSeq()
+                    .toArray(),
                 data: { currentPlayer },
             };
         }),
