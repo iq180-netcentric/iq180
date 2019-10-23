@@ -7,6 +7,7 @@ import {
     pluck,
     distinctUntilChanged,
     mapTo,
+    tap,
 } from 'rxjs/operators';
 import { merge } from 'rxjs';
 import { PlayerMap } from '../player/player.store';
@@ -24,6 +25,7 @@ import {
 } from './game.state';
 import { GameMachine } from './game.machine';
 import { SocketClient } from '../event/event.type';
+import { log } from '../utils';
 
 export const playersReady = (players: PlayerMap): boolean => {
     const numberOfReady = players.filter(p => p.ready).size;
@@ -46,9 +48,12 @@ export const transformToGamePlayerMap = (playerMap: PlayerMap): GamePlayerMap =>
 
 export const broadcastStartGame = (
     gamers: GamePlayerMap,
-    players: Map<string, SocketClient>,
+    players: PlayerMap,
 ) => {
-    const clients = players.toIndexedSeq().toArray();
+    const clients = players
+        .map(p => p.client)
+        .toIndexedSeq()
+        .toArray();
     const data = gamers
         .map(({ id, score }) => ({ score, id }))
         .toIndexedSeq()
@@ -113,7 +118,10 @@ export class GameService {
     broadcastStartGame$ = this.gameMachine.state$.pipe(
         filter(state => state.event.type === GameEventType.START),
         distinctUntilChanged(),
-        withLatestFrom(this.gameMachine.gamers$, this.gamePlayers$),
+        withLatestFrom(
+            this.gameMachine.gamers$,
+            this.playerService.onlinePlayers$,
+        ),
         map(([, gamers, players]) => {
             return broadcastStartGame(gamers, players);
         }),
@@ -121,10 +129,14 @@ export class GameService {
 
     endGame$ = this.gameMachine.state$.pipe(
         filter(state => state.event.type === GameEventType.END),
-        withLatestFrom(this.gameMachine.gamers$, this.gamePlayers$),
+        withLatestFrom(
+            this.gameMachine.gamers$,
+            this.playerService.onlinePlayers$,
+        ),
         map(([, gamers, players]) => {
             return broadcastStartGame(gamers, players);
         }),
+        log(),
     );
 
     playerQuit$ = this.playerService.removePlayer$.pipe(

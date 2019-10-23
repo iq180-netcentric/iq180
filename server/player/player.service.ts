@@ -9,6 +9,7 @@ import {
     tap,
     pluck,
     debounceTime,
+    distinctUntilChanged,
 } from 'rxjs/operators';
 import { JoinEvent, EditEvent, IN_EVENT, ReadyEvent } from '../event/in-events';
 import { merge } from 'rxjs';
@@ -44,6 +45,7 @@ export class PlayerService {
 
     private broadcastOnlinePlayers$ = this.onlinePlayers$.pipe(
         debounceTime(1000),
+        distinctUntilChanged(),
         map(players => players.toIndexedSeq().toArray()),
         map(players => {
             const data: PlayerInfo[] = [];

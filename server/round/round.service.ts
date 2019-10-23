@@ -12,16 +12,18 @@ import { Answer, RoundEventType } from './round.state';
 import { GameMachine } from '../game/game.machine';
 import { GameService, broadcastStartGame } from '../game/game.service';
 import { merge } from 'rxjs';
+import { PlayerService } from '../player/player.service';
 
 @Injectable()
 export class RoundService {
     constructor(
         private readonly eventService: EventService,
+        private readonly playerService: PlayerService,
         private readonly gameMachine: GameMachine,
         private readonly gameService: GameService,
     ) {
         this.answer$.subscribe(answer => gameMachine.sendEvent(answer));
-        merge(this.emitQuestion$, this.broadCurrentPlayer$).subscribe(
+        merge(this.emitQuestion$, this.broadcastCurrentPlayer$).subscribe(
             question => eventService.broadcastStartTurn(question),
         );
         this.endTurn$.subscribe(data => eventService.emitEndTurn(data));
@@ -39,7 +41,10 @@ export class RoundService {
     );
     startRound$ = this.gameMachine.state$.pipe(
         filter(state => state.event.type === RoundEventType.START_ROUND),
-        withLatestFrom(this.gameMachine.gamers$, this.gameService.gamePlayers$),
+        withLatestFrom(
+            this.gameMachine.gamers$,
+            this.playerService.onlinePlayers$,
+        ),
         map(([, gamers, players]) => {
             return broadcastStartGame(gamers, players);
         }),
@@ -49,13 +54,16 @@ export class RoundService {
         filter(state => state.event.type === ('done.invoke.round' as any)),
         withLatestFrom(
             this.gameMachine.context$,
-            this.gameService.gamePlayers$,
+            this.playerService.onlinePlayers$,
         ),
         map(([, context, players]) => {
             const { winner } = context;
             return {
                 data: winner,
-                clients: players.toIndexedSeq().toArray(),
+                clients: players
+                    .map(p => p.client)
+                    .toIndexedSeq()
+                    .toArray(),
             };
         }),
     );
@@ -81,14 +89,19 @@ export class RoundService {
         }),
     );
 
-    broadCurrentPlayer$ = this.startTurn$.pipe(
-        withLatestFrom(this.gameMachine.round$, this.gameService.gamePlayers$),
+    broadcastCurrentPlayer$ = this.startTurn$.pipe(
+        withLatestFrom(
+            this.gameMachine.round$,
+            this.playerService.onlinePlayers$,
+        ),
         map(([, round, players]) => {
             const { currentPlayer } = round;
             const clients = players
                 .filter(p => p.id != currentPlayer)
+                .map(p => p.client)
                 .toIndexedSeq()
                 .toArray();
+            console.log(clients);
             return {
                 clients,
                 data: { currentPlayer },
