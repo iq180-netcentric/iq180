@@ -1,13 +1,16 @@
 import { GamePlayerMap } from '../models/game';
-import { Machine, assign, send } from 'xstate';
+import { Machine, assign, send, spawn, actions } from 'xstate';
 import { Map } from 'immutable';
 import {
     roundMachine,
     RoundEventType,
     RoundEvent,
     StartTurn,
+    RoundContext,
+    EndRound,
 } from '../round/round.state';
 import { generate } from 'iq180-logic';
+import { Actor } from 'xstate/lib/Actor';
 
 export const enum GameState {
     WATING = 'WAITING',
@@ -34,6 +37,7 @@ export interface GameContext {
     rounds: number;
     roundNumber: number;
     winner?: string;
+    roundActor: Actor<RoundContext, RoundEvent>;
     round?: {
         currentPlayer: string;
         question: number[];
@@ -59,10 +63,11 @@ export type GameEvent =
     | GameEnd
     | RoundEvent;
 
-const initialContext = {
-    players: Map() as GamePlayerMap,
+const initialContext: GameContext = {
+    players: Map(),
     rounds: 3,
     roundNumber: 0,
+    roundActor: null,
     winner: null,
 };
 
@@ -80,9 +85,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                 on: {
                     [GameEventType.START]: {
                         target: GameState.PLAYING,
-                        actions: assign({
-                            players: (_, event: GameStart) => event.payload,
-                        }),
+                        actions: ['RESET_STATE', 'ADD_PLAYER'],
                     },
                     [GameEventType.NOT_READY]: GameState.WATING,
                 },
@@ -90,50 +93,27 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             [GameState.PLAYING]: {
                 on: {
                     [RoundEventType.ANSWER]: {
-                        actions: send((_, event) => event, { to: 'round' }),
+                        actions: send((_, event) => event, {
+                            to: ctx => ctx.roundActor,
+                        }),
                     },
                     [GameEventType.END]: {
                         target: GameState.WATING,
-                        actions: 'RESET_STATE',
+                        actions: ['END_GAME'],
                     },
                     [RoundEventType.START_TURN]: {
                         actions: 'START_TURN',
+                    },
+                    [RoundEventType.END_ROUND]: {
+                        target: 'PLAYING.ROUND_END',
+                        actions: ['UPDATE_SCORE', 'UPDATE_ROUND'],
                     },
                 },
                 initial: 'ROUND_START',
                 states: {
                     GAME_END: {},
                     ROUND_START: {
-                        entry: 'GENERATE_QUESTION',
-                        invoke: {
-                            id: 'round',
-                            src: roundMachine,
-                            data: (ctx: GameContext) => {
-                                const getPlayers = () => {
-                                    const players = ctx.players
-                                        .map(p => p.id)
-                                        .toIndexedSeq()
-                                        .toArray();
-                                    const { winner } = ctx;
-                                    if (!winner) return players;
-                                    else {
-                                        const { id } = ctx.players.get(winner);
-                                        const rest = players.filter(
-                                            p => p !== winner,
-                                        );
-                                        return [id, ...rest];
-                                    }
-                                };
-                                return {
-                                    players: getPlayers(),
-                                    ...ctx.round,
-                                };
-                            },
-                            onDone: {
-                                target: 'ROUND_END',
-                                actions: ['UPDATE_SCORE', 'UPDATE_ROUND'],
-                            },
-                        },
+                        entry: ['GENERATE_QUESTION', 'START_ROUND'],
                     },
                     ROUND_END: {
                         on: {
@@ -166,17 +146,41 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                     };
                 },
             }),
+            ADD_PLAYER: assign({
+                players: (_, event: GameStart) => event.payload,
+            }),
+            START_ROUND: assign<GameContext>({
+                roundActor: ctx => {
+                    const getPlayers = () => {
+                        const players = ctx.players
+                            .map(p => p.id)
+                            .toIndexedSeq()
+                            .toArray();
+                        const { winner } = ctx;
+                        if (!winner) return players;
+                        else {
+                            const rest = players.filter(p => p !== winner);
+                            return [winner, ...rest];
+                        }
+                    };
+                    const context = {
+                        players: getPlayers(),
+                        ...ctx.round,
+                    };
+                    return spawn(roundMachine.withContext(context as any));
+                },
+            }),
             UPDATE_SCORE: assign<GameContext>({
-                players: ({ players }, { data: { winner } }) => {
-                    console.log(winner);
-                    return winner
-                        ? players.update(winner, player => ({
+                players: ({ players }, { payload }: EndRound) => {
+                    console.log(payload);
+                    return payload
+                        ? players.update(payload, player => ({
                               ...player,
                               score: player.score + 1,
                           }))
                         : players;
                 },
-                winner: (_, { data: { winner } }) => winner,
+                winner: (_, { payload }) => payload,
                 round: undefined,
             }),
             UPDATE_ROUND: assign<GameContext>({
@@ -185,14 +189,16 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             GENERATE_QUESTION: assign<GameContext>({
                 round: ctx => ({
                     ...ctx.round,
-                    // ...generate(),
-                    question: [5, 4, 9, 4, 5],
-                    operators: ['+', '-', '*', '/'],
-                    expectedAnswer: 1,
-                    solution: ['(', 5, '-', 4, '*', 9, '/', 4, ')', '+', 5],
+                    ...generate(),
                 }),
             }),
             RESET_STATE: assign(initialContext),
+            END_GAME: assign<GameContext>({
+                roundActor: ctx => {
+                    ctx.roundActor.stop();
+                    return null;
+                },
+            }),
         },
         guards: {
             FINISHED: ctx => ctx.roundNumber === ctx.rounds,

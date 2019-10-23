@@ -74,6 +74,7 @@ export class RoundService {
 
     emitQuestion$ = this.startTurn$.pipe(
         withLatestFrom(this.gameMachine.round$, this.gameService.gamePlayers$),
+        filter(([, round, players]) => players.has(round.currentPlayer)),
         map(([, round, players]) => {
             const { currentPlayer, solution, ...rest } = round;
             const clients = [players.get(currentPlayer)];
@@ -94,6 +95,7 @@ export class RoundService {
             this.gameMachine.round$,
             this.playerService.onlinePlayers$,
         ),
+        filter(([, round, players]) => players.has(round.currentPlayer)),
         map(([, round, players]) => {
             const { currentPlayer } = round;
             const clients = players

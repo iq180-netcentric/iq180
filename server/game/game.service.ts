@@ -100,7 +100,9 @@ export class GameService {
     gamePlayers$ = this.gameMachine.gamers$.pipe(
         withLatestFrom(this.playerService.onlinePlayers$),
         map(([gamers, players]) =>
-            gamers.map((_, key) => players.get(key).client),
+            gamers
+                .filter((_, key) => players.has(key))
+                .map((_, key) => players.get(key).client),
         ),
     );
 
@@ -116,7 +118,11 @@ export class GameService {
     );
 
     broadcastStartGame$ = this.gameMachine.state$.pipe(
-        filter(state => state.event.type === GameEventType.START),
+        filter(
+            state =>
+                state.event.type === GameEventType.START &&
+                state.matches('PLAYING'),
+        ),
         distinctUntilChanged(),
         withLatestFrom(
             this.gameMachine.gamers$,
@@ -136,7 +142,7 @@ export class GameService {
         map(([, gamers, players]) => {
             return broadcastStartGame(gamers, players);
         }),
-        log(),
+        tap(() => this.eventService.receiveEvent(null, IN_EVENT.RESET, '')),
     );
 
     playerQuit$ = this.playerService.removePlayer$.pipe(

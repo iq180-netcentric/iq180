@@ -19,6 +19,7 @@ import {
     editPlayerAction,
     removePlayerAction,
     addPlayerAction,
+    resetPlayersAction,
 } from './player.action';
 import uuid from 'uuidv4';
 
@@ -32,6 +33,7 @@ export class PlayerService {
             this.addPlayerAction$,
             this.editPlayerAction$,
             this.removePlayerAction$,
+            this.resetPlayer$,
         ).subscribe(i => playerStore.dispatch(i));
         this.broadcastOnlinePlayers$.subscribe(i =>
             eventService.broadcastOnlinePlayers(i),
@@ -142,4 +144,8 @@ export class PlayerService {
             client,
         })),
     );
+
+    private resetPlayer$ = this.eventService
+        .listenFor(IN_EVENT.RESET)
+        .pipe(map(resetPlayersAction));
 }

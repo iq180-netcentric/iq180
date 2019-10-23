@@ -10,7 +10,6 @@ export const enum IN_EVENT {
     ATTEMPT = 'ATTEMPT',
     ANSWER = 'ANSWER',
     RESET = 'RESET',
-    FORCE_RESET = 'FORCE_RESET',
 }
 
 export interface JoinEvent {
@@ -28,4 +27,4 @@ export type AttemptEvent = Attempt;
 
 export type AnswerEvent = any[];
 
-export type ForceResetEvent = string;
+export type ResetEvent = string;

@@ -10,6 +10,7 @@ import {
     InChatMessageEvent,
     ReadyEvent,
     AnswerEvent,
+    ResetEvent,
 } from './in-events';
 import { EventService } from './event.service';
 import { SocketClient } from './event.type';
@@ -51,6 +52,11 @@ export class EventGateway implements OnGatewayDisconnect {
     @SubscribeMessage(IN_EVENT.ANSWER)
     answer(client: SocketClient, input: AnswerEvent) {
         this.eventService.receiveEvent(client, IN_EVENT.ANSWER, input);
+    }
+
+    @SubscribeMessage(IN_EVENT.RESET)
+    reset(client: SocketClient, input: ResetEvent) {
+        this.eventService.receiveEvent(client, IN_EVENT.RESET, input);
     }
 
     handleDisconnect(client: SocketClient) {
