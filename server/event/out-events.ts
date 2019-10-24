@@ -15,6 +15,7 @@ export const enum OUT_EVENT {
     END_GAME = 'END_GAME',
     WINNER = 'WINNER',
     ATTEMPT = 'ATTEMPT',
+    GAME_STATE = 'GAME_STATE'
 }
 
 export type PlayersEvent = PlayerInfo[];

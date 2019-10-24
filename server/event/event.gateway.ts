@@ -17,7 +17,7 @@ import { SocketClient } from './event.type';
 
 @WebSocketGateway()
 export class EventGateway implements OnGatewayDisconnect {
-    constructor(private readonly eventService: EventService) {}
+    constructor(private readonly eventService: EventService) { }
 
     @SubscribeMessage(IN_EVENT.JOIN)
     join(client: SocketClient, input: JoinEvent) {
@@ -55,13 +55,18 @@ export class EventGateway implements OnGatewayDisconnect {
     }
 
     @SubscribeMessage(IN_EVENT.RESET)
-    reset(client: SocketClient, input: ResetEvent) {
-        this.eventService.receiveEvent(client, IN_EVENT.RESET, input);
+    reset(client: SocketClient) {
+        this.eventService.receiveEvent(client, IN_EVENT.RESET);
     }
 
     @SubscribeMessage(IN_EVENT.SKIP)
     skip(client: SocketClient) {
         this.eventService.receiveEvent(client, IN_EVENT.SKIP);
+    }
+
+    @SubscribeMessage(IN_EVENT.ADMIN_JOIN)
+    adminJoin(client: SocketClient, input: string) {
+        this.eventService.receiveEvent(client, IN_EVENT.ADMIN_JOIN, input);
     }
 
     handleDisconnect(client: SocketClient) {
