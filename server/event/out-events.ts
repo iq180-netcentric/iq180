@@ -14,6 +14,7 @@ export const enum OUT_EVENT {
     START_GAME = 'START_GAME',
     END_GAME = 'END_GAME',
     WINNER = 'WINNER',
+    ATTEMPT = 'ATTEMPT',
 }
 
 export type PlayersEvent = PlayerInfo[];
@@ -26,12 +27,16 @@ export type StartGameEvent = Array<{ id: string; score: number }>;
 
 export type StartRoundEvent = StartGameEvent;
 
+export type PlayerAttemptEvent = any[];
+
 export interface StartTurnEvent extends Partial<Round> {
     question?: number[];
     operators?: string[];
     expectedAnswer?: number;
     currentPlayer: string;
 }
+
+export type EndTurnEvent = number
 
 export type EndRoundEvent = string;
 

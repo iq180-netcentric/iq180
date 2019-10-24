@@ -8,7 +8,6 @@ export const enum IN_EVENT {
     READY = 'READY',
     START = 'START',
     ATTEMPT = 'ATTEMPT',
-    ANSWER = 'ANSWER',
     RESET = 'RESET',
 }
 
@@ -23,8 +22,6 @@ export type InChatMessageEvent = string;
 
 export type ReadyEvent = boolean;
 
-export type AttemptEvent = Attempt;
-
-export type AnswerEvent = any[];
+export type AttemptEvent = any[];
 
 export type ResetEvent = string;
