@@ -12,9 +12,15 @@
                 <nz-card>
                     <nz-card-meta
                         nzTitle="Current Player : {{ player.name }}"
-                        nzDescription="This is the description"
+                        [nzDescription]="nzDescription"
                         [nzAvatar]="avatarTemplate"
-                    ></nz-card-meta>
+                    >
+                        <ng-template #nzDescription>
+                            <ng-container *ngIf="round$ | async as round">
+                                Round: {{ round }}, </ng-container
+                            >Score: {{ player.score }}
+                        </ng-template>
+                    </nz-card-meta>
                 </nz-card>
                 <ng-template #avatarTemplate>
                     <nz-avatar [nzSrc]="player.avatar"></nz-avatar>
@@ -23,8 +29,8 @@
             <ng-template #notSelected>
                 <nz-card>
                     <nz-card-meta
-                        nzTitle="No player selected"
-                        nzDescription="Select a player"
+                        nzTitle="No Current Player"
+                        nzDescription=""
                     ></nz-card-meta>
                 </nz-card>
             </ng-template>
@@ -179,13 +185,21 @@
 </div>
 
 <ng-template #notCurrent>
-    <ng-container *ngIf="!waiting; else wait">
-        <span style="font-size: 24px; align-self: center">~ Processing ~</span>
-        <img src='https://media.giphy.com/media/bKqtxkyPXJv8I/giphy.gif'/>
-    </ng-container>
+    <div class="loading">
+        <ng-container *ngIf="waiting && !player; else wait">
+            <span style="font-size: 24px; align-self: center"
+                >~ Processing ~</span
+            >
+            <img src="https://media.giphy.com/media/bKqtxkyPXJv8I/giphy.gif" />
+        </ng-container>
+    </div>
 </ng-template>
 
 <ng-template #wait>
-    <span style="font-size: 24px; align-self: center;">~ Wait for your opponent ~</span>
-    <img src='http://giphygifs.s3.amazonaws.com/media/2pqvP0X0EauDC/giphy.gif'/>
+    <span style="font-size: 24px; align-self: center;"
+        >~ Wait for your opponent ~</span
+    >
+    <img
+        src="http://giphygifs.s3.amazonaws.com/media/2pqvP0X0EauDC/giphy.gif"
+    />
 </ng-template>

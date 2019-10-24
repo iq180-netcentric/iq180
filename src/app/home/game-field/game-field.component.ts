@@ -95,6 +95,7 @@ export class GameFieldComponent implements OnInit, OnDestroy {
 
     timer$: Observable<number>;
     isGaming$ = this.stateService.game$.pipe(map(e => !!e));
+    round$ = this.stateService.round$;
     playable$ = new BehaviorSubject<boolean>(false);
 
     destroy$ = new Subject();

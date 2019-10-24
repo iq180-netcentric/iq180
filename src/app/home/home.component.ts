@@ -69,11 +69,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         }),
     );
     destroy$ = new Subject();
-    waiting$ = this.stateService.state$.pipe(
-        map(e => {
-            return e.value[GameState.PLAYING] === 'WAITING';
-        }),
-    );
+    waiting$ = this.stateService.waiting$;
 
     gameReady$ = this.socket
         .listenFor<Player[]>(WebSocketIncomingEvent.players)
@@ -87,6 +83,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     currentGame$ = this.stateService.game$;
     welcomeModalInstance$ = new BehaviorSubject<NzModalRef>(undefined);
 
+    audio: HTMLAudioElement;
     constructor(
         private socket: WebSocketService,
         private modalService: NzModalService,
@@ -161,6 +158,15 @@ export class HomeComponent implements OnInit, OnDestroy {
                 });
             });
         this.socket
+            .listenFor<{ round: number }>(WebSocketIncomingEvent.startRound)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(({ round }) => {
+                this.stateService.sendEvent({
+                    type: GameEventType.START_ROUND,
+                    payload: round,
+                });
+            });
+        this.socket
             .listenFor<any>(WebSocketIncomingEvent.startTurn)
             .pipe(
                 takeUntil(this.destroy$),
@@ -172,7 +178,9 @@ export class HomeComponent implements OnInit, OnDestroy {
                     this.stateService.sendEvent({
                         type: GameEventType.START_TURN,
                         payload: {
-                            currentPlayer: player,
+                            currentPlayer: players.find(
+                                p => p.id === currentPlayer,
+                            ),
                             question,
                             expectedAnswer,
                         },
@@ -219,12 +227,13 @@ export class HomeComponent implements OnInit, OnDestroy {
                     .map(p => {
                         return {
                             ...p,
-                            score: playerScore.find(q => p.id === q.id),
+                            score: playerScore.find(q => p.id === q.id).score,
                         };
                     });
                 this.stateService.sendEvent({
                     type: AppEventType.END_GAME,
                 });
+                this.audio.pause();
                 this.showGameEnded(winner, playerWithScore);
             });
     }
@@ -291,20 +300,18 @@ export class HomeComponent implements OnInit, OnDestroy {
         });
     }
 
-    playAudio(){
-        let audio = new Audio();
-        if(Math.random()>0.2)
-        {
-            audio.src = "../../assets/audio/jeopardy.mp3";
-        } else
-        {
-            audio.src = "../../assets/audio/ktb.mp3";
+    playAudio() {
+        this.audio = new Audio();
+        if (Math.random() > 0.2) {
+            this.audio.src = '../../assets/audio/jeopardy.mp3';
+        } else {
+            this.audio.src = '../../assets/audio/ktb.mp3';
         }
-        audio.load();
+        this.audio.load();
         //audio.loop = true;
-        audio.play();
+        this.audio.play();
         //audio.pause();
-      }
+    }
 
     startMultiplayer() {
         this.socket.emit({
@@ -312,11 +319,14 @@ export class HomeComponent implements OnInit, OnDestroy {
             data: null,
         });
     }
-    showGameEnded(winner: string, players: Player[]) {
+    showGameEnded(winner: string, players: (Player & { score: number })[]) {
         const winP = players.find(player => player.id === winner);
-        const nzContent = `${winP.name} wins!`;
+        const scores = players.map(p => p.name + ': ' + p.score).join(', ');
+        const nzContent = winP
+            ? `Scores: ${scores}`
+            : `Game just somehow ended (Maybe power of god ?) \n`;
         const modal = this.modalService.info({
-            nzTitle: 'Game Ended!',
+            nzTitle: `Game Ended! ${winP ? `${winP.name} wins!` : ''}`,
             nzContent,
             nzOnOk: () => modal.close(),
             nzKeyboard: false,

@@ -52,6 +52,7 @@ export interface AppContext {
     expectedAnswer?: number;
     timeLeft?: number;
     winner?: Player;
+    round?: number;
 }
 
 export const enum AppEventType {
@@ -116,34 +117,48 @@ export class StateService {
                             target: AppState.PLAYING,
                             actions: 'GENERATE_QUESTION',
                         },
-                        [GameEventType.START_ROUND]: {
-                            actions: [
-                                'SELECT_PLAYER',
-                                send((_, evt) => evt, { to: 'game' }),
-                            ],
-                        },
-
+                        [GameEventType.START_ROUND]: [
+                            {
+                                cond: 'SINGLE_PLAYER',
+                                actions: [
+                                    'SELECT_PLAYER',
+                                    send((_, evt) => evt, { to: 'game' }),
+                                ],
+                            },
+                            {
+                                actions: [
+                                    assign<AppContext>({
+                                        round: (_, evt) => evt.payload,
+                                    }),
+                                ],
+                            },
+                        ],
                         [GameEventType.ATTEMPT]: {
                             actions: [send((_, evt) => evt, { to: 'game' })],
+                        },
+                        [GameEventType.END_TURN]: {
+                            actions: ['CLEAR_PLAYER'],
                         },
                         [AppEventType.SELECT_PLAYER]: {
                             actions: ['SELECT_PLAYER'],
                         },
-                        [AppEventType.END_GAME]: {
-                            target: AppState.IDLE,
-                            cond: 'SINGLE_PLAYER',
-                            actions: ['CLEAR_GAME'],
-                        },
-                        [AppEventType.END_GAME]: {
-                            actions: [
-                                send(
-                                    () => ({
-                                        type: GameEventType.EXIT,
-                                    }),
-                                    { to: 'game' },
-                                ),
-                            ],
-                        },
+                        [AppEventType.END_GAME]: [
+                            {
+                                target: AppState.IDLE,
+                                cond: 'SINGLE_PLAYER',
+                                actions: ['CLEAR_GAME'],
+                            },
+                            {
+                                actions: [
+                                    send(
+                                        () => ({
+                                            type: GameEventType.EXIT,
+                                        }),
+                                        { to: 'game' },
+                                    ),
+                                ],
+                            },
+                        ],
                     },
                     states: {
                         [GameState.WAITING]: {
@@ -381,6 +396,7 @@ export class StateService {
                     currentGame: undefined,
                     question: undefined,
                     expectedAnswer: undefined,
+                    round: 0,
                 }),
                 SET_GAME: assign<AppContext>({
                     currentGame: (_, evt) => evt.payload.info,
@@ -443,6 +459,10 @@ export class StateService {
         pluck('context', 'ready'),
         shareReplay(),
     );
+    round$ = this.state$.pipe(
+        pluck('context', 'round'),
+        shareReplay(),
+    );
     game$: Observable<GameInfo> = this.state$.pipe(
         pluck('context', 'currentGame'),
         shareReplay(),
@@ -472,6 +492,10 @@ export class StateService {
     lose$ = this.state$.pipe(
         filter(state => state.matches('PLAYING.LOSE')),
         pluck('context', 'winner'),
+    );
+
+    waiting$ = this.state$.pipe(
+        filter(state => state.matches('PLAYING.WAITING')),
     );
     sendEvent(event: AppEvent | GameEvent) {
         this.machine.send(event);
