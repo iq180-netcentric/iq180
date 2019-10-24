@@ -146,6 +146,6 @@ export class PlayerService {
     );
 
     private resetPlayer$ = this.eventService
-        .listenFor(IN_EVENT.RESET)
+        .listenFor(IN_EVENT.RESET_PLAYER)
         .pipe(map(resetPlayersAction));
 }
