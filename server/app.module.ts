@@ -7,6 +7,7 @@ import { ChatModule } from './chat/chat.module';
 import { GameModule } from './game/game.module';
 import { StoreModule } from './store/store.module';
 import { RoundModule } from './round/round.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
     imports: [
@@ -21,6 +22,7 @@ import { RoundModule } from './round/round.module';
         ChatModule,
         GameModule,
         RoundModule,
+        AdminModule
     ],
 })
 export class AppModule {}

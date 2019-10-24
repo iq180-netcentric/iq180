@@ -72,9 +72,10 @@ export class GameService {
             eventService.broadcastStartGame(i),
         );
         this.endGame$.subscribe(i => eventService.broadcastEndGame(i));
-        merge(this.gameReady$, this.startGame$, this.playerQuit$).subscribe(i =>
+        merge(this.gameReady$, this.startGame$, this.resetGame$).subscribe(i =>
             gameMachine.sendEvent(i),
         );
+        this.playerQuit$.subscribe(() => eventService.receiveEvent(null, IN_EVENT.RESET_GAME))
     }
 
     gameReady$ = this.playerService.onlinePlayers$.pipe(
@@ -142,12 +143,15 @@ export class GameService {
         map(([, gamers, players]) => {
             return broadcastStartGame(gamers, players);
         }),
-        tap(() => this.eventService.receiveEvent(null, IN_EVENT.RESET, '')),
+        tap(() => this.eventService.receiveEvent(null, IN_EVENT.RESET_PLAYER)),
     );
 
     playerQuit$ = this.playerService.removePlayer$.pipe(
         withLatestFrom(this.gameMachine.gamers$),
         filter(([player, gamers]) => gamers.has(player)),
-        mapTo({ type: GameEventType.END } as GameEnd),
     );
+
+    resetGame$ = this.eventService
+        .listenFor(IN_EVENT.RESET_GAME)
+        .pipe(mapTo({ type: GameEventType.END } as GameEnd));
 }

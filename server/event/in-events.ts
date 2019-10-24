@@ -10,6 +10,9 @@ export const enum IN_EVENT {
     ATTEMPT = 'ATTEMPT',
     RESET = 'RESET',
     SKIP = 'SKIP',
+    ADMIN_JOIN = 'ADMIN_JOIN',
+    RESET_GAME = 'RESET_GAME',
+    RESET_PLAYER = 'RESET_PLAYER',
 }
 
 export interface JoinEvent {
@@ -26,3 +29,5 @@ export type ReadyEvent = boolean;
 export type AttemptEvent = any[];
 
 export type ResetEvent = string;
+
+export type AdminJoinEvent = string;
