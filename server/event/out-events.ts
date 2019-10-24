@@ -23,9 +23,15 @@ export type NewPlayerInfoEvent = PlayerInfo;
 
 export type OutChatMessageEvent = ChatMessage;
 
-export type StartGameEvent = Array<{ id: string; score: number }>;
+export type StartGameEvent = {
+    totalRounds: number;
+    players: Array<{ id: string; score: number }>;
+};
 
-export type StartRoundEvent = StartGameEvent;
+export type StartRoundEvent = {
+    round: number;
+    players: Array<{ id: string; score: number }>;
+};
 
 export type PlayerAttemptEvent = any[];
 
@@ -40,4 +46,7 @@ export type EndTurnEvent = number;
 
 export type EndRoundEvent = string;
 
-export type EndGameEvent = StartGameEvent;
+export interface EndGameEvent {
+    winner: string;
+    players: Array<{ id: string; score: number }>;
+}
