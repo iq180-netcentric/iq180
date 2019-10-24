@@ -20,12 +20,9 @@ import {
     GameReady,
     GameNotReady,
     GameStart,
-    GameState,
     GameEnd,
 } from './game.state';
 import { GameMachine } from './game.machine';
-import { SocketClient } from '../event/event.type';
-import { log } from '../utils';
 
 export const playersReady = (players: PlayerMap): boolean => {
     const numberOfReady = players.filter(p => p.ready).size;
@@ -45,21 +42,6 @@ export const transformToGamePlayerMap = (playerMap: PlayerMap): GamePlayerMap =>
                 }),
             Map() as GamePlayerMap,
         );
-
-export const broadcastStartGame = (
-    gamers: GamePlayerMap,
-    players: PlayerMap,
-) => {
-    const clients = players
-        .map(p => p.client)
-        .toIndexedSeq()
-        .toArray();
-    const data = gamers
-        .map(({ id, score }) => ({ score, id }))
-        .toIndexedSeq()
-        .toArray();
-    return { clients, data };
-};
 
 @Injectable()
 export class GameService {
@@ -125,22 +107,42 @@ export class GameService {
         ),
         distinctUntilChanged(),
         withLatestFrom(
-            this.gameMachine.gamers$,
+            this.gameMachine.context$,
             this.playerService.onlinePlayers$,
         ),
-        map(([, gamers, players]) => {
-            return broadcastStartGame(gamers, players);
+        map(([, context, onlinePlayers]) => {
+            const clients = onlinePlayers
+                .map(p => p.client)
+                .toIndexedSeq()
+                .toArray();
+            const players = context.players
+                .map(({ id, score }) => ({ score, id }))
+                .toIndexedSeq()
+                .toArray();
+            const { totalRounds } = context;
+            return { clients, data: { players, totalRounds } };
         }),
     );
 
     endGame$ = this.gameMachine.state$.pipe(
         filter(state => state.event.type === GameEventType.END),
         withLatestFrom(
-            this.gameMachine.gamers$,
+            this.gameMachine.context$,
             this.playerService.onlinePlayers$,
         ),
-        map(([, gamers, players]) => {
-            return broadcastStartGame(gamers, players);
+        map(([, context, onlinePlayers]) => {
+            const clients = onlinePlayers
+                .map(p => p.client)
+                .toIndexedSeq()
+                .toArray();
+            const players = context.players
+                .map(({ id, score }) => ({ score, id }))
+                .toIndexedSeq()
+                .toArray();
+            const winner = players.reduce((prev, cur) =>
+                cur.score > prev.score ? cur : prev,
+            ).id;
+            return { clients, data: { players, winner } };
         }),
         tap(() => this.eventService.receiveEvent(null, IN_EVENT.RESET, '')),
     );

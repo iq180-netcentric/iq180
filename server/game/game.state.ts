@@ -32,8 +32,8 @@ interface GameStateSchema {
 
 export interface GameContext {
     players: GamePlayerMap;
-    rounds: number;
-    roundNumber: number;
+    totalRounds: number;
+    round: number;
     winner?: string;
     roundActor: Actor<RoundContext, RoundEvent>;
 }
@@ -65,8 +65,8 @@ export type GameEvent =
 
 const initialContext: GameContext = {
     players: Map(),
-    rounds: 3,
-    roundNumber: 0,
+    totalRounds: 3,
+    round: 1,
     roundActor: null,
     winner: null,
 };
@@ -92,16 +92,6 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             },
             [GameState.PLAYING]: {
                 on: {
-                    [RoundEventType.ATTEMPT]: {
-                        actions: send((_, event) => event, {
-                            to: ctx => ctx.roundActor,
-                        }),
-                    },
-                    [RoundEventType.SKIP]: {
-                        actions: send((_, event) => event, {
-                            to: ctx => ctx.roundActor,
-                        }),
-                    },
                     [GameEventType.END]: {
                         target: GameState.WATING,
                         actions: ['STOP_ROUND'],
@@ -116,6 +106,18 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                     GAME_END: {},
                     ROUND_START: {
                         entry: ['START_ROUND'],
+                        on: {
+                            [RoundEventType.ATTEMPT]: {
+                                actions: send((_, event) => event, {
+                                    to: ctx => ctx.roundActor,
+                                }),
+                            },
+                            [RoundEventType.SKIP]: {
+                                actions: send((_, event) => event, {
+                                    to: ctx => ctx.roundActor,
+                                }),
+                            },
+                        }
                     },
                     ROUND_END: {
                         on: {
@@ -176,7 +178,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                 winner: (_, { payload }) => payload,
             }),
             UPDATE_ROUND: assign<GameContext>({
-                roundNumber: ctx => ctx.roundNumber + 1,
+                round: ctx => ctx.round + 1,
             }),
             RESET_STATE: assign(initialContext),
             STOP_ROUND: assign<GameContext>({
@@ -187,8 +189,11 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             }),
         },
         guards: {
-            FINISHED: ctx => ctx.roundNumber === ctx.rounds,
-            NOT_FINISHED: ctx => ctx.roundNumber < ctx.rounds,
+            FINISHED: ctx => ctx.round > ctx.totalRounds,
+            NOT_FINISHED: ctx => {
+                console.log(ctx)
+                return ctx.round < ctx.totalRounds + 1
+            },
         },
     },
 );
