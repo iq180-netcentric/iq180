@@ -9,12 +9,17 @@ import {
     delay,
     pluck,
 } from 'rxjs/operators';
-import { Attempt, RoundEventType, StartTurn, EndTurn } from './round.state';
+import {
+    Attempt,
+    RoundEventType,
+    StartTurn,
+    EndTurn,
+    Skip,
+} from './round.state';
 import { GameMachine } from '../game/game.machine';
 import { GameService, broadcastStartGame } from '../game/game.service';
 import { merge } from 'rxjs';
 import { PlayerService } from '../player/player.service';
-import { OUT_EVENT } from '../event/out-events';
 
 @Injectable()
 export class RoundService {
@@ -24,7 +29,9 @@ export class RoundService {
         private readonly gameMachine: GameMachine,
         private readonly gameService: GameService,
     ) {
-        this.sendAttempt$.subscribe(answer => gameMachine.sendEvent(answer));
+        merge(this.sendAttempt$, this.skip$).subscribe(event =>
+            gameMachine.sendEvent(event),
+        );
         merge(this.emitQuestion$, this.broadcastCurrentPlayer$).subscribe(
             question => eventService.broadcastStartTurn(question),
         );
@@ -76,6 +83,14 @@ export class RoundService {
         withLatestFrom(this.currentPlayer$),
         filter(([{ client }, player]) => client.id === player),
         pluck(0),
+    );
+    skip$ = this.eventService.listenFor(IN_EVENT.SKIP).pipe(
+        map(
+            ({ client }): Skip => ({
+                type: RoundEventType.SKIP,
+                payload: { player: client.id },
+            }),
+        ),
     );
 
     broadcastAttempt$ = this.attempt$.pipe(
@@ -143,7 +158,7 @@ export class RoundService {
                 .map(p => p.client)
                 .toIndexedSeq()
                 .toArray();
-            console.log(event)
+            console.log(event);
             return { clients, data: event.payload };
         }),
     );

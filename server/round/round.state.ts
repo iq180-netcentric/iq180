@@ -30,7 +30,7 @@ export interface RoundContext extends Round {
     currentPlayer: string;
     winner: string;
     startTime: Date;
-    time?: number
+    time?: number;
 }
 
 export const enum RoundEventType {
@@ -40,6 +40,7 @@ export const enum RoundEventType {
     START_TURN = 'START_TURN',
     END_TURN = 'END_TURN',
     END_ROUND = 'END_ROUND',
+    SKIP = 'SKIP',
 }
 export interface StartRound {
     type: RoundEventType.START_ROUND;
@@ -70,7 +71,7 @@ export interface StartTurn {
 }
 export interface EndTurn {
     type: RoundEventType.END_TURN;
-    payload?: number
+    payload?: number;
 }
 export interface TimeOut {
     type: RoundEventType.TIME_OUT;
@@ -79,13 +80,20 @@ export interface EndRound {
     type: RoundEventType.END_ROUND;
     payload: string;
 }
+export interface Skip {
+    type: RoundEventType.SKIP;
+    payload: {
+        player: string;
+    };
+}
 export type RoundEvent =
     | StartRound
     | TimeOut
     | Attempt
     | StartTurn
     | EndTurn
-    | EndRound;
+    | EndRound
+    | Skip;
 
 export const enum RoundActions {
     GENERATE_QUESTION = 'GENERATE_QUESTION',
@@ -107,6 +115,7 @@ export const enum RoundCond {
     CORRECT_ANSWER = 'CORRECT_ANSWER',
     FINISHED = 'FINISHED',
     NOT_FINISHED = 'NOT_FINISHED',
+    IS_PLAYER = 'IS_PLAYER',
 }
 
 export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
@@ -147,6 +156,14 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                         ],
                         cond: RoundCond.CORRECT_ANSWER,
                     },
+                    [RoundEventType.SKIP]: {
+                        target: RoundState.END_TURN,
+                        actions: [
+                            RoundActions.WRONG,
+                            RoundActions.CANCEL_TIMER,
+                        ],
+                        cond: RoundCond.IS_PLAYER,
+                    },
                 },
             },
             [RoundState.END_TURN]: {
@@ -173,7 +190,7 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
     {
         actions: {
             [RoundActions.GENERATE_QUESTION]: assign(() => ({
-                ...generate()
+                ...generate(),
                 // question: [3, 4, 5, 8, 9],
                 // operators: ['+', '-', '*', '/'],
                 // expectedAnswer: -517,
@@ -225,18 +242,20 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                 time: ({ startTime }) => {
                     const now = new Date();
                     const time = now.valueOf() - startTime.valueOf();
-                    return time
-                }
+                    return time;
+                },
             }),
             [RoundActions.WRONG]: assign<RoundContext>({
                 history: ({ currentPlayer, history = [] }) => {
                     return [...history, { player: currentPlayer }];
                 },
             }),
-            [RoundActions.END_TURN]: sendParent((ctx): EndTurn => ({
-                type: RoundEventType.END_TURN,
-                payload: ctx.time
-            })),
+            [RoundActions.END_TURN]: sendParent(
+                (ctx): EndTurn => ({
+                    type: RoundEventType.END_TURN,
+                    payload: ctx.time,
+                }),
+            ),
             [RoundActions.FIND_WINNER]: assign<RoundContext>({
                 winner: ({ history }) =>
                     history
@@ -265,6 +284,12 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                     operators,
                 });
                 return correct && player == currentPlayer;
+            },
+            [RoundCond.IS_PLAYER]: (
+                { currentPlayer },
+                { payload: { player } }: Attempt,
+            ) => {
+                return player == currentPlayer;
             },
             [RoundCond.FINISHED]: ({ history = [], players = [] }) =>
                 history.length === players.length,
