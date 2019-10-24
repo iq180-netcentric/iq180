@@ -47,6 +47,7 @@
                             [player]="selectedPlayer$ | async"
                             [isCurrentPlayer]="isCurrentPlayer$ | async"
                             [gameInfo]="currentGame$ | async"
+                            [waiting]="waiting$ | async"
                             (exit)="exitGame()"
                         ></app-game-field>
                     </ng-container>

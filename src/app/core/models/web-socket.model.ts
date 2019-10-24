@@ -26,4 +26,5 @@ export enum WebSocketOutgoingEvent {
     startGame = 'START',
     attempt = 'ATTEMPT',
     answer = 'ANSWER',
+    skip = 'SKIP',
 }

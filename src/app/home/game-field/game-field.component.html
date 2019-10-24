@@ -29,19 +29,21 @@
                 </nz-card>
             </ng-template>
         </div>
-        <div
-            *ngIf="timer$ | async as timer"
-            class="timer"
-            nz-col
-            [nzXs]="24"
-            [nzLg]="6"
-        >
-            <div>
-                <span>{{ timer }}</span>
+        <ng-container *ngIf="!waiting && isCurrentPlayer">
+            <div
+                *ngIf="timer$ | async as timer"
+                class="timer"
+                nz-col
+                [nzXs]="24"
+                [nzLg]="6"
+            >
+                <div>
+                    <span>{{ timer }}</span>
+                </div>
             </div>
-        </div>
+        </ng-container>
     </div>
-    <div class="game" nz-row *ngIf="isCurrentPlayer; else wait">
+    <div class="game" nz-row *ngIf="isCurrentPlayer; else notCurrent">
         <div class="numbers" nz-col [nzXs]="24">
             <div
                 cdkDropList
@@ -176,6 +178,12 @@
     </div>
 </div>
 
+<ng-template #notCurrent>
+    <ng-container *ngIf="!waiting; else wait">
+        Wait for the current player
+    </ng-container>
+</ng-template>
+
 <ng-template #wait>
-    Wait for the current player
+    Wait for the game
 </ng-template>

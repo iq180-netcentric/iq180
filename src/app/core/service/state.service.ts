@@ -51,6 +51,7 @@ export interface AppContext {
     question?: number[];
     expectedAnswer?: number;
     timeLeft?: number;
+    winner?: Player;
 }
 
 export const enum AppEventType {
@@ -189,6 +190,20 @@ export class StateService {
                                         ],
                                     },
                                 ],
+                                [GameEventType.WIN]: {
+                                    target: GameState.WIN,
+                                    actions: assign<AppContext>({
+                                        winner: (_, evt) => evt.payload,
+                                    }),
+                                },
+                                [GameEventType.LOSE]: {
+                                    target: GameState.LOSE,
+                                    actions: assign<AppContext>({
+                                        winner: (_, evt) => {
+                                            return evt.payload;
+                                        },
+                                    }),
+                                },
                             },
                         },
                         [GameState.PLAYING]: {
@@ -259,8 +274,15 @@ export class StateService {
                                     },
                                     {
                                         target: GameState.WAITING,
+                                        actions: ['CLEAR_WINNER'],
                                     },
                                 ],
+                            },
+                            after: {
+                                2000: {
+                                    target: GameState.WAITING,
+                                    actions: ['CLEAR_WINNER'],
+                                },
                             },
                         },
                         [GameState.LOSE]: {
@@ -287,8 +309,15 @@ export class StateService {
                                     },
                                     {
                                         target: GameState.WAITING,
+                                        actions: ['CLEAR_WINNER'],
                                     },
                                 ],
+                            },
+                            after: {
+                                2000: {
+                                    target: GameState.WAITING,
+                                    actions: ['CLEAR_WINNER'],
+                                },
                             },
                         },
                     },
@@ -358,6 +387,9 @@ export class StateService {
                 CLEAR_PLAYER: assign<AppContext>({
                     selectedPlayer: undefined,
                 }),
+                CLEAR_WINNER: assign<AppContext>({
+                    winner: undefined,
+                }),
             },
         },
     );
@@ -419,7 +451,7 @@ export class StateService {
 
     lose$ = this.state$.pipe(
         filter(state => state.matches('PLAYING.LOSE')),
-        pluck('context', 'timeLeft'),
+        pluck('context', 'winner'),
     );
     sendEvent(event: AppEvent | GameEvent) {
         this.machine.send(event);

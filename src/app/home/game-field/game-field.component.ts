@@ -46,7 +46,7 @@ import {
 } from 'rxjs/operators';
 import { DragAndDropService } from './drag-and-drop.service';
 import { isNumber, isOperator } from 'src/app/core/functions/predicates';
-import { NzModalService } from 'ng-zorro-antd';
+import { NzModalService, NzModalRef } from 'ng-zorro-antd';
 import { StateService, AppEventType } from 'src/app/core/service/state.service';
 import { AuthService } from 'src/app/core/service/auth.service';
 import { GameEventType } from './game-state.service';
@@ -54,6 +54,7 @@ import { GameMode, GameInfo } from 'src/app/core/models/game/game.model';
 import { WebSocketService } from 'src/app/core/service/web-socket.service';
 import { WebSocketOutgoingEvent } from 'src/app/core/models/web-socket.model';
 import { calculate } from 'iq180-logic';
+import { Player } from 'server/models/player';
 
 @Component({
     selector: 'app-game-field',
@@ -64,6 +65,7 @@ export class GameFieldComponent implements OnInit, OnDestroy {
     @Input() player;
     @Input() isCurrentPlayer = false;
     @Input() gameInfo: GameInfo;
+    @Input() waiting = false;
 
     @Output() exit = new EventEmitter();
     // Game Data
@@ -104,6 +106,8 @@ export class GameFieldComponent implements OnInit, OnDestroy {
         pluck('key'),
     );
 
+    modalRef: NzModalRef;
+
     reset = () => this.dndService.reset();
 
     constructor(
@@ -118,6 +122,11 @@ export class GameFieldComponent implements OnInit, OnDestroy {
         if (this.gameInfo.mode === GameMode.singlePlayer) {
             this.stateService.sendEvent({
                 type: GameEventType.SKIP,
+            });
+        } else {
+            this.socket.emit({
+                event: WebSocketOutgoingEvent.skip,
+                data: undefined,
             });
         }
     }
@@ -163,6 +172,9 @@ export class GameFieldComponent implements OnInit, OnDestroy {
                 debounceTime(100),
             )
             .subscribe(([question, expectedAnswer]: [number[], number]) => {
+                if (this.modalRef) {
+                    this.modalRef.close();
+                }
                 this.dndService.setQuestion({ question, expectedAnswer });
             });
         this.keypress$
@@ -186,6 +198,7 @@ export class GameFieldComponent implements OnInit, OnDestroy {
             .pipe(
                 takeUntil(this.destroy$),
                 debounceTime(100),
+                filter(() => this.isCurrentPlayer),
             )
             .subscribe(([question, expectedAnswer, answer, numbers]) => {
                 this.stateService.sendEvent({
@@ -196,25 +209,10 @@ export class GameFieldComponent implements OnInit, OnDestroy {
                         numberLeft: numbers.length,
                     },
                 });
-                const pAnswer = answer.map(e => e.value);
-                if (
-                    calculate(pAnswer) === expectedAnswer &&
-                    numbers.length === 0
-                ) {
-                    this.socket.emit({
-                        event: WebSocketOutgoingEvent.answer,
-                        data: {
-                            answer: pAnswer,
-                        },
-                    });
-                } else {
-                    this.socket.emit({
-                        event: WebSocketOutgoingEvent.attempt,
-                        data: {
-                            answer: pAnswer,
-                        },
-                    });
-                }
+                this.socket.emit({
+                    event: WebSocketOutgoingEvent.attempt,
+                    data: answer.map(e => e.value),
+                });
             });
 
         this.startGame();
@@ -268,7 +266,7 @@ export class GameFieldComponent implements OnInit, OnDestroy {
                     });
                 }
             }),
-            map(([time, game]) => time),
+            map(([time]) => time),
             share(),
         );
     }
@@ -281,10 +279,12 @@ export class GameFieldComponent implements OnInit, OnDestroy {
     }
 
     showWinDialog(timeLeft: number) {
-        this.modalService.success({
+        const nzContent = timeLeft
+            ? `It took you ${60 - timeLeft} seconds for you to solve this`
+            : `Well done`;
+        this.modalRef = this.modalService.success({
             nzTitle: 'You win !',
-            nzContent: `It took you ${60 -
-                timeLeft} seconds for you to solve this`,
+            nzContent,
             nzCancelText: 'Exit Game',
             nzOnOk: () => this.okClick(),
             nzOnCancel: () => this.endGame(),
@@ -292,10 +292,13 @@ export class GameFieldComponent implements OnInit, OnDestroy {
         });
     }
 
-    showLoseDialog() {
-        this.modalService.error({
+    showLoseDialog(winner?: Player) {
+        const nzContent = winner
+            ? `${winner.name} win !`
+            : 'Better luck next time';
+        this.modalRef = this.modalService.error({
             nzTitle: 'You Lose !',
-            nzContent: 'Some Discouraging message',
+            nzContent,
             nzCancelText: 'Exit Game',
             nzOnOk: () => this.okClick(),
             nzOnCancel: () => this.endGame(),

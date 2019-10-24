@@ -31,7 +31,7 @@ import {
 } from 'rxjs/operators';
 import { StateService, AppEventType } from '../core/service/state.service';
 import { GameQuestion, GameMode } from '../core/models/game/game.model';
-import { GameEventType } from './game-field/game-state.service';
+import { GameEventType, GameState } from './game-field/game-state.service';
 
 @Component({
     selector: 'app-home',
@@ -44,10 +44,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     isCurrentPlayer$ = combineLatest([
         this.currentPlayer$,
         this.selectedPlayer$,
-    ]).pipe(
-        tap(console.log),
-        map(([c, s]) => c && s && c.id === s.id),
-    );
+    ]).pipe(map(([c, s]) => c && s && c.id === s.id));
 
     players$ = this.socket
         .listenFor<Player[]>(WebSocketIncomingEvent.players)
@@ -71,6 +68,11 @@ export class HomeComponent implements OnInit, OnDestroy {
             }),
         );
     destroy$ = new Subject();
+    waiting$ = this.stateService.state$.pipe(
+        map(e => {
+            return e.value[GameState.PLAYING] === 'WAITING';
+        }),
+    );
 
     gameReady$ = this.socket
         .listenFor<Player[]>(WebSocketIncomingEvent.players)
@@ -189,7 +191,18 @@ export class HomeComponent implements OnInit, OnDestroy {
                 takeUntil(this.destroy$),
                 withLatestFrom(this.currentPlayer$, this.players$),
             )
-            .subscribe(console.log);
+            .subscribe(([winner, player, players]) => {
+                if (player.id === winner) {
+                    this.stateService.sendEvent({
+                        type: GameEventType.WIN,
+                    });
+                } else {
+                    this.stateService.sendEvent({
+                        type: GameEventType.LOSE,
+                        payload: players.find(p => p.id === winner),
+                    });
+                }
+            });
     }
 
     selectPlayer(player: Player) {
