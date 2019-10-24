@@ -101,7 +101,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             },
             [GameState.PLAYING]: {
                 on: {
-                    [RoundEventType.ANSWER]: {
+                    [RoundEventType.ATTEMPT]: {
                         actions: send((_, event) => event, {
                             to: ctx => ctx.roundActor,
                         }),
@@ -109,9 +109,6 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                     [GameEventType.END]: {
                         target: GameState.WATING,
                         actions: ['STOP_ROUND'],
-                    },
-                    [RoundEventType.START_TURN]: {
-                        actions: 'START_TURN',
                     },
                     [RoundEventType.END_ROUND]: {
                         target: 'PLAYING.ROUND_END',
@@ -122,7 +119,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                 states: {
                     GAME_END: {},
                     ROUND_START: {
-                        entry: ['GENERATE_QUESTION', 'START_ROUND'],
+                        entry: ['START_ROUND'],
                     },
                     ROUND_END: {
                         on: {
@@ -187,7 +184,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             }),
             RESET_STATE: assign(initialContext),
             STOP_ROUND: assign<GameContext>({
-                roundActor: ({roundActor}) => {
+                roundActor: ({ roundActor }) => {
                     roundActor && roundActor.stop();
                     return null;
                 },

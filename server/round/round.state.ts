@@ -2,6 +2,7 @@ import { Machine, assign, sendParent, send, actions } from 'xstate';
 import { validateForSubmission, generate } from 'iq180-logic';
 import { Round } from '../models/round';
 import { addSeconds } from './round.utils';
+import { log } from 'xstate/lib/actions';
 
 export const enum RoundState {
     START_ROUND = 'START_ROUND',
@@ -34,7 +35,7 @@ export interface RoundContext extends Round {
 
 export const enum RoundEventType {
     START_ROUND = 'START_ROUND',
-    ANSWER = 'ANSWER',
+    ATTEMPT = 'ATTEMPT',
     TIME_OUT = 'TIME_OUT',
     START_TURN = 'START_TURN',
     END_TURN = 'END_TURN',
@@ -49,8 +50,8 @@ export interface StartRound {
         solution: (string | number)[];
     };
 }
-export interface Answer {
-    type: RoundEventType.ANSWER;
+export interface Attempt {
+    type: RoundEventType.ATTEMPT;
     payload: {
         answer: (string | number)[];
         player: string;
@@ -80,7 +81,7 @@ export interface EndRound {
 export type RoundEvent =
     | StartRound
     | TimeOut
-    | Answer
+    | Attempt
     | StartTurn
     | EndTurn
     | EndRound;
@@ -93,6 +94,7 @@ export const enum RoundActions {
     SET_START_TIME = 'SET_START_TIME',
     TIME_OUT = 'TIME_OUT',
     CANCEL_TIMER = 'CANCEL_TIMER',
+    ATTEMPT = 'ATTEMPT',
     WRONG = 'WRONG',
     CORRECT = 'CORRECT',
     END_TURN = 'END_TURN',
@@ -136,7 +138,7 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                         target: RoundState.END_TURN,
                         actions: RoundActions.WRONG,
                     },
-                    [RoundEventType.ANSWER]: {
+                    [RoundEventType.ATTEMPT]: {
                         target: RoundState.END_TURN,
                         actions: [
                             RoundActions.CANCEL_TIMER,
@@ -170,10 +172,11 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
     {
         actions: {
             [RoundActions.GENERATE_QUESTION]: assign(() => ({
-                question: [3, 4, 5, 8, 9],
-                operators: ['+', '-', '*', '/'],
-                expectedAnswer: -517,
-                solution: [3, '-', '(', 9, '+', 4, ')', '*', 8, '*', 5]
+                ...generate()
+                // question: [3, 4, 5, 8, 9],
+                // operators: ['+', '-', '*', '/'],
+                // expectedAnswer: -517,
+                // solution: [3, '-', '(', 9, '+', 4, ')', '*', 8, '*', 5],
             })),
             [RoundActions.START_ROUND]: sendParent(RoundEventType.START_ROUND),
             [RoundActions.CHOOSE_PLAYER]: assign<RoundContext>({
@@ -246,7 +249,7 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
         guards: {
             [RoundCond.CORRECT_ANSWER]: (
                 { expectedAnswer, question, operators, currentPlayer },
-                { payload: { answer, player } }: Answer,
+                { payload: { answer, player } }: Attempt,
             ) => {
                 const correct = validateForSubmission({
                     array: answer,
