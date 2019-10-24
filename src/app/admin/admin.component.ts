@@ -40,6 +40,7 @@ export class AdminComponent implements OnInit {
             if (sucess) {
                 this.isLoggedIn = true;
                 this.println('login successful');
+                this.prompt = 'IQ180-admin$ ';
             } else {
                 this.println('invalid password');
             }
