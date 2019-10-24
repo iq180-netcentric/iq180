@@ -1,0 +1,46 @@
+:host {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    nz-header {
+        display: flex;
+        justify-content: space-between;
+        .logo {
+            svg {
+                width: auto;
+                fill: white !important;
+                height: 100%;
+            }
+        }
+        h1 {
+            color: white;
+            display: block;
+        }
+        .right {
+            color: white;
+            height: 100%;
+            .link {
+                color: lightblue;
+                cursor: pointer;
+            }
+        }
+    }
+    .inner-content {
+        display: flex;
+        flex-direction: column;
+        .bottom {
+            flex-grow: 1;
+        }
+        .top {
+            flex-grow: 2;
+            height: 100%;
+            align-items: stretch;
+        }
+    }
+}
+nz-footer {
+    flex-grow: 0;
+}
+nz-header {
+    flex-grow: 0;
+}
