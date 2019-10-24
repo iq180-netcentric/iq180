@@ -180,11 +180,12 @@
 
 <ng-template #notCurrent>
     <ng-container *ngIf="!waiting; else wait">
-        Wait for the current player
+        <span style="font-size: 24px; align-self: center">~ Processing ~</span>
         <img src='https://media.giphy.com/media/bKqtxkyPXJv8I/giphy.gif'/>
     </ng-container>
 </ng-template>
 
 <ng-template #wait>
-    Wait for the game
+    <span style="font-size: 24px; align-self: center;">~ Wait for your opponent ~</span>
+    <img src='http://giphygifs.s3.amazonaws.com/media/2pqvP0X0EauDC/giphy.gif'/>
 </ng-template>
