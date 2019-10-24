@@ -142,8 +142,9 @@ export class GameService {
                 .map(({ id, score }) => ({ score, id }))
                 .toIndexedSeq()
                 .toArray();
-            const winner = players.reduce((prev, cur) =>
-                cur.score > prev.score ? cur : prev,
+            const winner = players.reduce(
+                (prev, cur) => (cur.score > prev.score ? cur : prev),
+                { id: null, score: 0 },
             ).id;
             return { clients, data: { players, winner } };
         }),

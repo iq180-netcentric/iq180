@@ -1,15 +1,18 @@
 import {
     Component,
     OnInit,
-    OnDestroy,
     ViewChild,
     Inject,
     PLATFORM_ID,
 } from '@angular/core';
 import { WebSocketService } from '../core/service/web-socket.service';
 import { NgTerminal } from 'ng-terminal';
-import { WebSocketOutgoingEvent } from '../core/models/web-socket.model';
+import {
+    WebSocketOutgoingEvent,
+    WebSocketIncomingEvent,
+} from '../core/models/web-socket.model';
 import { isPlatformBrowser } from '@angular/common';
+import { takeWhile, pluck, map, tap } from 'rxjs/operators';
 
 @Component({
     selector: 'app-admin-loading',
@@ -32,6 +35,21 @@ export class AdminComponent implements OnInit {
 
     ngOnInit() {
         this.socket.observable.subscribe(console.log);
+        this.adminJoin$.subscribe(sucess => {
+            this.ready = true;
+            if (sucess) {
+                this.isLoggedIn = true;
+                this.println('login successful');
+            } else {
+                this.println('invalid password');
+            }
+            this.writePrompt();
+        });
+        this.commandResult$.subscribe(message => {
+            this.ready = true;
+            this.println(message);
+            this.writePrompt();
+        });
     }
 
     get isBrowser() {
@@ -51,7 +69,6 @@ export class AdminComponent implements OnInit {
                     this.child.write('\r\n');
                     this.handleCommand(this.line.join(''));
                     this.line = [];
-                    this.child.write(this.prompt);
                 } else if (ev.keyCode === 8) {
                     // Do not delete the prompt
                     if (this.child.underlying.buffer.cursorX > 2) {
@@ -59,11 +76,22 @@ export class AdminComponent implements OnInit {
                         this.line.pop();
                     }
                 } else if (printable) {
-                    this.child.write(e.key);
+                    this.child.write(this.isLoggedIn ? e.key : '*');
                     this.line.push(e.key);
                 }
             }
         });
+    }
+
+    command(cmd: string) {
+        this.socket.emit({
+            event: WebSocketOutgoingEvent.command,
+            data: cmd,
+        });
+    }
+
+    writePrompt() {
+        this.child.write(this.prompt);
     }
 
     async handleCommand(command: string) {
@@ -72,44 +100,52 @@ export class AdminComponent implements OnInit {
             const [cmd, ...args] = command.replace(/\s+/, ' ').split(' ');
             switch (cmd) {
                 case 'reset':
-                    this.socket.emit({
-                        event: WebSocketOutgoingEvent.reset,
-                        data: this.password,
-                    });
-                    this.println(`Ha! reset`);
+                    this.command('RESET');
                     break;
                 case 'help':
-                    this.println(`Help me ! (type reset to reset)`);
+                    this.println(`Available Commands`);
+                    this.println('reset         reset the game');
+                    this.println('online        list online players');
+                    this.println('players       list playing players');
+                    this.ready = true;
+                    this.writePrompt();
                     break;
-                case 'password':
-                    console.log(this.password);
-                    const password = args[0];
-                    if (password) {
-                        this.println(`Password changed.`);
-                    } else {
-                        this.println(
-                            'Usage: password <new password> to change password',
-                        );
-                    }
+                case 'clear':
+                    this.child.underlying.clear();
+                    this.ready = true;
+                    this.writePrompt();
+                    break;
+                case 'online':
+                    this.command('ONLINE');
+                    break;
+                case 'players':
+                    this.command('PLAYERS');
                     break;
                 default:
                     this.println(
                         `${cmd} : command not found, type help to get help`,
                     );
+                    this.ready = true;
+                    this.child.underlying.scrollLines(1);
+                    this.writePrompt();
             }
         } else {
             this.socket.emit({
                 event: WebSocketOutgoingEvent.adminJoin,
                 data: command,
             });
-            this.password = command;
-            this.println("You're now logged in");
-            this.isLoggedIn = true;
         }
-        this.ready = true;
     }
 
     println(line: string) {
         this.child.write(line + '\r\n');
     }
+
+    adminJoin$ = this.socket.listenFor<boolean>(
+        WebSocketIncomingEvent.adminLoggedIn,
+    );
+
+    commandResult$ = this.socket.listenFor<string>(
+        WebSocketIncomingEvent.result,
+    );
 }

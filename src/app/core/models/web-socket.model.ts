@@ -14,6 +14,8 @@ export enum WebSocketIncomingEvent {
     endTurn = 'END_TURN',
     endRound = 'END_ROUND',
     endGame = 'END_GAME',
+    adminLoggedIn = 'ADMIN_LOGGED_IN',
+    result = 'RESULT',
 }
 
 export enum WebSocketOutgoingEvent {
@@ -30,5 +32,5 @@ export enum WebSocketOutgoingEvent {
     skip = 'SKIP',
     adminJoin = 'ADMIN_JOIN',
     resetGame = 'RESET_GAME',
-    reset = 'RESET',
+    command = 'COMMAND',
 }

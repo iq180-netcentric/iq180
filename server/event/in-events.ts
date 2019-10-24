@@ -8,7 +8,7 @@ export const enum IN_EVENT {
     READY = 'READY',
     START = 'START',
     ATTEMPT = 'ATTEMPT',
-    RESET = 'RESET',
+    COMMAND = 'COMMAND',
     SKIP = 'SKIP',
     ADMIN_JOIN = 'ADMIN_JOIN',
     RESET_GAME = 'RESET_GAME',

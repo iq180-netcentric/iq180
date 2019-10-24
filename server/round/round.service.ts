@@ -160,7 +160,6 @@ export class RoundService {
                 .map(p => p.client)
                 .toIndexedSeq()
                 .toArray();
-            console.log(event);
             return { clients, data: event.payload };
         }),
     );

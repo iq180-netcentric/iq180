@@ -54,9 +54,9 @@ export class EventGateway implements OnGatewayDisconnect {
         this.eventService.receiveEvent(client, IN_EVENT.ATTEMPT, input);
     }
 
-    @SubscribeMessage(IN_EVENT.RESET)
-    reset(client: SocketClient) {
-        this.eventService.receiveEvent(client, IN_EVENT.RESET);
+    @SubscribeMessage(IN_EVENT.COMMAND)
+    reset(client: SocketClient, input: string) {
+        this.eventService.receiveEvent(client, IN_EVENT.COMMAND, input);
     }
 
     @SubscribeMessage(IN_EVENT.SKIP)
