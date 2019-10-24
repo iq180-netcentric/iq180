@@ -148,6 +148,8 @@ export class HomeComponent implements OnInit, OnDestroy {
                         players,
                     },
                 });
+                //play music here
+                this.playAudio();
             });
         this.socket
             .listenFor<any>(WebSocketIncomingEvent.endTurn)
@@ -266,6 +268,15 @@ export class HomeComponent implements OnInit, OnDestroy {
             type: AppEventType.END_GAME,
         });
     }
+
+    playAudio(){
+        let audio = new Audio();
+        audio.src = "../../assets/audio/bgm.wav";
+        audio.load();
+        //audio.loop = true;
+        audio.play();
+        //audio.pause();
+      }
 
     startMultiplayer() {
         this.socket.emit({
