@@ -42,6 +42,7 @@ export const enum GameEventType {
     START_ROUND = 'START_ROUND',
     START_TURN = 'START_TURN',
     END_ROUND = 'END_ROUND',
+    END_TURN = 'END_TURN',
     OK_CLICK = 'OK_CLICK',
     CANCEL_CLICK = 'CANCEL_CLICK',
     ATTEMPT = 'ATTEMPT',

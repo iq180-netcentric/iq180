@@ -103,7 +103,7 @@
                         *ngFor="let card of answer$ | async; let i = index"
                         (click)="removeCard(card, i)"
                         [cdkDragDisabled]="
-                        isCurrentPlayer && !(isGaming$ | async)
+                            isCurrentPlayer && !(isGaming$ | async)
                         "
                         [cdkDragData]="card"
                         [ngClass]="{
@@ -165,7 +165,12 @@
     <div class="buttons">
         <button nz-button nzType="danger" (click)="reset()">Reset</button>
         <button nz-button nzType="primary" (click)="skip()">Skip</button>
-        <button nz-button nzType="default" (click)="endGame()">
+        <button
+            nz-button
+            nzType="default"
+            (click)="endGame()"
+            *ngIf="isSingleplayer"
+        >
             Exit Single Player
         </button>
     </div>
