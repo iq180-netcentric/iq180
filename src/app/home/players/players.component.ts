@@ -9,6 +9,8 @@ import {
 import { WebSocketService } from 'src/app/core/service/web-socket.service';
 import { WebSocketIncomingEvent } from 'src/app/core/models/web-socket.model';
 import { Player } from 'src/app/core/models/player.model';
+import { withLatestFrom, map, startWith } from 'rxjs/operators';
+import { combineLatest } from 'rxjs';
 
 @Component({
     selector: 'app-players',
@@ -17,7 +19,28 @@ import { Player } from 'src/app/core/models/player.model';
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PlayersComponent implements OnInit {
-    players$ = this.socket.listenFor<Player[]>(WebSocketIncomingEvent.players);
+    players$ = combineLatest([
+        this.socket.listenFor<Player[]>(WebSocketIncomingEvent.players),
+        this.socket
+            .listenFor<{ players: { id: string; score: number }[] }>(
+                WebSocketIncomingEvent.startRound,
+            )
+            .pipe(
+                map(d => d.players),
+                startWith([]),
+            ),
+    ]).pipe(
+        map(([players, playingPlayers]) => {
+            return players.map(player => {
+                const scorePlayer = playingPlayers.find(
+                    p => p.id === player.id,
+                );
+                return scorePlayer
+                    ? { ...player, score: scorePlayer.score }
+                    : player;
+            });
+        }),
+    );
     @Output() selectPlayer = new EventEmitter<Player>();
     @Input() selectedPlayer: Player;
 

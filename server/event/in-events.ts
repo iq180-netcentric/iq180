@@ -8,9 +8,11 @@ export const enum IN_EVENT {
     READY = 'READY',
     START = 'START',
     ATTEMPT = 'ATTEMPT',
-    ANSWER = 'ANSWER',
-    RESET = 'RESET',
-    FORCE_RESET = 'FORCE_RESET',
+    COMMAND = 'COMMAND',
+    SKIP = 'SKIP',
+    ADMIN_JOIN = 'ADMIN_JOIN',
+    RESET_GAME = 'RESET_GAME',
+    RESET_PLAYER = 'RESET_PLAYER',
 }
 
 export interface JoinEvent {
@@ -24,8 +26,8 @@ export type InChatMessageEvent = string;
 
 export type ReadyEvent = boolean;
 
-export type AttemptEvent = Attempt;
+export type AttemptEvent = any[];
 
-export type AnswerEvent = any[];
+export type ResetEvent = string;
 
-export type ForceResetEvent = string;
+export type AdminJoinEvent = string;

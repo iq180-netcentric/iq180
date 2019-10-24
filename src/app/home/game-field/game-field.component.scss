@@ -17,6 +17,18 @@
         flex-wrap: wrap;
         width: 100%;
     }
+    .wait,
+    .notCurrent {
+        min-height: 300px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        border: 1px solid #e8e8e8;
+        img {
+            width: auto;
+        }
+    }
     .game {
         .numbers,
         .operators {
@@ -41,6 +53,20 @@
                 font-size: 2em;
                 span {
                     width: 100%;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                    overflow: hidden;
+                }
+            }
+            .expectedAnswer {
+                border: 1px solid #e8e8e8;
+                padding: 10px;
+                display: flex;
+                align-items: center;
+                height: 100%;
+                font-size: 2em;
+                justify-content: space-between;
+                span {
                     white-space: nowrap;
                     text-overflow: ellipsis;
                     overflow: hidden;
@@ -85,6 +111,12 @@
         }
     }
 }
+.buttons {
+    button {
+        margin-right: 8px;
+    }
+}
+
 .card,
 .cdk-drag-preview {
     height: 64px;

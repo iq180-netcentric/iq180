@@ -8,8 +8,10 @@ import { Component, OnInit, Output, EventEmitter, Input } from '@angular/core';
 export class MenuComponent implements OnInit {
     @Output() ready = new EventEmitter();
     @Output() singlePlayer = new EventEmitter();
+    @Output() multiPlayer = new EventEmitter();
 
     @Input() isReady = false;
+    @Input() isGameReady = false;
 
     constructor() {}
 
@@ -21,5 +23,9 @@ export class MenuComponent implements OnInit {
 
     singlePlayerClicked() {
         this.singlePlayer.emit(undefined);
+    }
+
+    multiplayerClicked() {
+        this.multiPlayer.emit(undefined);
     }
 }

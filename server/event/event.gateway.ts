@@ -9,6 +9,8 @@ import {
     EditEvent,
     InChatMessageEvent,
     ReadyEvent,
+    AttemptEvent,
+    ResetEvent,
 } from './in-events';
 import { EventService } from './event.service';
 import { SocketClient } from './event.type';
@@ -45,6 +47,26 @@ export class EventGateway implements OnGatewayDisconnect {
     @SubscribeMessage(IN_EVENT.START)
     start(client: SocketClient) {
         this.eventService.receiveEvent(client, IN_EVENT.START);
+    }
+
+    @SubscribeMessage(IN_EVENT.ATTEMPT)
+    attempt(client: SocketClient, input: AttemptEvent) {
+        this.eventService.receiveEvent(client, IN_EVENT.ATTEMPT, input);
+    }
+
+    @SubscribeMessage(IN_EVENT.COMMAND)
+    reset(client: SocketClient, input: string) {
+        this.eventService.receiveEvent(client, IN_EVENT.COMMAND, input);
+    }
+
+    @SubscribeMessage(IN_EVENT.SKIP)
+    skip(client: SocketClient) {
+        this.eventService.receiveEvent(client, IN_EVENT.SKIP);
+    }
+
+    @SubscribeMessage(IN_EVENT.ADMIN_JOIN)
+    adminJoin(client: SocketClient, input: string) {
+        this.eventService.receiveEvent(client, IN_EVENT.ADMIN_JOIN, input);
     }
 
     handleDisconnect(client: SocketClient) {

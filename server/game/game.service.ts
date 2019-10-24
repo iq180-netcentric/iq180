@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { GameStore } from './game.store';
 import { PlayerService } from '../player/player.service';
 import {
     filter,
@@ -7,42 +6,29 @@ import {
     withLatestFrom,
     pluck,
     distinctUntilChanged,
-    delay,
+    mapTo,
+    tap,
 } from 'rxjs/operators';
-import { merge, Observable } from 'rxjs';
-import { readyAction, startAction } from './game.action';
+import { merge } from 'rxjs';
 import { PlayerMap } from '../player/player.store';
-import { Game, GamePlayerMap } from '../models/game';
-import { none } from 'fp-ts/lib/Option';
+import { GamePlayerMap } from '../models/game';
 import { Map } from 'immutable';
 import { EventService } from '../event/event.service';
 import { IN_EVENT } from '../event/in-events';
-import { serialzedGamePlayers } from './game.model';
-
-export const gameIsReady = (gameStore$: Observable<Game>) => <T>(
-    source: Observable<T>,
-) =>
-    source.pipe(
-        withLatestFrom(gameStore$),
-        filter(([, game]) => game.ready),
-        map(([i]) => i),
-    );
+import {
+    GameEventType,
+    GameReady,
+    GameNotReady,
+    GameStart,
+    GameEnd,
+} from './game.state';
+import { GameMachine } from './game.machine';
 
 export const playersReady = (players: PlayerMap): boolean => {
-    const numberOfPlayers = players.size;
     const numberOfReady = players.filter(p => p.ready).size;
-    const result =
-        numberOfReady >= Math.ceil(numberOfPlayers / 2) && numberOfReady > 1;
+    const result = numberOfReady > 1;
     return result;
 };
-
-export const playersReadyAction$ = (currentPlayers$: Observable<PlayerMap>) =>
-    currentPlayers$.pipe(
-        delay(0),
-        map(playersReady),
-        distinctUntilChanged(),
-        map(readyAction),
-    );
 
 export const transformToGamePlayerMap = (playerMap: PlayerMap): GamePlayerMap =>
     playerMap
@@ -53,53 +39,124 @@ export const transformToGamePlayerMap = (playerMap: PlayerMap): GamePlayerMap =>
                 map.set(id, {
                     id,
                     score: 0,
-                    reset: false,
-                    attempt: none,
                 }),
-            <GamePlayerMap>Map(),
+            Map() as GamePlayerMap,
         );
-const startGameAction$ = (startGame$: Observable<GamePlayerMap>) =>
-    startGame$.pipe(map(startAction));
 
 @Injectable()
 export class GameService {
     constructor(
-        private readonly gameStore: GameStore,
+        private readonly gameMachine: GameMachine,
         private readonly playerService: PlayerService,
         private readonly eventService: EventService,
     ) {
-        merge(
-            playersReadyAction$(playerService.onlinePlayers$),
-            startGameAction$(this.startGame$),
-        ).subscribe(i => gameStore.dispatch(i));
-        this.broadcastStartGame.subscribe(i =>
+        this.broadcastStartGame$.subscribe(i =>
             eventService.broadcastStartGame(i),
+        );
+        this.endGame$.subscribe(i => eventService.broadcastEndGame(i));
+        merge(this.gameReady$, this.startGame$, this.resetGame$).subscribe(i =>
+            gameMachine.sendEvent(i),
+        );
+        this.playerQuit$.subscribe(() =>
+            eventService.receiveEvent(null, IN_EVENT.RESET_GAME),
         );
     }
 
-    gamePlayers$ = this.gameStore.store$.pipe(
-        pluck('players'),
-        withLatestFrom(this.playerService.onlinePlayers$),
-        map(([gamers, players]) =>
-            gamers.map((_, key) => players.get(key).client),
+    gameReady$ = this.playerService.onlinePlayers$.pipe(
+        filter(playersReady),
+        distinctUntilChanged(),
+        map(
+            (ready): GameReady | GameNotReady =>
+                ready
+                    ? { type: GameEventType.READY }
+                    : { type: GameEventType.NOT_READY },
         ),
     );
-    startGame$ = this.eventService.listenFor(IN_EVENT.START).pipe(
-        gameIsReady(this.gameStore.store$),
-        withLatestFrom(this.playerService.onlinePlayers$),
-        pluck(1),
-        map(transformToGamePlayerMap),
+
+    gameStateReady$ = this.gameReady$.pipe(
+        map(
+            (ready): GameReady | GameNotReady =>
+                ready
+                    ? { type: GameEventType.READY }
+                    : { type: GameEventType.NOT_READY },
+        ),
     );
 
-    broadcastStartGame = this.startGame$.pipe(
+    gamePlayers$ = this.gameMachine.gamers$.pipe(
         withLatestFrom(this.playerService.onlinePlayers$),
-        map(([gamers, players]) => {
-            const clients = gamers
-                .map((_, key) => players.get(key).client)
+        map(([gamers, players]) =>
+            gamers
+                .filter((_, key) => players.has(key))
+                .map((_, key) => players.get(key).client),
+        ),
+    );
+
+    startGame$ = this.eventService.listenFor(IN_EVENT.START).pipe(
+        withLatestFrom(this.playerService.onlinePlayers$),
+        pluck(1),
+        map(
+            (players): GameStart => {
+                const gamers = transformToGamePlayerMap(players);
+                return { type: GameEventType.START, payload: gamers };
+            },
+        ),
+    );
+
+    broadcastStartGame$ = this.gameMachine.state$.pipe(
+        filter(
+            state =>
+                state.event.type === GameEventType.START &&
+                state.matches('PLAYING'),
+        ),
+        distinctUntilChanged(),
+        withLatestFrom(
+            this.gameMachine.context$,
+            this.playerService.onlinePlayers$,
+        ),
+        map(([, context, onlinePlayers]) => {
+            const clients = onlinePlayers
+                .map(p => p.client)
                 .toIndexedSeq()
                 .toArray();
-            const data = serialzedGamePlayers(gamers);
-            return { clients, data };
+            const players = context.players
+                .map(({ id, score }) => ({ score, id }))
+                .toIndexedSeq()
+                .toArray();
+            const { totalRounds } = context;
+            return { clients, data: { players, totalRounds } };
         }),
     );
+
+    endGame$ = this.gameMachine.state$.pipe(
+        filter(state => state.event.type === GameEventType.END),
+        withLatestFrom(
+            this.gameMachine.context$,
+            this.playerService.onlinePlayers$,
+        ),
+        map(([, context, onlinePlayers]) => {
+            const clients = onlinePlayers
+                .map(p => p.client)
+                .toIndexedSeq()
+                .toArray();
+            const players = context.players
+                .map(({ id, score }) => ({ score, id }))
+                .toIndexedSeq()
+                .toArray();
+            const winner = players.reduce(
+                (prev, cur) => (cur.score > prev.score ? cur : prev),
+                { id: null, score: 0 },
+            ).id;
+            return { clients, data: { players, winner } };
+        }),
+        tap(() => this.eventService.receiveEvent(null, IN_EVENT.RESET_PLAYER)),
+    );
+
+    playerQuit$ = this.playerService.removePlayer$.pipe(
+        withLatestFrom(this.gameMachine.gamers$),
+        filter(([player, gamers]) => gamers.has(player)),
+    );
+
+    resetGame$ = this.eventService
+        .listenFor(IN_EVENT.RESET_GAME)
+        .pipe(mapTo({ type: GameEventType.END } as GameEnd));
 }

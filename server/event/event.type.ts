@@ -11,14 +11,14 @@ export interface ReceiveEvent<T = any> {
 }
 
 export interface EmitMessage<T = any> {
-    data: T;
+    data?: T;
     client: SocketClient;
 }
 export interface EmitEvent<T = any> extends EmitMessage<T> {
     event: string;
 }
 export interface BroadcastMessage<T = any> {
-    data: T;
+    data?: T;
     clients: SocketClient[];
 }
 

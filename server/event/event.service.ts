@@ -14,20 +14,23 @@ import {
     OutChatMessageEvent,
     StartGameEvent,
     StartRoundEvent,
+    EndGameEvent,
+    EndRoundEvent,
+    StartTurnEvent,
+    PlayerAttemptEvent,
+    EndTurnEvent,
 } from './out-events';
 import { IN_EVENT } from './in-events';
 import { emitEvent, filterEvent } from './event.utils';
 
 @Injectable()
 export class EventService {
-    receiveEvent$ = new Subject<ReceiveEvent>();
-
-    emitEvent$ = new Subject<EmitEvent>();
-
     constructor() {
         this.emitEvent$.subscribe(emitEvent);
     }
+    receiveEvent$ = new Subject<ReceiveEvent>();
 
+    emitEvent$ = new Subject<EmitEvent>();
     listenFor<T = any>(event: IN_EVENT) {
         return this.receiveEvent$.pipe(filterEvent<T>(event));
     }
@@ -51,7 +54,7 @@ export class EventService {
         OUT_EVENT.PLAYERS,
     );
 
-    sendNewPlayerInfo = this.emitEvent<NewPlayerInfoEvent>(
+    emitNewPlayerInfo = this.emitEvent<NewPlayerInfoEvent>(
         OUT_EVENT.PLAYER_INFO,
     );
 
@@ -59,11 +62,29 @@ export class EventService {
         OUT_EVENT.CHAT_MESSAGE,
     );
 
+    broadcastGameReady = this.broadcastEvent(OUT_EVENT.GAME_READY);
+
     broadcastStartGame = this.broadcastEvent<StartGameEvent>(
         OUT_EVENT.START_GAME,
     );
 
+    broadcastEndGame = this.broadcastEvent<EndGameEvent>(OUT_EVENT.END_GAME);
+
     broadcastStartRound = this.broadcastEvent<StartRoundEvent>(
         OUT_EVENT.START_ROUND,
     );
+
+    broadcastEndRound = this.broadcastEvent<EndRoundEvent>(OUT_EVENT.END_ROUND);
+
+    broadcastStartTurn = this.broadcastEvent<StartTurnEvent>(
+        OUT_EVENT.START_TURN,
+    );
+
+    broadcastAttempt = this.broadcastEvent<PlayerAttemptEvent>(
+        OUT_EVENT.ATTEMPT,
+    );
+
+    broadcastEndTurn = this.broadcastEvent<EndTurnEvent>(OUT_EVENT.END_TURN);
+
+    broadcastGameState = this.broadcastEvent(OUT_EVENT.GAME_STATE);
 }

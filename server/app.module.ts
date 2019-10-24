@@ -7,13 +7,14 @@ import { ChatModule } from './chat/chat.module';
 import { GameModule } from './game/game.module';
 import { StoreModule } from './store/store.module';
 import { RoundModule } from './round/round.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
     imports: [
         AngularUniversalModule.forRoot({
             viewsPath: join(process.cwd(), 'dist/browser'),
             bundle: require('../server/main'),
-            liveReload: true,
+            liveReload: process.env.NODE_ENV !== 'production',
         }),
         StoreModule,
         PlayerModule,
@@ -21,6 +22,7 @@ import { RoundModule } from './round/round.module';
         ChatModule,
         GameModule,
         RoundModule,
+        AdminModule,
     ],
 })
 export class AppModule {}

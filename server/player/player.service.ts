@@ -8,6 +8,7 @@ import {
     filter,
     tap,
     pluck,
+    debounceTime,
     distinctUntilChanged,
 } from 'rxjs/operators';
 import { JoinEvent, EditEvent, IN_EVENT, ReadyEvent } from '../event/in-events';
@@ -18,6 +19,7 @@ import {
     editPlayerAction,
     removePlayerAction,
     addPlayerAction,
+    resetPlayersAction,
 } from './player.action';
 import uuid from 'uuidv4';
 
@@ -31,18 +33,20 @@ export class PlayerService {
             this.addPlayerAction$,
             this.editPlayerAction$,
             this.removePlayerAction$,
+            this.resetPlayer$,
         ).subscribe(i => playerStore.dispatch(i));
         this.broadcastOnlinePlayers$.subscribe(i =>
             eventService.broadcastOnlinePlayers(i),
         );
         this.sendNewPlayerInfo$.subscribe(i =>
-            eventService.sendNewPlayerInfo(i),
+            eventService.emitNewPlayerInfo(i),
         );
     }
 
     onlinePlayers$ = this.playerStore.store$;
 
     private broadcastOnlinePlayers$ = this.onlinePlayers$.pipe(
+        debounceTime(1000),
         distinctUntilChanged(),
         map(players => players.toIndexedSeq().toArray()),
         map(players => {
@@ -87,7 +91,7 @@ export class PlayerService {
 
     private addPlayerAction$ = this.addPlayer$.pipe(map(addPlayerAction));
 
-    private removePlayer$ = this.eventService
+    removePlayer$ = this.eventService
         .listenFor(IN_EVENT.LEAVE)
         .pipe(map(({ client }) => client.id));
 
@@ -109,7 +113,7 @@ export class PlayerService {
             isInRoom(),
             map(
                 ([event, players]): [ReceiveEvent, PlayerMap] => [
-                    { ...event, data: { ready: event.data } },
+                    { ...event, data: { ready: event.data || false } },
                     players,
                 ],
             ),
@@ -140,4 +144,8 @@ export class PlayerService {
             client,
         })),
     );
+
+    private resetPlayer$ = this.eventService
+        .listenFor(IN_EVENT.RESET_PLAYER)
+        .pipe(map(resetPlayersAction));
 }

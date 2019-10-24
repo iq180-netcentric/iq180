@@ -13,9 +13,13 @@ export class AuthService {
 
     constructor(@Inject(PLATFORM_ID) private platformId: object) {
         if (isPlatformBrowser(this.platformId)) {
-            this.player$ = new BehaviorSubject<Player>(
-                JSON.parse(localStorage.getItem('player')) || undefined,
-            );
+            let user;
+            try {
+                user = JSON.parse(localStorage.getItem('player')) || undefined;
+            } catch {
+                user = undefined;
+            }
+            this.player$ = new BehaviorSubject<Player>(user);
             this.remember$ = new BehaviorSubject<boolean>(
                 !!localStorage.getItem('player'),
             );

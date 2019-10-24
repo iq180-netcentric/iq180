@@ -13,6 +13,7 @@ import {
     moveItemInArray,
     transferArrayItem,
 } from '@angular/cdk/drag-drop';
+import { GameQuestion } from 'src/app/core/models/game/game.model';
 
 @Injectable({
     providedIn: 'root',
@@ -27,13 +28,13 @@ export class DragAndDropService {
         map(answer => answer.map(e => e.value)),
         map(answers => Logic.highlightWrongLocation({ array: answers })),
     );
+    question$ = new BehaviorSubject<GameQuestion>(null);
 
     isValidAnswer$ = this.answer$.pipe(
-        debounceTime(750),
         map(ans => {
             return Logic.validateForDisplay({
                 array: ans.map(e => e.value),
-                operators: ['+', '-', '*', '/'],
+                operators: ['+', '-', '*', '/', '(', ')'],
             });
         }),
         startWith(true),
@@ -41,10 +42,13 @@ export class DragAndDropService {
 
     currentAnswer$ = this.answer$.pipe(
         map(ans => {
+            if (ans.length < 1) {
+                return 0;
+            }
             if (
                 Logic.validateForDisplay({
                     array: ans.map(e => e.value),
-                    operators: ['+', '-', '*', '/'],
+                    operators: ['+', '-', '*', '/', '(', ')'],
                 })
             ) {
                 return Logic.calculate(ans.map(e => e.value));
@@ -63,33 +67,36 @@ export class DragAndDropService {
         { value: '-', display: '-', disabled: false },
         { value: '*', display: 'x', disabled: false },
         { value: '/', display: '÷', disabled: false },
+        { value: '(', display: '(', disabled: false },
+        { value: ')', display: ')', disabled: false },
     ].map(e => ({ ...e, type: CardType.operator }));
 
     constructor() {}
 
     reset() {
-        const { question, operators, expectedAnswer } = Logic.generate({
-            numberLength: 5,
-            operators: ['+', '-', '*', '/'],
-            integerAnswer: true,
-        });
+        const question = this.question$.value.question
+            .map(e => ({
+                value: e,
+                display: e.toString(),
+                disabled: false,
+            }))
+            .map(e => ({ ...e, type: CardType.number }));
+        this.numbers$.next(question);
         this.operators = [
             { value: '+', display: '+', disabled: false },
             { value: '-', display: '-', disabled: false },
             { value: '*', display: 'x', disabled: false },
             { value: '/', display: '÷', disabled: false },
+            { value: '(', display: '(', disabled: false },
+            { value: ')', display: ')', disabled: false },
         ].map(e => ({ ...e, type: CardType.operator }));
-        this.numbers$.next(
-            question
-                .map(e => ({
-                    value: e,
-                    display: e.toString(),
-                    disabled: false,
-                }))
-                .map(e => ({ ...e, type: CardType.number })),
-        );
-        this.expectedAnswer$.next(expectedAnswer);
         this.answer$.next([]);
+    }
+
+    setQuestion({ question, expectedAnswer }: GameQuestion) {
+        this.expectedAnswer$.next(expectedAnswer);
+        this.question$.next({ question, expectedAnswer });
+        this.reset();
     }
 
     dropAnswer(event: CdkDragDrop<DraggableCard[]>) {
@@ -175,7 +182,7 @@ export class DragAndDropService {
 
     addOperator(card: OperatorCard, opIdx: number, ansIdx?: number) {
         const ansArr = this.answer$.getValue();
-        if (ansArr.filter(e => e.type === CardType.operator).length < 4) {
+        if (ansArr.filter(e => e.type === CardType.operator).length < 16) {
             ansArr.splice(
                 ansIdx !== undefined ? ansIdx : ansArr.length,
                 0,
