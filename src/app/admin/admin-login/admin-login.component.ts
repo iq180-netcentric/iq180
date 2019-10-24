@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, OnDestroy } from '@angular/core';
-import { NzModalRef } from 'ng-zorro-antd';
+import { NzModalRef, NzModalService } from 'ng-zorro-antd';
 import { FormControl, Validators } from '@angular/forms';
 import { WebSocketService } from 'src/app/core/service/web-socket.service';
 import {
@@ -28,6 +28,8 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
     usernameInput: FormControl;
     passwordInput: FormControl;
 
+    adminLoginModalInstance: NzModalRef;
+
     // nicknameInput: FormControl;
     // avatarInput: FormControl;
     // rememberInput: FormControl;
@@ -35,6 +37,7 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
     constructor(
         private modal: NzModalRef,
         private socket: WebSocketService,
+        private modalService: NzModalService,
         private auth: AuthService,
         private fb: FormBuilder,
     ) {}

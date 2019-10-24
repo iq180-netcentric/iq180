@@ -52,7 +52,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
     ready$ = this.stateService.ready$;
     currentGame$ = this.stateService.game$;
-    adminLoginInstance$ = new BehaviorSubject<NzModalRef>(undefined);
+    adminLoginInstance: NzModalRef;
 
     constructor(
         private socket: WebSocketService,
@@ -144,8 +144,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     }
 
     logout() {
-        this.showLoginModal
-(true);
+        this.showLoginModal();
     }
 
     exitGame() {
@@ -160,32 +159,21 @@ export class AdminComponent implements OnInit, OnDestroy {
             data: null,
         });
     }
-    showLoginModal(edit: boolean = false): void {
-        combineLatest(this.authService.player$, this.authService.remember$)
-            .pipe(take(1))
-            .subscribe(([player, remember]) => {
-                const modal = this.modalService.create({
-                    nzTitle: 'Welcome to IQ180',
-                    nzContent: AdminLoginComponent,
-                    nzClosable: edit,
-                    nzComponentParams: {
-                        edit,
-                        player,
-                        remember,
+    showLoginModal(): void {
+        const modal = this.modalService.create({
+            nzTitle: 'Welcome to IQ180',
+            nzContent: AdminLoginComponent,
+            nzFooter: [
+                {
+                    label: 'GO!',
+                    type: 'primary',
+                    onClick: instance => {
+                        instance.submitUser();
                     },
-                    nzFooter: [
-                        {
-                            label: 'GO!',
-                            type: 'primary',
-                            onClick: instance => {
-                                instance.submitUser();
-                            },
-                        },
-                    ],
-                    nzMaskClosable: edit,
-                    nzOnOk: () => this.adminLoginInstance$.next(undefined),
-                });
-                this.adminLoginInstance$.next(modal);
-            });
+                },
+            ],
+            nzOnOk: () => this.adminLoginInstance.close()
+        });
+        this.adminLoginInstance.open();
     }
 }
