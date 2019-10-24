@@ -9,7 +9,7 @@ import {
     delay,
     pluck,
 } from 'rxjs/operators';
-import { Attempt, RoundEventType, StartTurn } from './round.state';
+import { Attempt, RoundEventType, StartTurn, EndTurn } from './round.state';
 import { GameMachine } from '../game/game.machine';
 import { GameService, broadcastStartGame } from '../game/game.service';
 import { merge } from 'rxjs';
@@ -136,13 +136,15 @@ export class RoundService {
     );
     endTurn$ = this.gameMachine.state$.pipe(
         filter(state => state.event.type === RoundEventType.END_TURN),
+        map(state => state.event as EndTurn),
         withLatestFrom(this.playerService.onlinePlayers$),
-        map(([, players]) => {
+        map(([event, players]) => {
             const clients = players
                 .map(p => p.client)
                 .toIndexedSeq()
                 .toArray();
-            return { clients };
+            console.log(event)
+            return { clients, data: event.payload };
         }),
     );
 }

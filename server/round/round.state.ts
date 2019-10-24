@@ -2,7 +2,6 @@ import { Machine, assign, sendParent, send, actions } from 'xstate';
 import { validateForSubmission, generate } from 'iq180-logic';
 import { Round } from '../models/round';
 import { addSeconds } from './round.utils';
-import { log } from 'xstate/lib/actions';
 
 export const enum RoundState {
     START_ROUND = 'START_ROUND',
@@ -31,6 +30,7 @@ export interface RoundContext extends Round {
     currentPlayer: string;
     winner: string;
     startTime: Date;
+    time?: number
 }
 
 export const enum RoundEventType {
@@ -70,6 +70,7 @@ export interface StartTurn {
 }
 export interface EndTurn {
     type: RoundEventType.END_TURN;
+    payload?: number
 }
 export interface TimeOut {
     type: RoundEventType.TIME_OUT;
@@ -172,11 +173,11 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
     {
         actions: {
             [RoundActions.GENERATE_QUESTION]: assign(() => ({
-                ...generate()
-                // question: [3, 4, 5, 8, 9],
-                // operators: ['+', '-', '*', '/'],
-                // expectedAnswer: -517,
-                // solution: [3, '-', '(', 9, '+', 4, ')', '*', 8, '*', 5],
+                // ...generate()
+                question: [3, 4, 5, 8, 9],
+                operators: ['+', '-', '*', '/'],
+                expectedAnswer: -517,
+                solution: [3, '-', '(', 9, '+', 4, ')', '*', 8, '*', 5],
             })),
             [RoundActions.START_ROUND]: sendParent(RoundEventType.START_ROUND),
             [RoundActions.CHOOSE_PLAYER]: assign<RoundContext>({
@@ -221,15 +222,21 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                     ];
                     return result;
                 },
+                time: ({ startTime }) => {
+                    const now = new Date();
+                    const time = now.valueOf() - startTime.valueOf();
+                    return time
+                }
             }),
             [RoundActions.WRONG]: assign<RoundContext>({
                 history: ({ currentPlayer, history = [] }) => {
                     return [...history, { player: currentPlayer }];
                 },
             }),
-            [RoundActions.END_TURN]: sendParent({
+            [RoundActions.END_TURN]: sendParent((ctx): EndTurn => ({
                 type: RoundEventType.END_TURN,
-            }),
+                payload: ctx.time
+            })),
             [RoundActions.FIND_WINNER]: assign<RoundContext>({
                 winner: ({ history }) =>
                     history
