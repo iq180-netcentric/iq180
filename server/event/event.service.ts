@@ -86,5 +86,5 @@ export class EventService {
 
     broadcastEndTurn = this.broadcastEvent<EndTurnEvent>(OUT_EVENT.END_TURN);
 
-    broadcastGameState = this.broadcastEvent(OUT_EVENT.GAME_STATE)
+    broadcastGameState = this.broadcastEvent(OUT_EVENT.GAME_STATE);
 }

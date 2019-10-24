@@ -22,7 +22,7 @@ import { AdminModule } from './admin/admin.module';
         ChatModule,
         GameModule,
         RoundModule,
-        AdminModule
+        AdminModule,
     ],
 })
 export class AppModule {}

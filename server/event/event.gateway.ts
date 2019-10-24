@@ -17,7 +17,7 @@ import { SocketClient } from './event.type';
 
 @WebSocketGateway()
 export class EventGateway implements OnGatewayDisconnect {
-    constructor(private readonly eventService: EventService) { }
+    constructor(private readonly eventService: EventService) {}
 
     @SubscribeMessage(IN_EVENT.JOIN)
     join(client: SocketClient, input: JoinEvent) {
