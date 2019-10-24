@@ -36,7 +36,7 @@ export interface StartTurnEvent extends Partial<Round> {
     currentPlayer: string;
 }
 
-export type EndTurnEvent = number
+export type EndTurnEvent = number;
 
 export type EndRoundEvent = string;
 

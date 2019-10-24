@@ -9,6 +9,7 @@ export const enum IN_EVENT {
     START = 'START',
     ATTEMPT = 'ATTEMPT',
     RESET = 'RESET',
+    SKIP = 'SKIP',
 }
 
 export interface JoinEvent {

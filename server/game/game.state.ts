@@ -1,15 +1,13 @@
 import { GamePlayerMap } from '../models/game';
-import { Machine, assign, send, spawn, actions } from 'xstate';
+import { Machine, assign, send, spawn } from 'xstate';
 import { Map } from 'immutable';
 import {
     roundMachine,
     RoundEventType,
     RoundEvent,
-    StartTurn,
     RoundContext,
     EndRound,
 } from '../round/round.state';
-import { generate } from 'iq180-logic';
 import { Actor } from 'xstate/lib/Actor';
 
 export const enum GameState {
@@ -38,13 +36,6 @@ export interface GameContext {
     roundNumber: number;
     winner?: string;
     roundActor: Actor<RoundContext, RoundEvent>;
-    // round?: {
-    //     currentPlayer: string;
-    //     question: number[];
-    //     operators: string[];
-    //     expectedAnswer: number;
-    //     solution: (string | number)[];
-    // };
 }
 export const enum GameEventType {
     READY = 'READY',
@@ -102,6 +93,11 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             [GameState.PLAYING]: {
                 on: {
                     [RoundEventType.ATTEMPT]: {
+                        actions: send((_, event) => event, {
+                            to: ctx => ctx.roundActor,
+                        }),
+                    },
+                    [RoundEventType.SKIP]: {
                         actions: send((_, event) => event, {
                             to: ctx => ctx.roundActor,
                         }),
