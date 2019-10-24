@@ -148,6 +148,14 @@ export class HomeComponent implements OnInit, OnDestroy {
                 });
             });
         this.socket
+            .listenFor<any>(WebSocketIncomingEvent.endTurn)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(() => {
+                this.stateService.sendEvent({
+                    type: GameEventType.END_TURN,
+                });
+            });
+        this.socket
             .listenFor<any>(WebSocketIncomingEvent.startTurn)
             .pipe(
                 takeUntil(this.destroy$),
@@ -175,6 +183,13 @@ export class HomeComponent implements OnInit, OnDestroy {
                     });
                 }
             });
+        this.socket
+            .listenFor<any>(WebSocketIncomingEvent.endRound)
+            .pipe(
+                takeUntil(this.destroy$),
+                withLatestFrom(this.currentPlayer$, this.players$),
+            )
+            .subscribe(console.log);
     }
 
     selectPlayer(player: Player) {
@@ -215,6 +230,12 @@ export class HomeComponent implements OnInit, OnDestroy {
                 this.stateService.sendEvent({
                     type: GameEventType.START_ROUND,
                     payload: player,
+                });
+                this.stateService.sendEvent({
+                    type: GameEventType.START_TURN,
+                    payload: {
+                        currentPlayer: player,
+                    },
                 });
             });
     }

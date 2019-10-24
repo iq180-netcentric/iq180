@@ -12,6 +12,7 @@ export enum WebSocketIncomingEvent {
     startTurn = 'START_TURN',
     currentPlayer = 'CURRENT_PLAYER',
     endTurn = 'END_TURN',
+    endRound = 'END_ROUND',
 }
 
 export enum WebSocketOutgoingEvent {
@@ -23,4 +24,6 @@ export enum WebSocketOutgoingEvent {
     ready = 'READY',
     notReady = 'NOT_READY',
     startGame = 'START',
+    attempt = 'ATTEMPT',
+    answer = 'ANSWER',
 }

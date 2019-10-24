@@ -137,25 +137,58 @@ export class StateService {
                     states: {
                         [GameState.WAITING]: {
                             on: {
-                                [GameEventType.START_TURN]: {
-                                    target: GameState.PLAYING,
-                                    actions: [
-                                        assign((ctx, evt) => {
-                                            const {
-                                                question,
-                                                expectedAnswer,
-                                                currentPlayer,
-                                            } = evt.payload;
-                                            console.log(currentPlayer);
-                                            return {
-                                                ...ctx,
-                                                question,
-                                                expectedAnswer,
-                                                selectedPlayer: currentPlayer,
-                                            };
-                                        }),
-                                    ],
-                                },
+                                [GameEventType.START_TURN]: [
+                                    {
+                                        actions: [
+                                            assign((ctx, evt) => {
+                                                const {
+                                                    currentPlayer,
+                                                } = evt.payload;
+                                                return {
+                                                    ...ctx,
+                                                    selectedPlayer: currentPlayer,
+                                                };
+                                            }),
+                                            'GENERATE_QUESTION',
+                                        ],
+                                        cond: 'SINGLE_PLAYER',
+                                        target: GameState.PLAYING,
+                                    },
+                                    {
+                                        target: GameState.PLAYING,
+                                        cond: (_, evt) =>
+                                            evt.payload.question &&
+                                            evt.payload.expectedAnswer,
+                                        actions: [
+                                            assign((ctx, evt) => {
+                                                const {
+                                                    question,
+                                                    expectedAnswer,
+                                                    currentPlayer,
+                                                } = evt.payload;
+                                                return {
+                                                    ...ctx,
+                                                    question,
+                                                    expectedAnswer,
+                                                    selectedPlayer: currentPlayer,
+                                                };
+                                            }),
+                                        ],
+                                    },
+                                    {
+                                        actions: [
+                                            assign((ctx, evt) => {
+                                                const {
+                                                    currentPlayer,
+                                                } = evt.payload;
+                                                return {
+                                                    ...ctx,
+                                                    selectedPlayer: currentPlayer,
+                                                };
+                                            }),
+                                        ],
+                                    },
+                                ],
                             },
                         },
                         [GameState.PLAYING]: {
@@ -165,17 +198,23 @@ export class StateService {
                                         target: GameState.WIN,
                                         cond: (
                                             ctx,
-                                            evt: GenericGameEvent<GameAnswer>,
+                                            evt: GenericGameEvent<
+                                                GameAnswer & {
+                                                    numbersLeft: number;
+                                                }
+                                            >,
                                         ) => {
                                             const {
                                                 answer,
                                                 expectedAnswer,
+                                                numbersLeft,
                                             } = evt.payload;
                                             return (
                                                 calculate(answer) ===
                                                     expectedAnswer &&
                                                 ctx.currentGame.mode ===
-                                                    GameMode.singlePlayer
+                                                    GameMode.singlePlayer &&
+                                                numbersLeft === 0
                                             );
                                         },
                                     },
@@ -190,38 +229,66 @@ export class StateService {
                                 [GameEventType.LOSE]: {
                                     target: GameState.LOSE,
                                 },
+                                [GameEventType.END_TURN]: {
+                                    target: GameState.WAITING,
+                                    actions: ['CLEAR_QUESTION', 'CLEAR_PLAYER'],
+                                },
                             },
                         },
                         [GameState.WIN]: {
                             on: {
-                                [GameEventType.CANCEL_CLICK]: {
-                                    cond: 'SINGLE_PLAYER',
-                                    actions: send(
-                                        () => ({ type: GameEventType.EXIT }),
-                                        { to: 'game' },
-                                    ),
-                                },
-                                [GameEventType.OK_CLICK]: {
-                                    target: GameState.PLAYING,
-                                    cond: 'SINGLE_PLAYER',
-                                    actions: ['GENERATE_QUESTION'],
-                                },
+                                [GameEventType.CANCEL_CLICK]: [
+                                    {
+                                        cond: 'SINGLE_PLAYER',
+                                        actions: send(
+                                            () => ({
+                                                type: GameEventType.EXIT,
+                                            }),
+                                            { to: 'game' },
+                                        ),
+                                    },
+                                    {
+                                        target: GameState.WAITING,
+                                    },
+                                ],
+                                [GameEventType.OK_CLICK]: [
+                                    {
+                                        target: GameState.PLAYING,
+                                        cond: 'SINGLE_PLAYER',
+                                        actions: ['GENERATE_QUESTION'],
+                                    },
+                                    {
+                                        target: GameState.WAITING,
+                                    },
+                                ],
                             },
                         },
                         [GameState.LOSE]: {
                             on: {
-                                [GameEventType.CANCEL_CLICK]: {
-                                    cond: 'SINGLE_PLAYER',
-                                    actions: send(
-                                        () => ({ type: GameEventType.EXIT }),
-                                        { to: 'game' },
-                                    ),
-                                },
-                                [GameEventType.OK_CLICK]: {
-                                    target: GameState.PLAYING,
-                                    cond: 'SINGLE_PLAYER',
-                                    actions: ['GENERATE_QUESTION'],
-                                },
+                                [GameEventType.CANCEL_CLICK]: [
+                                    {
+                                        cond: 'SINGLE_PLAYER',
+                                        actions: send(
+                                            () => ({
+                                                type: GameEventType.EXIT,
+                                            }),
+                                            { to: 'game' },
+                                        ),
+                                    },
+                                    {
+                                        target: GameState.WAITING,
+                                    },
+                                ],
+                                [GameEventType.OK_CLICK]: [
+                                    {
+                                        target: GameState.PLAYING,
+                                        cond: 'SINGLE_PLAYER',
+                                        actions: ['GENERATE_QUESTION'],
+                                    },
+                                    {
+                                        target: GameState.WAITING,
+                                    },
+                                ],
                             },
                         },
                     },
@@ -283,6 +350,13 @@ export class StateService {
                 }),
                 SET_TIMER: assign<AppContext>({
                     timeLeft: (_, evt) => evt.payload,
+                }),
+                CLEAR_QUESION: assign<AppContext>({
+                    question: undefined,
+                    expectedAnswer: undefined,
+                }),
+                CLEAR_PLAYER: assign<AppContext>({
+                    selectedPlayer: undefined,
                 }),
             },
         },

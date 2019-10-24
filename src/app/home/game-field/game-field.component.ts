@@ -51,6 +51,9 @@ import { StateService, AppEventType } from 'src/app/core/service/state.service';
 import { AuthService } from 'src/app/core/service/auth.service';
 import { GameEventType } from './game-state.service';
 import { GameMode, GameInfo } from 'src/app/core/models/game/game.model';
+import { WebSocketService } from 'src/app/core/service/web-socket.service';
+import { WebSocketOutgoingEvent } from 'src/app/core/models/web-socket.model';
+import { calculate } from 'iq180-logic';
 
 @Component({
     selector: 'app-game-field',
@@ -60,6 +63,7 @@ import { GameMode, GameInfo } from 'src/app/core/models/game/game.model';
 export class GameFieldComponent implements OnInit, OnDestroy {
     @Input() player;
     @Input() isCurrentPlayer = false;
+    @Input() gameInfo: GameInfo;
 
     @Output() exit = new EventEmitter();
     // Game Data
@@ -106,26 +110,30 @@ export class GameFieldComponent implements OnInit, OnDestroy {
         private dndService: DragAndDropService,
         private modalService: NzModalService,
         private stateService: StateService,
+        private socket: WebSocketService,
         private authService: AuthService,
     ) {}
 
     skip() {
-        this.resetTimer$.next();
-        this.stateService.sendEvent({
-            type: GameEventType.SKIP,
-        });
+        if (this.gameInfo.mode === GameMode.singlePlayer) {
+            this.stateService.sendEvent({
+                type: GameEventType.SKIP,
+            });
+        }
     }
 
     okClick() {
         this.stateService.sendEvent({
             type: GameEventType.OK_CLICK,
         });
-        this.resetTimer$.next();
     }
     ngOnDestroy() {
         this.destroy$.next();
     }
     ngOnInit() {
+        this.stateService.question$.pipe(filter(e => !!e)).subscribe(_ => {
+            this.resetTimer$.next();
+        });
         this.stateService.win$
             .pipe(
                 takeUntil(this.destroy$),
@@ -169,19 +177,44 @@ export class GameFieldComponent implements OnInit, OnDestroy {
                 // filter(([, , , isGaming, playable]) => isGaming && playable),
             )
             .subscribe(args => this.handleKeypress(args));
-        combineLatest([this.question$, this.expectedAnswer$, this.answer$])
+        combineLatest([
+            this.question$,
+            this.expectedAnswer$,
+            this.answer$,
+            this.numbers$,
+        ])
             .pipe(
                 takeUntil(this.destroy$),
                 debounceTime(100),
             )
-            .subscribe(([question, expectedAnswer, answer]) => {
+            .subscribe(([question, expectedAnswer, answer, numbers]) => {
                 this.stateService.sendEvent({
                     type: GameEventType.ATTEMPT,
                     payload: {
                         expectedAnswer,
                         answer: answer.map(e => e.value),
+                        numberLeft: numbers.length,
                     },
                 });
+                const pAnswer = answer.map(e => e.value);
+                if (
+                    calculate(pAnswer) === expectedAnswer &&
+                    numbers.length === 0
+                ) {
+                    this.socket.emit({
+                        event: WebSocketOutgoingEvent.answer,
+                        data: {
+                            answer: pAnswer,
+                        },
+                    });
+                } else {
+                    this.socket.emit({
+                        event: WebSocketOutgoingEvent.attempt,
+                        data: {
+                            answer: pAnswer,
+                        },
+                    });
+                }
             });
 
         this.startGame();
@@ -289,5 +322,9 @@ export class GameFieldComponent implements OnInit, OnDestroy {
 
     isOperator(item: CdkDrag<DraggableCard>) {
         return item.data.type === CardType.operator;
+    }
+
+    get isSingleplayer() {
+        return this.gameInfo.mode === GameMode.singlePlayer;
     }
 }
