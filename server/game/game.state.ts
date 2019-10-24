@@ -117,7 +117,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                                     to: ctx => ctx.roundActor,
                                 }),
                             },
-                        }
+                        },
                     },
                     ROUND_END: {
                         on: {
@@ -191,8 +191,8 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
         guards: {
             FINISHED: ctx => ctx.round > ctx.totalRounds,
             NOT_FINISHED: ctx => {
-                console.log(ctx)
-                return ctx.round < ctx.totalRounds + 1
+                console.log(ctx);
+                return ctx.round < ctx.totalRounds + 1;
             },
         },
     },

@@ -15,7 +15,8 @@ export const enum OUT_EVENT {
     END_GAME = 'END_GAME',
     WINNER = 'WINNER',
     ATTEMPT = 'ATTEMPT',
-    GAME_STATE = 'GAME_STATE'
+    GAME_STATE = 'GAME_STATE',
+    ADMIN_LOGGED_IN = 'ADMIN_LOGGED_IN',
 }
 
 export type PlayersEvent = PlayerInfo[];
@@ -35,6 +36,8 @@ export type StartRoundEvent = {
 };
 
 export type PlayerAttemptEvent = any[];
+
+export type AdminLoggedIn = boolean;
 
 export interface StartTurnEvent extends Partial<Round> {
     question?: number[];

@@ -57,7 +57,9 @@ export class GameService {
         merge(this.gameReady$, this.startGame$, this.resetGame$).subscribe(i =>
             gameMachine.sendEvent(i),
         );
-        this.playerQuit$.subscribe(() => eventService.receiveEvent(null, IN_EVENT.RESET_GAME))
+        this.playerQuit$.subscribe(() =>
+            eventService.receiveEvent(null, IN_EVENT.RESET_GAME),
+        );
     }
 
     gameReady$ = this.playerService.onlinePlayers$.pipe(
