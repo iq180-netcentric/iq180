@@ -23,14 +23,12 @@ import { emitEvent, filterEvent } from './event.utils';
 
 @Injectable()
 export class EventService {
-    receiveEvent$ = new Subject<ReceiveEvent>();
-
-    emitEvent$ = new Subject<EmitEvent>();
-
     constructor() {
         this.emitEvent$.subscribe(emitEvent);
     }
+    receiveEvent$ = new Subject<ReceiveEvent>();
 
+    emitEvent$ = new Subject<EmitEvent>();
     listenFor<T = any>(event: IN_EVENT) {
         return this.receiveEvent$.pipe(filterEvent<T>(event));
     }
@@ -81,4 +79,6 @@ export class EventService {
     );
 
     broadcastEndTurn = this.broadcastEvent(OUT_EVENT.END_TURN);
+
+
 }

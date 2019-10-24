@@ -1,5 +1,5 @@
 import { Machine, assign, sendParent, send, actions } from 'xstate';
-import { validateForSubmission } from 'iq180-logic';
+import { validateForSubmission, generate } from 'iq180-logic';
 import { Round } from '../models/round';
 import { addSeconds } from './round.utils';
 
@@ -30,11 +30,12 @@ export interface RoundContext extends Round {
     currentPlayer: string;
     winner: string;
     startTime: Date;
+    time?: number
 }
 
 export const enum RoundEventType {
     START_ROUND = 'START_ROUND',
-    ANSWER = 'ANSWER',
+    ATTEMPT = 'ATTEMPT',
     TIME_OUT = 'TIME_OUT',
     START_TURN = 'START_TURN',
     END_TURN = 'END_TURN',
@@ -49,8 +50,8 @@ export interface StartRound {
         solution: (string | number)[];
     };
 }
-export interface Answer {
-    type: RoundEventType.ANSWER;
+export interface Attempt {
+    type: RoundEventType.ATTEMPT;
     payload: {
         answer: (string | number)[];
         player: string;
@@ -61,10 +62,15 @@ export interface StartTurn {
     type: RoundEventType.START_TURN;
     payload: {
         currentPlayer: string;
+        question: number[];
+        operators: string[];
+        solution: any[];
+        expectedAnswer: number;
     };
 }
 export interface EndTurn {
     type: RoundEventType.END_TURN;
+    payload?: number
 }
 export interface TimeOut {
     type: RoundEventType.TIME_OUT;
@@ -76,7 +82,7 @@ export interface EndRound {
 export type RoundEvent =
     | StartRound
     | TimeOut
-    | Answer
+    | Attempt
     | StartTurn
     | EndTurn
     | EndRound;
@@ -89,6 +95,7 @@ export const enum RoundActions {
     SET_START_TIME = 'SET_START_TIME',
     TIME_OUT = 'TIME_OUT',
     CANCEL_TIMER = 'CANCEL_TIMER',
+    ATTEMPT = 'ATTEMPT',
     WRONG = 'WRONG',
     CORRECT = 'CORRECT',
     END_TURN = 'END_TURN',
@@ -107,7 +114,10 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
         initial: RoundState.START_ROUND,
         states: {
             [RoundState.START_ROUND]: {
-                entry: RoundActions.START_ROUND,
+                entry: [
+                    RoundActions.GENERATE_QUESTION,
+                    RoundActions.START_ROUND,
+                ],
                 on: {
                     '': RoundState.NEW_TURN,
                 },
@@ -129,7 +139,7 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                         target: RoundState.END_TURN,
                         actions: RoundActions.WRONG,
                     },
-                    [RoundEventType.ANSWER]: {
+                    [RoundEventType.ATTEMPT]: {
                         target: RoundState.END_TURN,
                         actions: [
                             RoundActions.CANCEL_TIMER,
@@ -162,19 +172,38 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
     },
     {
         actions: {
-            [RoundEventType.START_ROUND]: sendParent(
-                RoundEventType.START_ROUND,
-            ),
+            [RoundActions.GENERATE_QUESTION]: assign(() => ({
+                ...generate()
+                // question: [3, 4, 5, 8, 9],
+                // operators: ['+', '-', '*', '/'],
+                // expectedAnswer: -517,
+                // solution: [3, '-', '(', 9, '+', 4, ')', '*', 8, '*', 5],
+            })),
+            [RoundActions.START_ROUND]: sendParent(RoundEventType.START_ROUND),
             [RoundActions.CHOOSE_PLAYER]: assign<RoundContext>({
                 currentPlayer: ({ currentPlayer = '', players = [] }) => {
                     const index = players.indexOf(currentPlayer);
                     return players[index + 1];
                 },
             }),
-            [RoundActions.START_TURN]: sendParent(({ currentPlayer }) => ({
-                type: RoundEventType.START_TURN,
-                payload: { currentPlayer },
-            })),
+            [RoundActions.START_TURN]: sendParent(
+                ({
+                    currentPlayer,
+                    question,
+                    operators,
+                    expectedAnswer,
+                    solution,
+                }) => ({
+                    type: RoundEventType.START_TURN,
+                    payload: {
+                        currentPlayer,
+                        question,
+                        operators,
+                        expectedAnswer,
+                        solution,
+                    },
+                }),
+            ),
             [RoundActions.SET_START_TIME]: assign<RoundContext>({
                 startTime: () => addSeconds(new Date(), 5),
             }),
@@ -193,15 +222,21 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
                     ];
                     return result;
                 },
+                time: ({ startTime }) => {
+                    const now = new Date();
+                    const time = now.valueOf() - startTime.valueOf();
+                    return time
+                }
             }),
             [RoundActions.WRONG]: assign<RoundContext>({
                 history: ({ currentPlayer, history = [] }) => {
                     return [...history, { player: currentPlayer }];
                 },
             }),
-            [RoundActions.END_TURN]: sendParent({
+            [RoundActions.END_TURN]: sendParent((ctx): EndTurn => ({
                 type: RoundEventType.END_TURN,
-            }),
+                payload: ctx.time
+            })),
             [RoundActions.FIND_WINNER]: assign<RoundContext>({
                 winner: ({ history }) =>
                     history
@@ -221,7 +256,7 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
         guards: {
             [RoundCond.CORRECT_ANSWER]: (
                 { expectedAnswer, question, operators, currentPlayer },
-                { payload: { answer, player } }: Answer,
+                { payload: { answer, player } }: Attempt,
             ) => {
                 const correct = validateForSubmission({
                     array: answer,
