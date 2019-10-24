@@ -17,6 +17,7 @@ export const enum OUT_EVENT {
     ATTEMPT = 'ATTEMPT',
     GAME_STATE = 'GAME_STATE',
     ADMIN_LOGGED_IN = 'ADMIN_LOGGED_IN',
+    RESULT = 'RESULT',
 }
 
 export type PlayersEvent = PlayerInfo[];

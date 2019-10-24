@@ -7,7 +7,7 @@ import { AdminStore } from './admin.store';
 import { StoreModule } from '../store/store.module';
 
 @Module({
-    imports: [EventModule, GameModule, StoreModule],
+    imports: [EventModule, GameModule, StoreModule, PlayerModule],
     providers: [AdminService, AdminStore],
 })
 export class AdminModule {}

@@ -36,8 +36,6 @@ export class AdminComponent implements OnInit {
     ngOnInit() {
         this.socket.observable.subscribe(console.log);
         this.adminJoin$.subscribe(sucess => {
-            console.log(sucess);
-            console.log(this.isLoggedIn);
             if (sucess) {
                 this.isLoggedIn = true;
                 this.println('login successful');
@@ -45,6 +43,7 @@ export class AdminComponent implements OnInit {
                 this.println('invalid password');
             }
         });
+        this.commandResult$.subscribe(message => this.println(message));
     }
 
     get isBrowser() {
@@ -79,27 +78,37 @@ export class AdminComponent implements OnInit {
         });
     }
 
+    command(cmd: string) {
+        this.socket.emit({
+            event: WebSocketOutgoingEvent.command,
+            data: cmd,
+        });
+    }
+
     async handleCommand(command: string) {
         this.ready = false;
         if (this.isLoggedIn) {
             const [cmd, ...args] = command.replace(/\s+/, ' ').split(' ');
             switch (cmd) {
                 case 'reset':
-                    this.socket.emit({
-                        event: WebSocketOutgoingEvent.command,
-                        data: 'RESET',
-                    });
-                    this.println(`Ha! reset`);
+                    this.command('RESET');
                     break;
                 case 'help':
                     this.println(`Available Commands`);
-                    this.println('reset       reset the game');
-                    this.println('players     list online players');
-                    this.println('game        list game state');
-                    // reset       reset the game
-                    // players     list online players
-                    // game        list game state
-                    // `);
+                    this.println('reset         reset the game');
+                    this.println('online        list online players');
+                    this.println('players       list playing players');
+                    break;
+                case 'clear':
+                    for (let i = 0; i < 30; i++) {
+                        this.println('');
+                    }
+                    break;
+                case 'online':
+                    this.command('ONLINE');
+                    break;
+                case 'players':
+                    this.command('PLAYERS');
                     break;
                 default:
                     this.println(
@@ -111,9 +120,6 @@ export class AdminComponent implements OnInit {
                 event: WebSocketOutgoingEvent.adminJoin,
                 data: command,
             });
-            // this.password = command;
-            // this.println("You're now logged in");
-            // this.isLoggedIn = true;
         }
         this.ready = true;
     }
@@ -124,5 +130,9 @@ export class AdminComponent implements OnInit {
 
     adminJoin$ = this.socket.listenFor<boolean>(
         WebSocketIncomingEvent.adminLoggedIn,
+    );
+
+    commandResult$ = this.socket.listenFor<string>(
+        WebSocketIncomingEvent.result,
     );
 }

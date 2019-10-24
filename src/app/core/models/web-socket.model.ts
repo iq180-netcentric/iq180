@@ -15,6 +15,7 @@ export enum WebSocketIncomingEvent {
     endRound = 'END_ROUND',
     endGame = 'END_GAME',
     adminLoggedIn = 'ADMIN_LOGGED_IN',
+    result = 'RESULT',
 }
 
 export enum WebSocketOutgoingEvent {
