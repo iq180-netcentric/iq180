@@ -173,11 +173,11 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
     {
         actions: {
             [RoundActions.GENERATE_QUESTION]: assign(() => ({
-                // ...generate()
-                question: [3, 4, 5, 8, 9],
-                operators: ['+', '-', '*', '/'],
-                expectedAnswer: -517,
-                solution: [3, '-', '(', 9, '+', 4, ')', '*', 8, '*', 5],
+                ...generate()
+                // question: [3, 4, 5, 8, 9],
+                // operators: ['+', '-', '*', '/'],
+                // expectedAnswer: -517,
+                // solution: [3, '-', '(', 9, '+', 4, ')', '*', 8, '*', 5],
             })),
             [RoundActions.START_ROUND]: sendParent(RoundEventType.START_ROUND),
             [RoundActions.CHOOSE_PLAYER]: assign<RoundContext>({
