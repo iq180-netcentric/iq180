@@ -1,14 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventService } from '../event/event.service';
 import { IN_EVENT, AttemptEvent } from '../event/in-events';
-import {
-    map,
-    filter,
-    withLatestFrom,
-    distinctUntilChanged,
-    delay,
-    pluck,
-} from 'rxjs/operators';
+import { map, filter, withLatestFrom, delay, pluck } from 'rxjs/operators';
 import {
     Attempt,
     RoundEventType,
@@ -17,7 +10,7 @@ import {
     Skip,
 } from './round.state';
 import { GameMachine } from '../game/game.machine';
-import { GameService, broadcastStartGame } from '../game/game.service';
+import { GameService } from '../game/game.service';
 import { merge } from 'rxjs';
 import { PlayerService } from '../player/player.service';
 
@@ -44,11 +37,20 @@ export class RoundService {
     startRound$ = this.gameMachine.state$.pipe(
         filter(state => state.event.type === RoundEventType.START_ROUND),
         withLatestFrom(
-            this.gameMachine.gamers$,
+            this.gameMachine.context$,
             this.playerService.onlinePlayers$,
         ),
-        map(([, gamers, players]) => {
-            return broadcastStartGame(gamers, players);
+        map(([, context, onlinePlayers]) => {
+            const clients = onlinePlayers
+                .map(p => p.client)
+                .toIndexedSeq()
+                .toArray();
+            const players = context.players
+                .map(({ id, score }) => ({ score, id }))
+                .toIndexedSeq()
+                .toArray();
+            const { round } = context;
+            return { clients, data: { players, round } };
         }),
     );
 
