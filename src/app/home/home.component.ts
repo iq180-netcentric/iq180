@@ -271,7 +271,13 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     playAudio(){
         let audio = new Audio();
-        audio.src = "../../assets/audio/bgm.mp3";
+        if(Math.random()>0.2)
+        {
+            audio.src = "../../assets/audio/jeopardy.mp3";
+        } else
+        {
+            audio.src = "../../assets/audio/ktb.mp3";
+        }
         audio.load();
         //audio.loop = true;
         audio.play();
