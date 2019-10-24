@@ -36,14 +36,20 @@ export class AdminComponent implements OnInit {
     ngOnInit() {
         this.socket.observable.subscribe(console.log);
         this.adminJoin$.subscribe(sucess => {
+            this.ready = true;
             if (sucess) {
                 this.isLoggedIn = true;
                 this.println('login successful');
             } else {
                 this.println('invalid password');
             }
+            this.writePrompt();
         });
-        this.commandResult$.subscribe(message => this.println(message));
+        this.commandResult$.subscribe(message => {
+            this.ready = true;
+            this.println(message);
+            this.writePrompt();
+        });
     }
 
     get isBrowser() {
@@ -63,7 +69,6 @@ export class AdminComponent implements OnInit {
                     this.child.write('\r\n');
                     this.handleCommand(this.line.join(''));
                     this.line = [];
-                    this.child.write(this.prompt);
                 } else if (ev.keyCode === 8) {
                     // Do not delete the prompt
                     if (this.child.underlying.buffer.cursorX > 2) {
@@ -71,7 +76,7 @@ export class AdminComponent implements OnInit {
                         this.line.pop();
                     }
                 } else if (printable) {
-                    this.child.write(e.key);
+                    this.child.write(this.isLoggedIn ? e.key : '*');
                     this.line.push(e.key);
                 }
             }
@@ -83,6 +88,10 @@ export class AdminComponent implements OnInit {
             event: WebSocketOutgoingEvent.command,
             data: cmd,
         });
+    }
+
+    writePrompt() {
+        this.child.write(this.prompt);
     }
 
     async handleCommand(command: string) {
@@ -98,11 +107,13 @@ export class AdminComponent implements OnInit {
                     this.println('reset         reset the game');
                     this.println('online        list online players');
                     this.println('players       list playing players');
+                    this.ready = true;
+                    this.writePrompt();
                     break;
                 case 'clear':
-                    for (let i = 0; i < 30; i++) {
-                        this.println('');
-                    }
+                    this.child.underlying.clear();
+                    this.ready = true;
+                    this.writePrompt();
                     break;
                 case 'online':
                     this.command('ONLINE');
@@ -114,6 +125,9 @@ export class AdminComponent implements OnInit {
                     this.println(
                         `${cmd} : command not found, type help to get help`,
                     );
+                    this.ready = true;
+                    this.child.underlying.scrollLines(1);
+                    this.writePrompt();
             }
         } else {
             this.socket.emit({
@@ -121,7 +135,6 @@ export class AdminComponent implements OnInit {
                 data: command,
             });
         }
-        this.ready = true;
     }
 
     println(line: string) {
