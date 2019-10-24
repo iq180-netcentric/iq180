@@ -21,9 +21,14 @@ import { combineLatest } from 'rxjs';
 export class PlayersComponent implements OnInit {
     players$ = combineLatest([
         this.socket.listenFor<Player[]>(WebSocketIncomingEvent.players),
-        this.socket.listenFor<{ id: string; score: number }[]>(
-            WebSocketIncomingEvent.startRound,
-        ),
+        this.socket
+            .listenFor<{ players: { id: string; score: number }[] }>(
+                WebSocketIncomingEvent.startRound,
+            )
+            .pipe(
+                map(d => d.players),
+                startWith([]),
+            ),
     ]).pipe(
         map(([players, playingPlayers]) => {
             return players.map(player => {
