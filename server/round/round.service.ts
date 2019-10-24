@@ -7,8 +7,9 @@ import {
     withLatestFrom,
     distinctUntilChanged,
     delay,
+    pluck,
 } from 'rxjs/operators';
-import { Answer, RoundEventType } from './round.state';
+import { Answer, RoundEventType, StartTurn } from './round.state';
 import { GameMachine } from '../game/game.machine';
 import { GameService, broadcastStartGame } from '../game/game.service';
 import { merge } from 'rxjs';
@@ -51,7 +52,7 @@ export class RoundService {
     );
 
     endRound$ = this.gameMachine.state$.pipe(
-        filter(state => state.event.type === ('done.invoke.round' as any)),
+        filter(state => state.event.type ===  RoundEventType.END_ROUND),
         withLatestFrom(
             this.gameMachine.context$,
             this.playerService.onlinePlayers$,
@@ -69,17 +70,18 @@ export class RoundService {
     );
     startTurn$ = this.gameMachine.state$.pipe(
         filter(state => state.event.type === RoundEventType.START_TURN),
+        map(state => state.event as StartTurn),
         delay(5000),
     );
 
     emitQuestion$ = this.startTurn$.pipe(
-        withLatestFrom(this.gameMachine.round$, this.gameService.gamePlayers$),
-        filter(([, round, players]) => players.has(round.currentPlayer)),
-        map(([, round, players]) => {
-            const { currentPlayer, solution, ...rest } = round;
+        withLatestFrom(this.gameService.gamePlayers$),
+        filter(([{ payload }, players]) => players.has(payload.currentPlayer)),
+        map(([{ payload }, players]) => {
+            const { currentPlayer, solution, ...rest } = payload;
             const clients = [players.get(currentPlayer)];
             console.log('/////////');
-            console.log(round);
+            console.log(payload);
             return {
                 clients,
                 data: {
@@ -91,19 +93,15 @@ export class RoundService {
     );
 
     broadcastCurrentPlayer$ = this.startTurn$.pipe(
-        withLatestFrom(
-            this.gameMachine.round$,
-            this.playerService.onlinePlayers$,
-        ),
-        filter(([, round, players]) => players.has(round.currentPlayer)),
-        map(([, round, players]) => {
-            const { currentPlayer } = round;
+        withLatestFrom(this.playerService.onlinePlayers$),
+        filter(([{ payload }, players]) => players.has(payload.currentPlayer)),
+        map(([{ payload }, players]) => {
+            const { currentPlayer } = payload;
             const clients = players
                 .filter(p => p.id != currentPlayer)
                 .map(p => p.client)
                 .toIndexedSeq()
                 .toArray();
-            console.log(clients);
             return {
                 clients,
                 data: { currentPlayer },

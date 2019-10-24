@@ -1,5 +1,5 @@
 import { Machine, assign, sendParent, send, actions } from 'xstate';
-import { validateForSubmission } from 'iq180-logic';
+import { validateForSubmission, generate } from 'iq180-logic';
 import { Round } from '../models/round';
 import { addSeconds } from './round.utils';
 
@@ -61,6 +61,10 @@ export interface StartTurn {
     type: RoundEventType.START_TURN;
     payload: {
         currentPlayer: string;
+        question: number[];
+        operators: string[];
+        solution: any[];
+        expectedAnswer: number;
     };
 }
 export interface EndTurn {
@@ -107,7 +111,10 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
         initial: RoundState.START_ROUND,
         states: {
             [RoundState.START_ROUND]: {
-                entry: RoundActions.START_ROUND,
+                entry: [
+                    RoundActions.GENERATE_QUESTION,
+                    RoundActions.START_ROUND,
+                ],
                 on: {
                     '': RoundState.NEW_TURN,
                 },
@@ -162,19 +169,37 @@ export const roundMachine = Machine<RoundContext, RoundStateSchema, RoundEvent>(
     },
     {
         actions: {
-            [RoundEventType.START_ROUND]: sendParent(
-                RoundEventType.START_ROUND,
-            ),
+            [RoundActions.GENERATE_QUESTION]: assign(() => ({
+                question: [3, 4, 5, 8, 9],
+                operators: ['+', '-', '*', '/'],
+                expectedAnswer: -517,
+                solution: [3, '-', '(', 9, '+', 4, ')', '*', 8, '*', 5]
+            })),
+            [RoundActions.START_ROUND]: sendParent(RoundEventType.START_ROUND),
             [RoundActions.CHOOSE_PLAYER]: assign<RoundContext>({
                 currentPlayer: ({ currentPlayer = '', players = [] }) => {
                     const index = players.indexOf(currentPlayer);
                     return players[index + 1];
                 },
             }),
-            [RoundActions.START_TURN]: sendParent(({ currentPlayer }) => ({
-                type: RoundEventType.START_TURN,
-                payload: { currentPlayer },
-            })),
+            [RoundActions.START_TURN]: sendParent(
+                ({
+                    currentPlayer,
+                    question,
+                    operators,
+                    expectedAnswer,
+                    solution,
+                }) => ({
+                    type: RoundEventType.START_TURN,
+                    payload: {
+                        currentPlayer,
+                        question,
+                        operators,
+                        expectedAnswer,
+                        solution,
+                    },
+                }),
+            ),
             [RoundActions.SET_START_TIME]: assign<RoundContext>({
                 startTime: () => addSeconds(new Date(), 5),
             }),

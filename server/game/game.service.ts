@@ -43,7 +43,7 @@ export const transformToGamePlayerMap = (playerMap: PlayerMap): GamePlayerMap =>
                     id,
                     score: 0,
                 }),
-            <GamePlayerMap>Map(),
+            Map() as GamePlayerMap,
         );
 
 export const broadcastStartGame = (
