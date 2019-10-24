@@ -30,4 +30,5 @@ export enum WebSocketOutgoingEvent {
     skip = 'SKIP',
     adminJoin = 'ADMIN_JOIN',
     resetGame = 'RESET_GAME',
+    reset = 'RESET',
 }

@@ -70,11 +70,10 @@ export class AdminComponent implements OnInit {
         this.ready = false;
         if (this.isLoggedIn) {
             const [cmd, ...args] = command.replace(/\s+/, ' ').split(' ');
-            console.log(cmd, args);
             switch (cmd) {
                 case 'reset':
                     this.socket.emit({
-                        event: WebSocketOutgoingEvent.resetGame,
+                        event: WebSocketOutgoingEvent.reset,
                         data: this.password,
                     });
                     this.println(`Ha! reset`);
