@@ -53,7 +53,8 @@ export class AdminService {
         .listenFor<AdminJoinEvent>(IN_EVENT.ADMIN_JOIN)
         .pipe(map(({ data, client }) => ({ client, data: data === 'SECRET' })));
 
-    private reset$ = this.eventService.listenFor(IN_EVENT.RESET).pipe(
+    private reset$ = this.eventService.listenFor<string>(IN_EVENT.COMMAND).pipe(
+        filter(({ data }) => data === 'RESET'),
         withLatestFrom(this.adminStore.store$),
         isAdmin(),
     );

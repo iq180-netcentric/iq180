@@ -1,15 +1,18 @@
 import {
     Component,
     OnInit,
-    OnDestroy,
     ViewChild,
     Inject,
     PLATFORM_ID,
 } from '@angular/core';
 import { WebSocketService } from '../core/service/web-socket.service';
 import { NgTerminal } from 'ng-terminal';
-import { WebSocketOutgoingEvent } from '../core/models/web-socket.model';
+import {
+    WebSocketOutgoingEvent,
+    WebSocketIncomingEvent,
+} from '../core/models/web-socket.model';
 import { isPlatformBrowser } from '@angular/common';
+import { takeWhile, pluck, map, tap } from 'rxjs/operators';
 
 @Component({
     selector: 'app-admin-loading',
@@ -32,6 +35,16 @@ export class AdminComponent implements OnInit {
 
     ngOnInit() {
         this.socket.observable.subscribe(console.log);
+        this.adminJoin$.subscribe(sucess => {
+            console.log(sucess);
+            console.log(this.isLoggedIn);
+            if (sucess) {
+                this.isLoggedIn = true;
+                this.println('login successful');
+            } else {
+                this.println('invalid password');
+            }
+        });
     }
 
     get isBrowser() {
@@ -73,24 +86,20 @@ export class AdminComponent implements OnInit {
             switch (cmd) {
                 case 'reset':
                     this.socket.emit({
-                        event: WebSocketOutgoingEvent.reset,
-                        data: this.password,
+                        event: WebSocketOutgoingEvent.command,
+                        data: 'RESET',
                     });
                     this.println(`Ha! reset`);
                     break;
                 case 'help':
-                    this.println(`Help me ! (type reset to reset)`);
-                    break;
-                case 'password':
-                    console.log(this.password);
-                    const password = args[0];
-                    if (password) {
-                        this.println(`Password changed.`);
-                    } else {
-                        this.println(
-                            'Usage: password <new password> to change password',
-                        );
-                    }
+                    this.println(`Available Commands`);
+                    this.println('reset       reset the game');
+                    this.println('players     list online players');
+                    this.println('game        list game state');
+                    // reset       reset the game
+                    // players     list online players
+                    // game        list game state
+                    // `);
                     break;
                 default:
                     this.println(
@@ -102,9 +111,9 @@ export class AdminComponent implements OnInit {
                 event: WebSocketOutgoingEvent.adminJoin,
                 data: command,
             });
-            this.password = command;
-            this.println("You're now logged in");
-            this.isLoggedIn = true;
+            // this.password = command;
+            // this.println("You're now logged in");
+            // this.isLoggedIn = true;
         }
         this.ready = true;
     }
@@ -112,4 +121,8 @@ export class AdminComponent implements OnInit {
     println(line: string) {
         this.child.write(line + '\r\n');
     }
+
+    adminJoin$ = this.socket.listenFor<boolean>(
+        WebSocketIncomingEvent.adminLoggedIn,
+    );
 }

@@ -1,5 +1,6 @@
 import { tap } from 'rxjs/operators';
-export const log = <T>(stuff?: (fn: T) => string | string) =>
+type ReturnString<T> = (fn: T) => string;
+export const log = <T>(stuff?: ReturnString<T> | string) =>
     tap<T>(data => {
         if (typeof stuff === 'string') {
             console.log(stuff);
