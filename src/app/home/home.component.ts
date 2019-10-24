@@ -46,27 +46,28 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.selectedPlayer$,
     ]).pipe(map(([c, s]) => c && s && c.id === s.id));
 
-    players$ = this.socket
-        .listenFor<Player[]>(WebSocketIncomingEvent.players)
-        .pipe(
-            withLatestFrom(
-                this.socket
-                    .listenFor<{ id: string; score: number }[]>(
-                        WebSocketIncomingEvent.startRound,
-                    )
-                    .pipe(startWith([])),
+    players$ = combineLatest([
+        this.socket.listenFor<Player[]>(WebSocketIncomingEvent.players),
+        this.socket
+            .listenFor<{ players: { id: string; score: number }[] }>(
+                WebSocketIncomingEvent.startRound,
+            )
+            .pipe(
+                map(d => d.players),
+                startWith([]),
             ),
-            map(([players, playingPlayers]) => {
-                return players.map(player => {
-                    const scorePlayer = playingPlayers.find(
-                        p => p.id === player.id,
-                    );
-                    return scorePlayer
-                        ? { ...player, score: scorePlayer.score }
-                        : player;
-                });
-            }),
-        );
+    ]).pipe(
+        map(([players, playingPlayers]) => {
+            return players.map(player => {
+                const scorePlayer = playingPlayers.find(
+                    p => p.id === player.id,
+                );
+                return scorePlayer
+                    ? { ...player, score: scorePlayer.score }
+                    : player;
+            });
+        }),
+    );
     destroy$ = new Subject();
     waiting$ = this.stateService.state$.pipe(
         map(e => {
@@ -205,6 +206,27 @@ export class HomeComponent implements OnInit, OnDestroy {
                     });
                 }
             });
+        this.socket
+            .listenFor<any>(WebSocketIncomingEvent.endGame)
+            .pipe(
+                takeUntil(this.destroy$),
+                withLatestFrom(this.players$),
+            )
+            .subscribe(([endGame, players]) => {
+                const { winner, players: playerScore } = endGame;
+                const playerWithScore = players
+                    .filter(p => playerScore.find(q => q.id === p.id))
+                    .map(p => {
+                        return {
+                            ...p,
+                            score: playerScore.find(q => p.id === q.id),
+                        };
+                    });
+                this.stateService.sendEvent({
+                    type: AppEventType.END_GAME,
+                });
+                this.showGameEnded(winner, playerWithScore);
+            });
     }
 
     selectPlayer(player: Player) {
@@ -282,6 +304,16 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.socket.emit({
             event: WebSocketOutgoingEvent.startGame,
             data: null,
+        });
+    }
+    showGameEnded(winner: string, players: Player[]) {
+        const winP = players.find(player => player.id === winner);
+        const nzContent = `${winP.name} wins!`;
+        const modal = this.modalService.info({
+            nzTitle: 'Game Ended!',
+            nzContent,
+            nzOnOk: () => modal.close(),
+            nzKeyboard: false,
         });
     }
     showWelcomeModal(edit: boolean = false): void {
