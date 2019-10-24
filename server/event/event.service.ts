@@ -17,6 +17,8 @@ import {
     EndGameEvent,
     EndRoundEvent,
     StartTurnEvent,
+    PlayerAttemptEvent,
+    EndTurnEvent,
 } from './out-events';
 import { IN_EVENT } from './in-events';
 import { emitEvent, filterEvent } from './event.utils';
@@ -78,7 +80,9 @@ export class EventService {
         OUT_EVENT.START_TURN,
     );
 
-    broadcastEndTurn = this.broadcastEvent(OUT_EVENT.END_TURN);
+    broadcastAttempt = this.broadcastEvent<PlayerAttemptEvent>(
+        OUT_EVENT.ATTEMPT,
+    );
 
-
+    broadcastEndTurn = this.broadcastEvent<EndTurnEvent>(OUT_EVENT.END_TURN);
 }
