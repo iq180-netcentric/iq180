@@ -134,6 +134,16 @@ export class StateService {
                             cond: 'SINGLE_PLAYER',
                             actions: ['CLEAR_GAME'],
                         },
+                        [AppEventType.END_GAME]: {
+                            actions: [
+                                send(
+                                    () => ({
+                                        type: GameEventType.EXIT,
+                                    }),
+                                    { to: 'game' },
+                                ),
+                            ],
+                        },
                     },
                     states: {
                         [GameState.WAITING]: {
@@ -215,21 +225,21 @@ export class StateService {
                                             ctx,
                                             evt: GenericGameEvent<
                                                 GameAnswer & {
-                                                    numbersLeft: number;
+                                                    numberLeft: number;
                                                 }
                                             >,
                                         ) => {
                                             const {
                                                 answer,
                                                 expectedAnswer,
-                                                numbersLeft,
+                                                numberLeft,
                                             } = evt.payload;
                                             return (
                                                 calculate(answer) ===
                                                     expectedAnswer &&
                                                 ctx.currentGame.mode ===
                                                     GameMode.singlePlayer &&
-                                                numbersLeft === 0
+                                                numberLeft === 0
                                             );
                                         },
                                     },
@@ -282,6 +292,11 @@ export class StateService {
                                 2000: {
                                     target: GameState.WAITING,
                                     actions: ['CLEAR_WINNER'],
+                                    cond: (ctx, _) =>
+                                        !(
+                                            ctx.currentGame.mode ===
+                                            GameMode.singlePlayer
+                                        ),
                                 },
                             },
                         },
@@ -317,6 +332,11 @@ export class StateService {
                                 2000: {
                                     target: GameState.WAITING,
                                     actions: ['CLEAR_WINNER'],
+                                    cond: (ctx, _) =>
+                                        !(
+                                            ctx.currentGame.mode ===
+                                            GameMode.singlePlayer
+                                        ),
                                 },
                             },
                         },

@@ -17,6 +17,16 @@
         flex-wrap: wrap;
         width: 100%;
     }
+    .wait,
+    .notCurrent {
+        min-height: 300px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        img {
+            width: auto;
+        }
+    }
     .game {
         .numbers,
         .operators {
