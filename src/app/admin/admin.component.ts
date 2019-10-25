@@ -20,14 +20,6 @@ import { takeWhile, pluck, map, tap } from 'rxjs/operators';
     styleUrls: ['./admin.component.scss'],
 })
 export class AdminComponent implements OnInit {
-    constructor(
-        private socket: WebSocketService,
-        @Inject(PLATFORM_ID) private platformId: Object,
-    ) {}
-
-    get isBrowser() {
-        return isPlatformBrowser(this.platformId);
-    }
     @ViewChild('term', { static: true }) child: NgTerminal;
 
     line: string[] = [];
@@ -37,14 +29,10 @@ export class AdminComponent implements OnInit {
     password: string;
 
     wrongCount = 0;
-
-    adminJoin$ = this.socket.listenFor<boolean>(
-        WebSocketIncomingEvent.adminLoggedIn,
-    );
-
-    commandResult$ = this.socket.listenFor<string>(
-        WebSocketIncomingEvent.result,
-    );
+    constructor(
+        private socket: WebSocketService,
+        @Inject(PLATFORM_ID) private platformId: Object,
+    ) {}
 
     ngOnInit() {
         this.socket.observable.subscribe(console.log);
@@ -72,6 +60,10 @@ export class AdminComponent implements OnInit {
             this.println(message);
             this.writePrompt();
         });
+    }
+
+    get isBrowser() {
+        return isPlatformBrowser(this.platformId);
     }
     ngAfterViewInit() {
         // this.invalidate();
@@ -116,9 +108,14 @@ export class AdminComponent implements OnInit {
         const audio = new Audio();
         audio.src = '../assets/audio/explode.mp3';
         audio.load();
-        // audio.loop = true;
+        //audio.loop = true;
         audio.play();
-        // audio.pause();
+        //audio.pause();
+    }
+
+    reset() {
+        this.command('RESET');
+        this.playAudio();
     }
 
     async handleCommand(command: string) {
@@ -127,13 +124,14 @@ export class AdminComponent implements OnInit {
             const [cmd, ...args] = command.replace(/\s+/, ' ').split(' ');
             switch (cmd) {
                 case 'reset':
-                    this.command('RESET');
+                    this.reset();
                     break;
                 case 'help':
                     this.println(`Available Commands`);
-                    this.println('reset         reset the game');
-                    this.println('online        list online players');
-                    this.println('players       list playing players');
+                    this.println('reset\t\t\t: Reset the game');
+                    this.println('online\t\t\t: List online players');
+                    this.println('players\t\t\t: List playing players');
+                    this.println('clear\t\t\t: Clear Terminal');
                     this.ready = true;
                     this.writePrompt();
                     break;
@@ -197,4 +195,12 @@ export class AdminComponent implements OnInit {
     println(line: string) {
         this.child.write(line + '\r\n');
     }
+
+    adminJoin$ = this.socket.listenFor<boolean>(
+        WebSocketIncomingEvent.adminLoggedIn,
+    );
+
+    commandResult$ = this.socket.listenFor<string>(
+        WebSocketIncomingEvent.result,
+    );
 }
