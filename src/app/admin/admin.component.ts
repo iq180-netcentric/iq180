@@ -113,19 +113,25 @@ export class AdminComponent implements OnInit {
         //audio.pause();
     }
 
+    reset() {
+        this.command('RESET');
+        this.playAudio();
+    }
+
     async handleCommand(command: string) {
         this.ready = false;
         if (this.isLoggedIn) {
             const [cmd, ...args] = command.replace(/\s+/, ' ').split(' ');
             switch (cmd) {
                 case 'reset':
-                    this.command('RESET');
+                    this.reset();
                     break;
                 case 'help':
                     this.println(`Available Commands`);
-                    this.println('reset         reset the game');
-                    this.println('online        list online players');
-                    this.println('players       list playing players');
+                    this.println('reset\t\t\t: Reset the game');
+                    this.println('online\t\t\t: List online players');
+                    this.println('players\t\t\t: List playing players');
+                    this.println('clear\t\t\t: Clear Terminal');
                     this.ready = true;
                     this.writePrompt();
                     break;

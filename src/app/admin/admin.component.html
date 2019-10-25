@@ -1,5 +1,5 @@
 <ng-terminal #term></ng-terminal>
 <ng-container *ngIf="isBrowser"> </ng-container>
-<button *ngIf="isLoggedIn" (click)="command('RESET')">
+<button *ngIf="isLoggedIn" (click)="reset()">
     <strong>Force Reset</strong><br />Hit me hard
 </button>
