@@ -104,6 +104,15 @@ export class AdminComponent implements OnInit {
         this.child.write(this.prompt);
     }
 
+    playAudio() {
+        const audio = new Audio();
+        audio.src = '../assets/audio/explode.mp3';
+        audio.load();
+        //audio.loop = true;
+        audio.play();
+        //audio.pause();
+    }
+
     async handleCommand(command: string) {
         this.ready = false;
         if (this.isLoggedIn) {
