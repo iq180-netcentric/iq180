@@ -54,8 +54,7 @@ import { GameMode, GameInfo } from 'src/app/core/models/game/game.model';
 import { WebSocketService } from 'src/app/core/service/web-socket.service';
 import { WebSocketOutgoingEvent } from 'src/app/core/models/web-socket.model';
 import { calculate } from 'iq180-logic';
-import { Player } from 'server/models/player';
-
+import { Player } from 'src/app/core/models/player.model';
 @Component({
     selector: 'app-game-field',
     templateUrl: './game-field.component.html',
@@ -155,10 +154,10 @@ export class GameFieldComponent implements OnInit, OnDestroy {
         this.stateService.lose$
             .pipe(
                 takeUntil(this.destroy$),
-                debounceTime(500),
+                debounceTime(100),
             )
-            .subscribe(() => {
-                this.showLoseDialog();
+            .subscribe(winner => {
+                this.showLoseDialog(winner);
             });
         combineLatest([
             this.stateService.question$,
@@ -294,6 +293,7 @@ export class GameFieldComponent implements OnInit, OnDestroy {
     }
 
     showLoseDialog(winner?: Player) {
+        console.log(winner);
         const nzContent = winner
             ? `${winner.name} win !`
             : 'Better luck next time';
