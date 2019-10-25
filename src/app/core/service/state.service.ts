@@ -225,6 +225,7 @@ export class StateService {
                                     target: GameState.LOSE,
                                     actions: assign<AppContext>({
                                         winner: (_, evt) => {
+                                            console.log(evt.payload);
                                             return evt.payload;
                                         },
                                     }),
