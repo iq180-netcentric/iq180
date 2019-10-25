@@ -28,6 +28,7 @@ export class AdminComponent implements OnInit {
     isLoggedIn = false;
     password: string;
 
+    wrongCount = 0;
     constructor(
         private socket: WebSocketService,
         @Inject(PLATFORM_ID) private platformId: Object,
@@ -39,10 +40,18 @@ export class AdminComponent implements OnInit {
             this.ready = true;
             if (sucess) {
                 this.isLoggedIn = true;
-                this.println('login successful');
+                this.println('Login successful');
                 this.prompt = 'IQ180-admin$ ';
+                this.wrongCount = 0;
             } else {
-                this.println('invalid password');
+                if (this.wrongCount === 2) {
+                    this.println('Bye, See you later');
+                    window.location.href =
+                        'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+                } else {
+                    this.wrongCount++;
+                    this.println('Invalid password');
+                }
             }
             this.writePrompt();
         });
