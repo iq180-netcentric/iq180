@@ -148,10 +148,14 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             START_ROUND: assign<GameContext>({
                 roundActor: ctx => {
                     const getPlayers = () => {
+                        function shuffle(array) {
+                            array.sort(() => Math.random() - 0.5);
+                        }
                         const players = ctx.players
                             .map(p => p.id)
                             .toIndexedSeq()
                             .toArray();
+                        shuffle(players)
                         const { winner } = ctx;
                         if (!winner) {
                             return players;
@@ -170,9 +174,9 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
                 players: ({ players }, { payload }: EndRound) => {
                     return payload
                         ? players.update(payload, player => ({
-                              ...player,
-                              score: player.score + 1,
-                          }))
+                            ...player,
+                            score: player.score + 1,
+                        }))
                         : players;
                 },
                 winner: (_, { payload }) => payload,
