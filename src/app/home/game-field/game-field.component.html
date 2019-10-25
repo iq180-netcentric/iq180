@@ -35,7 +35,8 @@
                 </nz-card>
             </ng-template>
         </div>
-        <ng-container *ngIf="!waiting && isCurrentPlayer">
+        <!-- TODO: Make this work peroperly -->
+        <ng-container *ngIf="isCurrentPlayer">
             <div
                 *ngIf="timer$ | async as timer"
                 class="timer"
@@ -190,7 +191,9 @@
             <span style="font-size: 24px; align-self: center"
                 >~ Processing ~</span
             >
-            <img src="https://iruntheinternet.com/lulzdump/images/gifs/dog-doge-shaking-Shiba-Inu-wow-1396293701t.gif" />
+            <img
+                src="https://iruntheinternet.com/lulzdump/images/gifs/dog-doge-shaking-Shiba-Inu-wow-1396293701t.gif"
+            />
         </ng-container>
     </div>
 </ng-template>

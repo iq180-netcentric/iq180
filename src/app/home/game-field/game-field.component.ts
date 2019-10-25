@@ -175,6 +175,7 @@ export class GameFieldComponent implements OnInit, OnDestroy {
                 if (this.modalRef) {
                     this.modalRef.close();
                 }
+                this.createTimer();
                 this.dndService.setQuestion({ question, expectedAnswer });
             });
         this.keypress$
@@ -293,7 +294,6 @@ export class GameFieldComponent implements OnInit, OnDestroy {
     }
 
     showLoseDialog(winner?: Player) {
-        console.log(winner);
         const nzContent = winner
             ? `${winner.name} win !`
             : 'Better luck next time';
